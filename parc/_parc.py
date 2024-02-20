@@ -8,45 +8,84 @@ import time
 from umap.umap_ import find_ab_params, simplicial_set_embedding
 
 
-#latest github upload 27-June-2020
 class PARC:
-    def __init__(self, data, true_label=None, dist_std_local=3, jac_std_global='median', keep_all_local_dist='auto',
-                 too_big_factor=0.4, small_pop=10, jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
-                 num_threads=-1, distance='l2', time_smallpop=15, partition_type = "ModularityVP", resolution_parameter = 1.0,
-                 knn_struct=None, neighbor_graph=None, hnsw_param_ef_construction = 150):
-        # higher dist_std_local means more edges are kept
-        # highter jac_std_global means more edges are kept
-        if keep_all_local_dist == 'auto':
+    """Phenotyping by accelerated refined community-partitioning.
+
+    Attributes:
+        data: (np.array) a Numpy array of the input x data, with dimensions (n_samples, n_features).
+        true_label: (np.array) a Numpy array of the output y labels.
+        dist_std_local: (int) similar to the jac_std_global parameter. Avoid setting local and
+            global pruning to both be below 0.5 as this is very aggresive pruning.
+            Higher ``dist_std_local`` means more edges are kept.
+        jac_std_global: (float) 0.15 is a recommended value performing empirically similar
+            to ``median``. Generally values between 0-1.5 are reasonable.
+            Higher ``jac_std_global`` means more edges are kept.
+        keep_all_local_dist: (bool) whether or not to do local pruning.
+            Default is 'auto' which omits LOCAL pruning for samples > 300 000 cells.
+        too_big_factor: (float) if a cluster exceeds this share of the entire cell population,
+            then the PARC will be run on the large cluster. At 0.4 it does not come into play.
+        small_pop: (int) the smallest cluster population size to be considered a community.
+        jac_weighted_edges: (bool) whether to partition using the weighted graph.
+        knn: (int) the number of clusters k for the k-nearest neighbours algorithm.
+        n_iter_leiden: (int) the number of iterations for the Leiden algorithm.
+        random_seed: (int) the random seed to enable reproducible Leiden clustering.
+        num_threads: (int) the number of threads used in the KNN algorithm.
+        distance: (string) the distance metric to be used in the KNN algorithm:
+            "l2": Euclidean distance L^2 norm, d = sum((x_i - y_i)^2)
+            "cosine": cosine similarity, d = 1.0 - sum(x_i*y_i) / sqrt(sum(x_i*x_i) * sum(y_i*y_i))
+            "ip": inner product distance, d = 1.0 - sum(x_i*y_i)
+        time_smallpop: (int) number of seconds trying to check an outlier
+        partition_type: (string) the partition type to be used in the Leiden algorithm:
+            "ModularityVP": ModularityVertexPartition, ``resolution_parameter=1``
+            "RBVP": RBConfigurationVP, Reichardt and Bornholdt’s Potts model. Note that this is the
+                same as ModularityVertexPartition when setting 𝛾 = 1 and normalising by 2m.
+        resolution_parameter: (float) the resolution parameter to be used in the Leiden algorithm.
+            In order to change ``resolution_parameter``, we switch to ``RBVP``.
+        knn_struct: (TODO) the hnsw index of the KNN graph on which we perform queries.
+        neighbor_graph: (TODO) CSR affinity matrix for pre-computed nearest neighbors.
+        hnsw_param_ef_construction: (int) a higher value increases accuracy of index construction.
+            Even for O(100 000) cells, 150-200 is adequate.
+    """
+
+    def __init__(self, data, true_label=None, dist_std_local=3, jac_std_global="median",
+                 keep_all_local_dist='auto', too_big_factor=0.4, small_pop=10,
+                 jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
+                 num_threads=-1, distance='l2', time_smallpop=15, partition_type="ModularityVP",
+                 resolution_parameter=1.0, knn_struct=None, neighbor_graph=None,
+                 hnsw_param_ef_construction=150):
+
+        if keep_all_local_dist == "auto":
             if data.shape[0] > 300000:
                 keep_all_local_dist = True  # skips local pruning to increase speed
             else:
                 keep_all_local_dist = False
-        if resolution_parameter !=1:
-            partition_type = "RBVP" # Reichardt and Bornholdt’s Potts model. Note that this is the same as ModularityVertexPartition when setting 𝛾 = 1 and normalising by 2m
+        if resolution_parameter != 1:
+            partition_type = "RBVP"
         self.data = data
         self.true_label = true_label
-        self.dist_std_local = dist_std_local   # similar to the jac_std_global parameter. avoid setting local and global pruning to both be below 0.5 as this is very aggresive pruning.
-        self.jac_std_global = jac_std_global  #0.15 is also a recommended value performing empirically similar to 'median'. Generally values between 0-1.5 are reasonable.
-        self.keep_all_local_dist = keep_all_local_dist #decides whether or not to do local pruning. default is 'auto' which omits LOCAL pruning for samples >300,000 cells.
-        self.too_big_factor = too_big_factor  #if a cluster exceeds this share of the entire cell population, then the PARC will be run on the large cluster. at 0.4 it does not come into play
-        self.small_pop = small_pop  # smallest cluster population to be considered a community
-        self.jac_weighted_edges = jac_weighted_edges #boolean. whether to partition using weighted graph
+        self.dist_std_local = dist_std_local
+        self.jac_std_global = jac_std_global
+        self.keep_all_local_dist = keep_all_local_dist
+        self.too_big_factor = too_big_factor
+        self.small_pop = small_pop
+        self.jac_weighted_edges = jac_weighted_edges
         self.knn = knn
-        self.n_iter_leiden = n_iter_leiden #the default is 5 in PARC
-        self.random_seed = random_seed  # enable reproducible Leiden clustering
-        self.num_threads = num_threads  # number of threads used in KNN search/construction
-        self.distance = distance  # Euclidean distance 'l2' by default; other options 'ip' and 'cosine'
-        self.time_smallpop = time_smallpop #number of seconds trying to check an outlier
-        self.partition_type = partition_type #default is the simple ModularityVertexPartition where resolution_parameter =1. In order to change resolution_parameter, we switch to RBConfigurationVP
-        self.resolution_parameter = resolution_parameter # defaults to 1. expose this parameter in leidenalg
-        self.knn_struct = knn_struct #the hnsw index of the KNN graph on which we perform queries
-        self.neighbor_graph = neighbor_graph # CSR affinity matrix for pre-computed nearest neighbors
-        self.hnsw_param_ef_construction = hnsw_param_ef_construction #set at 150. higher value increases accuracy of index construction. Even for several 100,000s of cells 150-200 is adequate
+        self.n_iter_leiden = n_iter_leiden
+        self.random_seed = random_seed
+        self.num_threads = num_threads
+        self.distance = distance
+        self.time_smallpop = time_smallpop
+        self.partition_type = partition_type
+        self.resolution_parameter = resolution_parameter
+        self.knn_struct = knn_struct
+        self.neighbor_graph = neighbor_graph
+        self.hnsw_param_ef_construction = hnsw_param_ef_construction
 
     def make_knn_struct(self, too_big=False, big_cluster=None):
-        if self.knn > 190: print('consider using a lower K_in for KNN graph construction')
+        if self.knn > 190:
+            print(f"knn = {self.knn}; consider using a lower K_in for KNN graph construction")
         ef_query = max(100, self.knn + 1)  # ef always should be >K. higher ef, more accurate query
-        if too_big == False:
+        if not too_big:
             num_dims = self.data.shape[1]
             n_elements = self.data.shape[0]
             p = hnswlib.Index(space=self.distance, dim=num_dims)  # default to Euclidean distance
@@ -56,13 +95,14 @@ class PARC:
                 ef_construction = ef_query
             else:
                 ef_construction = self.hnsw_param_ef_construction
-            if (num_dims > 30) & (n_elements<=50000) :
-                p.init_index(max_elements=n_elements, ef_construction=ef_construction,
-                             M=48)  ## good for scRNA seq where dimensionality is high
+            if (num_dims > 30) & (n_elements <= 50000):
+                p.init_index(
+                    max_elements=n_elements, ef_construction=ef_construction, M=48
+                )  # good for scRNA seq where dimensionality is high
             else:
-                p.init_index(max_elements=n_elements, ef_construction=ef_construction, M=24 ) #30
+                p.init_index(max_elements=n_elements, ef_construction=ef_construction, M=24) #30
             p.add_items(self.data)
-        if too_big == True:
+        if too_big:
             num_dims = big_cluster.shape[1]
             n_elements = big_cluster.shape[0]
             p = hnswlib.Index(space='l2', dim=num_dims)
@@ -74,7 +114,6 @@ class PARC:
 
     def knngraph_full(self):#, neighbor_array, distance_array):
         k_umap = 15
-        t0= time.time()
         # neighbors in array are not listed in in any order of proximity
         self.knn_struct.set_ef(k_umap+1)
         neighbor_array, distance_array = self.knn_struct.knn_query(self.data, k=k_umap)
@@ -85,11 +124,10 @@ class PARC:
 
         row_list.extend(list(np.transpose(np.ones((n_neighbors, n_cells)) * range(0, n_cells)).flatten()))
 
-
         row_min = np.min(distance_array, axis=1)
         row_sigma = np.std(distance_array, axis=1)
 
-        distance_array = (distance_array - row_min[:,np.newaxis])/row_sigma[:,np.newaxis]
+        distance_array = (distance_array - row_min[:, np.newaxis]) / row_sigma[:, np.newaxis]
 
         col_list = neighbor_array.flatten().tolist()
         distance_array = distance_array.flatten()
@@ -98,13 +136,11 @@ class PARC:
 
         weight_list = np.exp(distance_array)
 
-
-        threshold = np.mean(weight_list) + 2* np.std(weight_list)
+        threshold = np.mean(weight_list) + 2 * np.std(weight_list)
 
         weight_list[weight_list >= threshold] = threshold
 
         weight_list = weight_list.tolist()
-
 
         graph = csr_matrix((np.array(weight_list), (np.array(row_list), np.array(col_list))),
                            shape=(n_cells, n_cells))
@@ -125,7 +161,7 @@ class PARC:
         n_cells = neighbor_array.shape[0]
         rowi = 0
         discard_count = 0
-        if self.keep_all_local_dist == False:  # locally prune based on (squared) l2 distance
+        if not self.keep_all_local_dist:  # locally prune based on (squared) l2 distance
 
             print('commencing local pruning based on Euclidean distance metric at',
                   self.dist_std_local, 's.dev above mean')
@@ -146,7 +182,7 @@ class PARC:
 
                 rowi = rowi + 1
 
-        if self.keep_all_local_dist == True:  # dont prune based on distance
+        if self.keep_all_local_dist:  # dont prune based on distance
             row_list.extend(list(np.transpose(np.ones((n_neighbors, n_cells)) * range(0, n_cells)).flatten()))
             col_list = neighbor_array.flatten().tolist()
             weight_list = (1. / (distance_array.flatten() + 0.1)).tolist()
@@ -159,27 +195,21 @@ class PARC:
         # If multiple items are maximal, the function returns the first one encountered.
         return max(set(ll), key=ll.count)
 
-    def run_toobig_subPARC(self, X_data, jac_std_toobig=0.3,
-                           jac_weighted_edges=True):
+    def run_toobig_subPARC(self, X_data, jac_std_toobig=0.3, jac_weighted_edges=True):
         n_elements = X_data.shape[0]
         hnsw = self.make_knn_struct(too_big=True, big_cluster=X_data)
-        if n_elements <= 10: print('consider increasing the too_big_factor')
+        if n_elements <= 10:
+            print('consider increasing the too_big_factor')
         if n_elements > self.knn:
             knnbig = self.knn
         else:
             knnbig = int(max(5, 0.2 * n_elements))
 
         neighbor_array, distance_array = hnsw.knn_query(X_data, k=knnbig)
-        # print('shapes of neigh and dist array', neighbor_array.shape, distance_array.shape)
+
         csr_array = self.make_csrmatrix_noselfloop(neighbor_array, distance_array)
         sources, targets = csr_array.nonzero()
-        #mask = np.zeros(len(sources), dtype=bool)
 
-        #mask |= (csr_array.data < (np.mean(csr_array.data) - np.std(csr_array.data) * 5))  # weights are 1/dist so bigger weight means closer nodes
-
-        #csr_array.data[mask] = 0
-        #csr_array.eliminate_zeros()
-        #sources, targets = csr_array.nonzero()
         edgelist = list(zip(sources.tolist(), targets.tolist()))
         edgelist_copy = edgelist.copy()
         G = ig.Graph(edgelist, edge_attrs={'weight': csr_array.data.tolist()})
@@ -194,28 +224,35 @@ class PARC:
         print('jac std %.3f' % np.std(sim_list))
         print('jac mean %.3f' % np.mean(sim_list))
         strong_locs = np.where(sim_list_array > threshold)[0]
-        for ii in strong_locs: new_edgelist.append(edgelist_copy[ii])
+        for ii in strong_locs:
+            new_edgelist.append(edgelist_copy[ii])
         sim_list_new = list(sim_list_array[strong_locs])
 
-        if jac_weighted_edges == True:
+        if jac_weighted_edges:
             G_sim = ig.Graph(n=n_elements, edges=list(new_edgelist), edge_attrs={'weight': sim_list_new})
         else:
             G_sim = ig.Graph(n=n_elements, edges=list(new_edgelist))
         G_sim.simplify(combine_edges='sum')
-        if jac_weighted_edges == True:
-            if self.partition_type =='ModularityVP':
-                partition = leidenalg.find_partition(G_sim, leidenalg.ModularityVertexPartition, weights='weight',
-                                                 n_iterations=self.n_iter_leiden, seed=self.random_seed)
+        if jac_weighted_edges:
+            if self.partition_type == 'ModularityVP':
+                partition = leidenalg.find_partition(
+                    G_sim, leidenalg.ModularityVertexPartition, weights='weight',
+                    n_iterations=self.n_iter_leiden, seed=self.random_seed)
                 print('partition type MVP')
             else:
-                partition = leidenalg.find_partition(G_sim, leidenalg.RBConfigurationVertexPartition, weights='weight',
-                                                 n_iterations=self.n_iter_leiden, seed=self.random_seed, resolution_parameter=self.resolution_parameter)
+                partition = leidenalg.find_partition(
+                    G_sim, leidenalg.RBConfigurationVertexPartition, weights='weight',
+                    n_iterations=self.n_iter_leiden, seed=self.random_seed,
+                    resolution_parameter=self.resolution_parameter
+                )
                 print('partition type RBC')
         else:
             if self.partition_type == 'ModularityVP':
                 print('partition type MVP')
-                partition = leidenalg.find_partition(G_sim, leidenalg.ModularityVertexPartition,
-                                                 n_iterations=self.n_iter_leiden, seed=self.random_seed)
+                partition = leidenalg.find_partition(
+                    G_sim, leidenalg.ModularityVertexPartition, n_iterations=self.n_iter_leiden,
+                    seed=self.random_seed
+                )
             else:
                 print('partition type RBC')
                 partition = leidenalg.find_partition(G_sim, leidenalg.RBConfigurationVertexPartition,
@@ -249,7 +286,7 @@ class PARC:
 
         time_smallpop_start = time.time()
         print('handling fragments')
-        while (small_pop_exist) == True & (time.time() - time_smallpop_start < self.time_smallpop):
+        while (small_pop_exist) & (time.time() - time_smallpop_start < self.time_smallpop):
             small_pop_list = []
             small_pop_exist = False
             for cluster in set(list(PARC_labels_leiden.flatten())):
@@ -272,7 +309,6 @@ class PARC:
 
     def run_subPARC(self):
 
-
         X_data = self.data
         too_big_factor = self.too_big_factor
         small_pop = self.small_pop
@@ -280,7 +316,6 @@ class PARC:
         jac_weighted_edges = self.jac_weighted_edges
         knn = self.knn
         n_elements = X_data.shape[0]
-
 
         if self.neighbor_graph is not None:
             csr_array = self.neighbor_graph
@@ -301,8 +336,7 @@ class PARC:
         edgelist_copy = edgelist.copy()
 
         G = ig.Graph(edgelist, edge_attrs={'weight': csr_array.data.tolist()})
-        # print('average degree of prejacard graph is %.1f'% (np.mean(G.degree())))
-        # print('computing Jaccard metric')
+
         sim_list = G.similarity_jaccard(pairs=edgelist_copy)
 
         print('commencing global pruning')
@@ -315,56 +349,58 @@ class PARC:
         else:
             threshold = np.mean(sim_list) - jac_std_global * np.std(sim_list)
         strong_locs = np.where(sim_list_array > threshold)[0]
-        # print('Share of edges kept after Global Pruning %.2f' % (len(strong_locs) / len(sim_list)), '%')
+
         new_edgelist = list(edge_list_copy_array[strong_locs])
         sim_list_new = list(sim_list_array[strong_locs])
 
         G_sim = ig.Graph(n=n_elements, edges=list(new_edgelist), edge_attrs={'weight': sim_list_new})
-        # print('average degree of graph is %.1f' % (np.mean(G_sim.degree())))
         G_sim.simplify(combine_edges='sum')  # "first"
-        # print('average degree of SIMPLE graph is %.1f' % (np.mean(G_sim.degree())))
+
         print('commencing community detection')
-        if jac_weighted_edges == True:
-            start_leiden = time.time()
-            if self.partition_type =='ModularityVP':
-                print('partition type MVP')
-                partition = leidenalg.find_partition(G_sim, leidenalg.ModularityVertexPartition, weights='weight',
-                                                 n_iterations=self.n_iter_leiden, seed=self.random_seed)
-            else:
-                print('partition type RBC')
-                partition = leidenalg.find_partition(G_sim, leidenalg.RBConfigurationVertexPartition, weights='weight',
-                                                     n_iterations=self.n_iter_leiden, seed=self.random_seed, resolution_parameter = self.resolution_parameter)
-            #print(time.time() - start_leiden)
-        else:
+        if jac_weighted_edges:
             start_leiden = time.time()
             if self.partition_type == 'ModularityVP':
-                partition = leidenalg.find_partition(G_sim, leidenalg.ModularityVertexPartition,
-                                                 n_iterations=self.n_iter_leiden, seed=self.random_seed)
+                print('partition type MVP')
+                partition = leidenalg.find_partition(
+                    G_sim, leidenalg.ModularityVertexPartition, weights='weight',
+                    n_iterations=self.n_iter_leiden, seed=self.random_seed
+                )
+            else:
+                print('partition type RBC')
+                partition = leidenalg.find_partition(
+                    G_sim, leidenalg.RBConfigurationVertexPartition, weights='weight',
+                    n_iterations=self.n_iter_leiden, seed=self.random_seed,
+                    resolution_parameter=self.resolution_parameter
+                )
+        else:
+            if self.partition_type == 'ModularityVP':
+                partition = leidenalg.find_partition(
+                    G_sim, leidenalg.ModularityVertexPartition, n_iterations=self.n_iter_leiden,
+                    seed=self.random_seed
+                )
                 print('partition type MVP')
             else:
-                partition = leidenalg.find_partition(G_sim, leidenalg.RBConfigurationVertexPartition,
-                                                     n_iterations=self.n_iter_leiden, seed=self.random_seed, resolution_parameter = self.resolution_parameter)
+                partition = leidenalg.find_partition(
+                    G_sim, leidenalg.RBConfigurationVertexPartition, n_iterations=self.n_iter_leiden,
+                    seed=self.random_seed, resolution_parameter=self.resolution_parameter
+                )
                 print('partition type RBC')
-            # print(time.time() - start_leiden)
-        time_end_PARC = time.time()
-        # print('Q= %.1f' % (partition.quality()))
+
         PARC_labels_leiden = np.asarray(partition.membership)
         PARC_labels_leiden = np.reshape(PARC_labels_leiden, (n_elements, 1))
 
         too_big = False
 
-        # print('labels found after Leiden', set(list(PARC_labels_leiden.T)[0])) will have some outlier clusters that need to be added to a cluster if a cluster has members that are KNN
-
-        cluster_i_loc = np.where(PARC_labels_leiden == 0)[
-            0]  # the 0th cluster is the largest one. so if cluster 0 is not too big, then the others wont be too big either
+        # The 0th cluster is the largest one. So if cluster 0 is not too big, then the others won't
+        # be too big either
+        cluster_i_loc = np.where(PARC_labels_leiden == 0)[0]
         pop_i = len(cluster_i_loc)
         if pop_i > too_big_factor * n_elements:  # 0.4
             too_big = True
             cluster_big_loc = cluster_i_loc
             list_pop_too_bigs = [pop_i]
-            cluster_too_big = 0
 
-        while too_big == True:
+        while too_big:
 
             X_data_big = X_data[cluster_big_loc, :]
             PARC_labels_leiden_big = self.run_toobig_subPARC(X_data_big)
@@ -427,7 +463,7 @@ class PARC:
                     best_group = max(available_neighbours_list, key=available_neighbours_list.count)
                     PARC_labels_leiden[single_cell] = best_group
         time_smallpop_start = time.time()
-        while (small_pop_exist == True) & ((time.time() - time_smallpop_start) < self.time_smallpop):
+        while (small_pop_exist) & ((time.time() - time_smallpop_start) < self.time_smallpop):
             small_pop_list = []
             small_pop_exist = False
             for cluster in set(list(PARC_labels_leiden.flatten())):
@@ -446,13 +482,13 @@ class PARC:
 
         dummy, PARC_labels_leiden = np.unique(list(PARC_labels_leiden.flatten()), return_inverse=True)
         PARC_labels_leiden = list(PARC_labels_leiden.flatten())
-        # print('final labels allocation', set(PARC_labels_leiden))
+
         pop_list = []
         for item in set(PARC_labels_leiden):
             pop_list.append((item, PARC_labels_leiden.count(item)))
         print('list of cluster labels and populations', len(pop_list), pop_list)
 
-        self.labels = PARC_labels_leiden  # list
+        self.labels = PARC_labels_leiden
         return
 
     def accuracy(self, onevsall=1):
@@ -476,7 +512,8 @@ class PARC:
         for kk in sorted_keys:
             vals = [t for t in Index_dict[kk]]
             majority_val = self.func_mode(vals)
-            if majority_val == onevsall: print('cluster', kk, ' has majority', onevsall, 'with population', len(vals))
+            if majority_val == onevsall:
+                print(f"cluster {kk} has majority {onevsall} with population {len(vals)}")
             if kk == -1:
                 len_unknown = len(vals)
                 print('len unknown', len_unknown)
@@ -508,8 +545,10 @@ class PARC:
         tpr = tp / n_cancer
         fpr = fp / n_pbmc
 
-        if tp != 0 or fn != 0: recall = tp / (tp + fn)  # ability to find all positives
-        if tp != 0 or fp != 0: precision = tp / (tp + fp)  # ability to not misclassify negatives as positives
+        if tp != 0 or fn != 0:
+            recall = tp / (tp + fn)  # ability to find all positives
+        if tp != 0 or fp != 0:
+            precision = tp / (tp + fp)  # ability to not misclassify negatives as positives
         if precision != 0 or recall != 0:
             f1_score = precision * recall * 2 / (precision + recall)
         majority_truth_labels = np.empty((len(true_labels), 1), dtype=object)
@@ -534,9 +573,6 @@ class PARC:
 
         time_start_total = time.time()
 
-        time_start_knn = time.time()
-
-        time_end_knn_struct = time.time() - time_start_knn
         # Query dataset, k - number of closest elements (returns 2 numpy arrays)
         self.run_subPARC()
         run_time = time.time() - time_start_total
@@ -546,14 +582,17 @@ class PARC:
         N = len(list(self.true_label))
         self.f1_accumulated = 0
         self.f1_mean = 0
-        self.stats_df = pd.DataFrame({'jac_std_global': [self.jac_std_global], 'dist_std_local': [self.dist_std_local],
-                                      'runtime(s)': [run_time]})
+        self.stats_df = pd.DataFrame({
+            'jac_std_global': [self.jac_std_global],
+            'dist_std_local': [self.dist_std_local],
+            'runtime(s)': [run_time]
+        })
         self.majority_truth_labels = []
         if len(targets) > 1:
             f1_accumulated = 0
             f1_acc_noweighting = 0
             for onevsall_val in targets:
-                print('target is', onevsall_val)
+                print(f"target is {onevsall_val}")
                 vals_roc, predict_class_array, majority_truth_labels, numclusters_targetval = self.accuracy(
                     onevsall=onevsall_val)
                 f1_current = vals_roc[1]
@@ -562,18 +601,22 @@ class PARC:
                 f1_acc_noweighting = f1_acc_noweighting + f1_current
 
                 list_roc.append(
-                    [self.jac_std_global, self.dist_std_local, onevsall_val] + vals_roc + [numclusters_targetval] + [
-                        run_time])
+                    [self.jac_std_global, self.dist_std_local, onevsall_val] + vals_roc
+                    + [numclusters_targetval] + [run_time]
+                )
 
             f1_mean = f1_acc_noweighting / len(targets)
             print("f1-score (unweighted) mean %.2f" % (f1_mean * 100), '%')
             print('f1-score weighted (by population) %.2f' % (f1_accumulated * 100), '%')
 
-            df_accuracy = pd.DataFrame(list_roc,
-                                       columns=['jac_std_global', 'dist_std_local', 'onevsall-target', 'error rate',
-                                                'f1-score', 'tnr', 'fnr',
-                                                'tpr', 'fpr', 'precision', 'recall', 'num_groups',
-                                                'population of target', 'num clusters', 'clustering runtime'])
+            df_accuracy = pd.DataFrame(
+                list_roc,
+                columns=[
+                    'jac_std_global', 'dist_std_local', 'onevsall-target', 'error rate',
+                    'f1-score', 'tnr', 'fnr', 'tpr', 'fpr', 'precision', 'recall', 'num_groups',
+                    'population of target', 'num clusters', 'clustering runtime'
+                ]
+            )
 
             self.f1_accumulated = f1_accumulated
             self.f1_mean = f1_mean
