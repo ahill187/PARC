@@ -6,6 +6,7 @@ import igraph as ig
 import leidenalg
 import time
 from umap.umap_ import find_ab_params, simplicial_set_embedding
+from parc.k_nearest_neighbours import create_hnsw_index
 
 
 class PARC:
@@ -82,35 +83,36 @@ class PARC:
         self.hnsw_param_ef_construction = hnsw_param_ef_construction
 
     def make_knn_struct(self, too_big=False, big_cluster=None):
+        """Create a Hierarchical Navigable Small Worlds (HNSW) graph.
+
+        See `hnswlib.Index
+        <https://github.com/nmslib/hnswlib/blob/master/python_bindings/LazyIndex.py>`__.
+
+        Args:
+            too_big: (bool) TODO.
+            big_cluster: TODO.
+
+        Returns:
+            (hnswlib.Index): array of shape (n_samples, n_components)
+                The optimized of ``graph`` into an ``n_components`` dimensional
+                euclidean space.
+        """
         if self.knn > 190:
             print(f"knn = {self.knn}; consider using a lower K_in for KNN graph construction")
-        ef_query = max(100, self.knn + 1)  # ef always should be >K. higher ef, more accurate query
-        if not too_big:
-            num_dims = self.data.shape[1]
-            n_elements = self.data.shape[0]
-            p = hnswlib.Index(space=self.distance, dim=num_dims)  # default to Euclidean distance
-            p.set_num_threads(self.num_threads)  # allow user to set threads used in KNN construction
-            if n_elements < 10000:
-                ef_query = min(n_elements - 10, 500)
-                ef_construction = ef_query
-            else:
-                ef_construction = self.hnsw_param_ef_construction
-            if (num_dims > 30) & (n_elements <= 50000):
-                p.init_index(
-                    max_elements=n_elements, ef_construction=ef_construction, M=48
-                )  # good for scRNA seq where dimensionality is high
-            else:
-                p.init_index(max_elements=n_elements, ef_construction=ef_construction, M=24) #30
-            p.add_items(self.data)
-        if too_big:
-            num_dims = big_cluster.shape[1]
-            n_elements = big_cluster.shape[0]
-            p = hnswlib.Index(space='l2', dim=num_dims)
-            p.init_index(max_elements=n_elements, ef_construction=200, M=30)
-            p.add_items(big_cluster)
-        p.set_ef(ef_query)  # ef should always be > k
 
-        return p
+        if not too_big:
+            data = self.data
+            distance = self.distance
+        else:
+            data = big_cluster
+            distance = "l2"
+
+        hnsw_index = create_hnsw_index(
+            data, distance, self.knn, self.num_threads,
+            self.hnsw_param_ef_construction, too_big
+        )
+
+        return hnsw_index
 
     def knngraph_full(self):#, neighbor_array, distance_array):
         k_umap = 15
@@ -427,13 +429,13 @@ class PARC:
                 cluster_ii_loc = np.where(PARC_labels_leiden == cluster_ii)[0]
                 pop_ii = len(cluster_ii_loc)
                 not_yet_expanded = pop_ii not in list_pop_too_bigs
-                if pop_ii > too_big_factor * n_elements and not_yet_expanded == True:
+                if pop_ii > too_big_factor * n_elements and not_yet_expanded:
                     too_big = True
                     print('cluster', cluster_ii, 'is too big and has population', pop_ii)
                     cluster_big_loc = cluster_ii_loc
                     cluster_big = cluster_ii
                     big_pop = pop_ii
-            if too_big == True:
+            if too_big:
                 list_pop_too_bigs.append(big_pop)
                 print('cluster', cluster_big, 'is too big with population', big_pop, '. It will be expanded')
         dummy, PARC_labels_leiden = np.unique(list(PARC_labels_leiden.flatten()), return_inverse=True)
