@@ -309,6 +309,31 @@ class PARC:
 
         return PARC_labels_leiden
 
+    def check_if_clusters_oversized(self, cluster_ids, n_samples):
+        """Check if the clusters are too big.
+
+        The 0th cluster is the largest one. So if cluster 0 is not too big, then the others won't
+        be too big either.
+
+        Args:
+            cluster_ids: TODO.
+            n_samples: (int) the number of samples in the data.
+
+        Returns:
+            too_big: (bool) whether or not the clusters are too big.
+            big_cluster_indices: (list) a list of indices of the 0th cluster, if it is too big.
+            cluster_size: (int) the size of the 0th cluster.
+        """
+
+        too_big = False
+        cluster_0_indices = np.where(cluster_ids == 0)[0]
+        cluster_size = len(cluster_0_indices)
+        big_cluster_indices = []
+        if cluster_size > self.too_big_factor * n_samples:  # 0.4
+            too_big = True
+            big_cluster_indices = cluster_0_indices
+        return too_big, big_cluster_indices, cluster_size
+
     def run_subPARC(self):
 
         X_data = self.data
@@ -375,16 +400,10 @@ class PARC:
         PARC_labels_leiden = np.asarray(partition.membership)
         PARC_labels_leiden = np.reshape(PARC_labels_leiden, (n_elements, 1))
 
-        too_big = False
-
-        # The 0th cluster is the largest one. So if cluster 0 is not too big, then the others won't
-        # be too big either
-        cluster_i_loc = np.where(PARC_labels_leiden == 0)[0]
-        pop_i = len(cluster_i_loc)
-        if pop_i > too_big_factor * n_elements:  # 0.4
-            too_big = True
-            cluster_big_loc = cluster_i_loc
-            list_pop_too_bigs = [pop_i]
+        too_big, big_cluster_indices, cluster_size = self.check_if_clusters_oversized(
+            PARC_labels_leiden, n_elements
+        )
+        big_cluster_sizes = [cluster_size]
 
         while too_big:
 
