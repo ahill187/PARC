@@ -478,9 +478,8 @@ class PARC:
         dummy, PARC_labels_leiden = np.unique(list(PARC_labels_leiden.flatten()), return_inverse=True)
         PARC_labels_leiden = list(PARC_labels_leiden.flatten())
 
-        pop_list = []
-        for item in set(PARC_labels_leiden):
-            pop_list.append((item, PARC_labels_leiden.count(item)))
+        pop_list = [(item, PARC_labels_leiden.count(item)) for item in set(PARC_labels_leiden)]
+
         print('list of cluster labels and populations', len(pop_list), pop_list)
 
         self.labels = PARC_labels_leiden
