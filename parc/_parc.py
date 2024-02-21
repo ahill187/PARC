@@ -99,9 +99,7 @@ class PARC:
             big_cluster: TODO.
 
         Returns:
-            (hnswlib.Index): array of shape (n_samples, n_components)
-                The optimized of ``graph`` into an ``n_components`` dimensional
-                euclidean space.
+            (hnswlib.Index): TODO.
         """
         if self.knn > 190:
             print(f"knn = {self.knn}; consider using a lower K_in for KNN graph construction")
