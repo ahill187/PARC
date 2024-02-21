@@ -83,6 +83,11 @@ class PARC:
         self.neighbor_graph = neighbor_graph
         self.hnsw_param_ef_construction = hnsw_param_ef_construction
 
+    def get_knn_struct(self):
+        if self.knn_struct is None:
+            self.knn_struct = self.make_knn_struct()
+        return self.knn_struct
+
     def make_knn_struct(self, too_big=False, big_cluster=None):
         """Create a Hierarchical Navigable Small Worlds (HNSW) graph.
 
@@ -320,18 +325,12 @@ class PARC:
             csr_array = self.neighbor_graph
             neighbor_array = np.split(csr_array.indices, csr_array.indptr)[1:-1]
         else:
-            if self.knn_struct is None:
-                print('knn struct was not available, so making one')
-                self.knn_struct = self.make_knn_struct()
-            else:
-                print('knn struct already exists')
-            neighbor_array, distance_array = self.knn_struct.knn_query(X_data, k=knn)
+            knn_struct = self.get_knn_struct()
+            neighbor_array, distance_array = knn_struct.knn_query(X_data, k=knn)
             csr_array = self.make_csrmatrix_noselfloop(neighbor_array, distance_array)
 
         sources, targets = csr_array.nonzero()
-
         edgelist = list(zip(sources, targets))
-
         edgelist_copy = edgelist.copy()
 
         G = ig.Graph(edgelist, edge_attrs={'weight': csr_array.data.tolist()})
