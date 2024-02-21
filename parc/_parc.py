@@ -7,6 +7,7 @@ import leidenalg
 import time
 from umap.umap_ import find_ab_params, simplicial_set_embedding
 from parc.k_nearest_neighbours import create_hnsw_index
+from parc.utils import get_mode
 
 
 class PARC:
@@ -193,10 +194,6 @@ class PARC:
                                shape=(n_cells, n_cells))
         return csr_graph
 
-    def func_mode(self, ll):  # return MODE of list
-        # If multiple items are maximal, the function returns the first one encountered.
-        return max(set(ll), key=ll.count)
-
     def run_toobig_subPARC(self, X_data, jac_std_toobig=0.3, jac_weighted_edges=True):
         n_elements = X_data.shape[0]
         hnsw = self.make_knn_struct(too_big=True, big_cluster=X_data)
@@ -360,7 +357,6 @@ class PARC:
 
         print('commencing community detection')
         if jac_weighted_edges:
-            start_leiden = time.time()
             if self.partition_type == 'ModularityVP':
                 print('partition type MVP')
                 partition = leidenalg.find_partition(
@@ -513,7 +509,7 @@ class PARC:
 
         for kk in sorted_keys:
             vals = [t for t in Index_dict[kk]]
-            majority_val = self.func_mode(vals)
+            majority_val = get_mode(vals)
             if majority_val == onevsall:
                 print(f"cluster {kk} has majority {onevsall} with population {len(vals)}")
             if kk == -1:
@@ -558,7 +554,7 @@ class PARC:
         for cluster_i in set(PARC_labels):
             cluster_i_loc = np.where(np.asarray(PARC_labels) == cluster_i)[0]
             true_labels = np.asarray(true_labels)
-            majority_truth = self.func_mode(list(true_labels[cluster_i_loc]))
+            majority_truth = get_mode(list(true_labels[cluster_i_loc]))
             majority_truth_labels[cluster_i_loc] = majority_truth
 
         majority_truth_labels = list(majority_truth_labels.flatten())
