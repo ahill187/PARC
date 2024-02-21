@@ -352,34 +352,25 @@ class PARC:
         G_sim = ig.Graph(n=n_elements, edges=list(new_edgelist), edge_attrs={'weight': sim_list_new})
         G_sim.simplify(combine_edges='sum')  # "first"
 
-        print('commencing community detection')
+        print("Starting community detection")
         if jac_weighted_edges:
-            if self.partition_type == 'ModularityVP':
-                print('partition type MVP')
-                partition = leidenalg.find_partition(
-                    G_sim, leidenalg.ModularityVertexPartition, weights='weight',
-                    n_iterations=self.n_iter_leiden, seed=self.random_seed
-                )
-            else:
-                print('partition type RBC')
-                partition = leidenalg.find_partition(
-                    G_sim, leidenalg.RBConfigurationVertexPartition, weights='weight',
-                    n_iterations=self.n_iter_leiden, seed=self.random_seed,
-                    resolution_parameter=self.resolution_parameter
-                )
+            weights = "weight"
         else:
-            if self.partition_type == 'ModularityVP':
-                partition = leidenalg.find_partition(
-                    G_sim, leidenalg.ModularityVertexPartition, n_iterations=self.n_iter_leiden,
-                    seed=self.random_seed
-                )
-                print('partition type MVP')
-            else:
-                partition = leidenalg.find_partition(
-                    G_sim, leidenalg.RBConfigurationVertexPartition, n_iterations=self.n_iter_leiden,
-                    seed=self.random_seed, resolution_parameter=self.resolution_parameter
-                )
-                print('partition type RBC')
+            weights = None
+
+        if self.partition_type == 'ModularityVP':
+            print('partition type MVP')
+            partition = leidenalg.find_partition(
+                G_sim, leidenalg.ModularityVertexPartition, weights=weights,
+                n_iterations=self.n_iter_leiden, seed=self.random_seed
+            )
+        else:
+            print('partition type RBC')
+            partition = leidenalg.find_partition(
+                G_sim, leidenalg.RBConfigurationVertexPartition, weights=weights,
+                n_iterations=self.n_iter_leiden, seed=self.random_seed,
+                resolution_parameter=self.resolution_parameter
+            )
 
         PARC_labels_leiden = np.asarray(partition.membership)
         PARC_labels_leiden = np.reshape(PARC_labels_leiden, (n_elements, 1))
