@@ -216,7 +216,7 @@ class PARC:
                                shape=(n_samples, n_samples))
         return csr_graph
 
-    def prune_global(self, csr_array):
+    def prune_global(self, csr_array, jac_std_threshold, jac_weighted_edges=False):
         """Prune the graph globally based on the Jaccard similarity measure.
 
         The ``csr_array`` contains the locally-pruned pairwise distances. From this, we can
@@ -241,21 +241,28 @@ class PARC:
 
         print("Starting global pruning")
 
-        if self.jac_std_global == "median":
+        if jac_std_threshold == "median":
             threshold = np.median(similarities)
         else:
-            threshold = np.mean(similarities) - self.jac_std_global * np.std(similarities)
+            threshold = np.mean(similarities) - jac_std_threshold * np.std(similarities)
+
         indices_similar = np.where(similarities > threshold)[0]
 
-        graph_pruned = ig.Graph(
-            n=csr_array.shape[0],
-            edges=list(edges_copy[indices_similar]),
-            edge_attrs={"weight": list(similarities[indices_similar])}
-        )
+        if jac_weighted_edges:
+            graph_pruned = ig.Graph(
+                n=csr_array.shape[0],
+                edges=list(edges_copy[indices_similar]),
+                edge_attrs={"weight": list(similarities[indices_similar])}
+            )
+        else:
+            graph_pruned = ig.Graph(
+                n=csr_array.shape[0],
+                edges=list(edges_copy[indices_similar])
+            )
         graph_pruned.simplify(combine_edges="sum")  # "first"
         return graph_pruned
 
-    def run_toobig_subPARC(self, X_data, jac_std_toobig=0.3, jac_weighted_edges=True):
+    def run_toobig_subPARC(self, X_data, jac_std_threshold=0.3, jac_weighted_edges=True):
         n_elements = X_data.shape[0]
         hnsw = self.make_knn_struct(too_big=True, big_cluster=X_data)
         if n_elements <= 10:
@@ -268,31 +275,8 @@ class PARC:
         neighbor_array, distance_array = hnsw.knn_query(X_data, k=knnbig)
 
         csr_array = self.prune_local(neighbor_array, distance_array)
-        sources, targets = csr_array.nonzero()
+        G_sim = self.prune_global(csr_array, jac_std_threshold, jac_weighted_edges)
 
-        edgelist = list(zip(sources.tolist(), targets.tolist()))
-        edgelist_copy = edgelist.copy()
-        G = ig.Graph(edgelist, edge_attrs={'weight': csr_array.data.tolist()})
-        sim_list = G.similarity_jaccard(pairs=edgelist_copy)  # list of jaccard weights
-        new_edgelist = []
-        sim_list_array = np.asarray(sim_list)
-        if jac_std_toobig == 'median':
-            threshold = np.median(sim_list)
-        else:
-            threshold = np.mean(sim_list) - jac_std_toobig * np.std(sim_list)
-        print('jac threshold %.3f' % threshold)
-        print('jac std %.3f' % np.std(sim_list))
-        print('jac mean %.3f' % np.mean(sim_list))
-        strong_locs = np.where(sim_list_array > threshold)[0]
-        for ii in strong_locs:
-            new_edgelist.append(edgelist_copy[ii])
-        sim_list_new = list(sim_list_array[strong_locs])
-
-        if jac_weighted_edges:
-            G_sim = ig.Graph(n=n_elements, edges=list(new_edgelist), edge_attrs={'weight': sim_list_new})
-        else:
-            G_sim = ig.Graph(n=n_elements, edges=list(new_edgelist))
-        G_sim.simplify(combine_edges='sum')
         if jac_weighted_edges:
             if self.partition_type == 'ModularityVP':
                 partition = leidenalg.find_partition(
