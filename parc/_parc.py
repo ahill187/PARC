@@ -157,44 +157,63 @@ class PARC:
         graph = graph_transpose + graph - prod_matrix
         return graph
 
-    def make_csrmatrix_noselfloop(self, neighbor_array, distance_array):
+    def prune(self, neighbor_array, distance_array):
+        """Prune the nearest neighbors array.
+
+        If ``keep_all_local_dist`` is true, remove any neighbors which are further away than
+        the specified cutoff distance. Also, remove any self-loops. Return in the ``csr_matrix``
+        format.
+
+        If ``keep_all_local_dist`` is false, then don't perform any pruning and return the original
+        arrays in the ``csr_matrix`` format.
+
+        Args:
+            neighbor_array: (np.array) An array with dimensions (n_samples, k) listing the
+                k nearest neighbors for each data point.
+            neighbor_array: (np.array) An array with dimensions (n_samples, k) listing the
+                distances to each of the k nearest neighbors for each data point.
+
+        Returns:
+            (Compressed Sparse Row Matrix) A sparse matrix with dimensions (n_samples, n_samples),
+                containing the pruned distances.
+        """
         # neighbor array not listed in in any order of proximity
         row_list = []
         col_list = []
         weight_list = []
 
         n_neighbors = neighbor_array.shape[1]
-        n_cells = neighbor_array.shape[0]
-        rowi = 0
+        n_samples = neighbor_array.shape[0]
         discard_count = 0
         if not self.keep_all_local_dist:  # locally prune based on (squared) l2 distance
 
-            print('commencing local pruning based on Euclidean distance metric at',
-                  self.dist_std_local, 's.dev above mean')
+            print(f"""Starting local pruning based on Euclidean distance metric at
+                   {self.dist_std_local} standard deviations above mean""")
             distance_array = distance_array + 0.1
-            for row in neighbor_array:
-                distlist = distance_array[rowi, :]
-                to_keep = np.where(distlist < np.mean(distlist) + self.dist_std_local * np.std(distlist))[0]  # 0*std
-                updated_nn_ind = row[np.ix_(to_keep)]
-                updated_nn_weights = distlist[np.ix_(to_keep)]
+            for neighbors, sample_index in zip(neighbor_array, range(n_samples)):
+                distances = distance_array[sample_index, :]
+                max_distance = np.mean(distances) + self.dist_std_local * np.std(distances)
+                to_keep = np.where(distances < max_distance)[0]
+                updated_neighbors = neighbors[np.ix_(to_keep)]
+                updated_distances = distances[np.ix_(to_keep)]
                 discard_count = discard_count + (n_neighbors - len(to_keep))
 
-                for ik in range(len(updated_nn_ind)):
-                    if rowi != row[ik]:  # remove self-loops
-                        row_list.append(rowi)
-                        col_list.append(updated_nn_ind[ik])
-                        dist = np.sqrt(updated_nn_weights[ik])
-                        weight_list.append(1/(dist+0.1))
-
-                rowi = rowi + 1
+                for index in range(len(updated_neighbors)):
+                    if sample_index != neighbors[index]:  # remove self-loops
+                        row_list.append(index)
+                        col_list.append(updated_neighbors[index])
+                        dist = np.sqrt(updated_distances[index])
+                        weight_list.append(1 / (dist + 0.1))
 
         if self.keep_all_local_dist:  # dont prune based on distance
-            row_list.extend(list(np.transpose(np.ones((n_neighbors, n_cells)) * range(0, n_cells)).flatten()))
+            row_list.extend(list(np.transpose(
+                np.ones((n_neighbors, n_samples)) * range(0, n_samples)).flatten()
+            ))
             col_list = neighbor_array.flatten().tolist()
             weight_list = (1. / (distance_array.flatten() + 0.1)).tolist()
 
         csr_graph = csr_matrix((np.array(weight_list), (np.array(row_list), np.array(col_list))),
-                               shape=(n_cells, n_cells))
+                               shape=(n_samples, n_samples))
         return csr_graph
 
     def run_toobig_subPARC(self, X_data, jac_std_toobig=0.3, jac_weighted_edges=True):
@@ -209,7 +228,7 @@ class PARC:
 
         neighbor_array, distance_array = hnsw.knn_query(X_data, k=knnbig)
 
-        csr_array = self.make_csrmatrix_noselfloop(neighbor_array, distance_array)
+        csr_array = self.prune(neighbor_array, distance_array)
         sources, targets = csr_array.nonzero()
 
         edgelist = list(zip(sources.tolist(), targets.tolist()))
@@ -350,7 +369,7 @@ class PARC:
         else:
             knn_struct = self.get_knn_struct()
             neighbor_array, distance_array = knn_struct.knn_query(X_data, k=knn)
-            csr_array = self.make_csrmatrix_noselfloop(neighbor_array, distance_array)
+            csr_array = self.prune(neighbor_array, distance_array)
 
         sources, targets = csr_array.nonzero()
         edgelist = list(zip(sources, targets))
