@@ -216,7 +216,7 @@ class PARC:
                                shape=(n_samples, n_samples))
         return csr_graph
 
-    def prune_global(self, csr_array, jac_std_threshold, jac_weighted_edges=False):
+    def prune_global(self, csr_array, jac_std_threshold, jac_weighted_edges=True):
         """Prune the graph globally based on the Jaccard similarity measure.
 
         The ``csr_array`` contains the locally-pruned pairwise distances. From this, we can
