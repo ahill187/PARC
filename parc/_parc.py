@@ -286,44 +286,6 @@ class PARC:
             )
         return partition
 
-    def run_toobig_subPARC(self, X_data, jac_std_threshold=0.3, jac_weighted_edges=True):
-        n_elements = X_data.shape[0]
-        hnsw = self.make_knn_struct(too_big=True, big_cluster=X_data)
-        if n_elements <= 10:
-            print('consider increasing the too_big_factor')
-        if n_elements > self.knn:
-            knnbig = self.knn
-        else:
-            knnbig = int(max(5, 0.2 * n_elements))
-
-        neighbor_array, distance_array = hnsw.knn_query(X_data, k=knnbig)
-
-        csr_array = self.prune_local(neighbor_array, distance_array)
-        graph = self.prune_global(csr_array, jac_std_threshold, jac_weighted_edges)
-
-        partition = self.get_leiden_partition(graph, jac_weighted_edges)
-
-        node_communities = np.asarray(partition.membership)
-        node_communities = np.reshape(node_communities, (n_elements, 1))
-        node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
-
-        small_community_size = 10
-        node_communities, small_community_exists = self.reassign_small_communities(
-            node_communities, small_community_size, neighbor_array, exclude_neighbors_small=True
-        )
-
-        time_start = time.time()
-        print("Handling fragments")
-        while (small_community_exists) & (time.time() - time_start < self.time_smallpop):
-            node_communities, small_community_exists = self.reassign_small_communities(
-                node_communities, small_community_size, neighbor_array,
-                exclude_neighbors_small=False
-            )
-
-        node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
-
-        return node_communities
-
     def check_if_cluster_oversized(self, node_communities, community_id, big_cluster_sizes=[]):
         """Check if the community is too big.
 
@@ -462,6 +424,44 @@ class PARC:
                     )
                     node_communities[node] = best_group
         return node_communities, small_community_exists
+
+    def run_toobig_subPARC(self, X_data, jac_std_threshold=0.3, jac_weighted_edges=True):
+        n_elements = X_data.shape[0]
+        hnsw = self.make_knn_struct(too_big=True, big_cluster=X_data)
+        if n_elements <= 10:
+            print('consider increasing the too_big_factor')
+        if n_elements > self.knn:
+            knnbig = self.knn
+        else:
+            knnbig = int(max(5, 0.2 * n_elements))
+
+        neighbor_array, distance_array = hnsw.knn_query(X_data, k=knnbig)
+
+        csr_array = self.prune_local(neighbor_array, distance_array)
+        graph = self.prune_global(csr_array, jac_std_threshold, jac_weighted_edges)
+
+        partition = self.get_leiden_partition(graph, jac_weighted_edges)
+
+        node_communities = np.asarray(partition.membership)
+        node_communities = np.reshape(node_communities, (n_elements, 1))
+        node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
+
+        small_community_size = 10
+        node_communities, small_community_exists = self.reassign_small_communities(
+            node_communities, small_community_size, neighbor_array, exclude_neighbors_small=True
+        )
+
+        time_start = time.time()
+        print("Handling fragments")
+        while (small_community_exists) & (time.time() - time_start < self.time_smallpop):
+            node_communities, small_community_exists = self.reassign_small_communities(
+                node_communities, small_community_size, neighbor_array,
+                exclude_neighbors_small=False
+            )
+
+        node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
+
+        return node_communities
 
     def run_subPARC(self):
 
