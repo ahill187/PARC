@@ -520,9 +520,9 @@ class PARC:
         else:
             small_pop_exist = True
 
-        for small_cluster in communities_small:
-            for single_cell in small_cluster:
-                old_neighbors = neighbor_array[single_cell]
+        for community in communities_small:
+            for node in community:
+                old_neighbors = neighbor_array[node]
                 group_of_old_neighbors = node_communities[old_neighbors]
                 group_of_old_neighbors = list(group_of_old_neighbors.flatten())
                 available_neighbours = set(group_of_old_neighbors) - set(community_ids_small)
@@ -530,10 +530,10 @@ class PARC:
                     available_neighbours_list = [value for value in group_of_old_neighbors if
                                                  value in list(available_neighbours)]
                     best_group = max(available_neighbours_list, key=available_neighbours_list.count)
-                    node_communities[single_cell] = best_group
+                    node_communities[node] = best_group
 
-        time_smallpop_start = time.time()
-        while (small_pop_exist) & ((time.time() - time_smallpop_start) < self.time_smallpop):
+        time_start = time.time()
+        while (small_pop_exist) & ((time.time() - time_start) < self.time_smallpop):
             small_pop_list = []
             small_pop_exist = False
             for cluster in set(list(node_communities.flatten())):
