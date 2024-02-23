@@ -2,11 +2,11 @@ import numpy as np
 from parc.utils import get_mode
 
 
-def accuracy(labels_true, labels_pred, onevsall=1):
+def accuracy(labels_true, labels_pred, target=1):
 
     Index_dict = {}
     N = len(labels_pred)
-    n_cancer = list(labels_true).count(onevsall)
+    n_cancer = list(labels_true).count(target)
     n_pbmc = N - n_cancer
 
     for k in range(N):
@@ -21,22 +21,22 @@ def accuracy(labels_true, labels_pred, onevsall=1):
     for kk in sorted_keys:
         vals = [t for t in Index_dict[kk]]
         majority_val = get_mode(vals)
-        if majority_val == onevsall:
-            print(f"cluster {kk} has majority {onevsall} with population {len(vals)}")
+        if majority_val == target:
+            print(f"cluster {kk} has majority {target} with population {len(vals)}")
         if kk == -1:
             len_unknown = len(vals)
             print('len unknown', len_unknown)
-        if (majority_val == onevsall) and (kk != -1):
+        if (majority_val == target) and (kk != -1):
             thp1_labels.append(kk)
-            fp = fp + len([e for e in vals if e != onevsall])
-            tp = tp + len([e for e in vals if e == onevsall])
+            fp = fp + len([e for e in vals if e != target])
+            tp = tp + len([e for e in vals if e == target])
             list_error = [e for e in vals if e != majority_val]
             e_count = len(list_error)
             error_count.append(e_count)
-        elif (majority_val != onevsall) and (kk != -1):
+        elif (majority_val != target) and (kk != -1):
             pbmc_labels.append(kk)
-            tn = tn + len([e for e in vals if e != onevsall])
-            fn = fn + len([e for e in vals if e == onevsall])
+            tn = tn + len([e for e in vals if e != target])
+            fn = fn + len([e for e in vals if e == target])
             error_count.append(len([e for e in vals if e != majority_val]))
 
     predict_class_array = np.array(labels_pred)
@@ -73,3 +73,6 @@ def accuracy(labels_true, labels_pred, onevsall=1):
                     recall, num_groups, n_target]
 
     return accuracy_val, predict_class_array, majority_truth_labels, number_clusters_for_target
+
+
+def compute_f1_score():

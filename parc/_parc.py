@@ -425,11 +425,13 @@ class PARC:
                     node_communities[node] = best_group
         return node_communities, small_community_exists
 
-    def run_toobig_subPARC(self, X_data, jac_std_threshold=0.3, jac_weighted_edges=True):
+    def run_parc_big(
+        self, X_data, jac_std_threshold=0.3, jac_weighted_edges=True, small_community_size=10
+    ):
         n_elements = X_data.shape[0]
         hnsw = self.make_knn_struct(too_big=True, big_cluster=X_data)
         if n_elements <= 10:
-            print('consider increasing the too_big_factor')
+            print(f"Number of samples = {n_elements} is low; consider increasing the too_big_factor")
         if n_elements > self.knn:
             knnbig = self.knn
         else:
@@ -446,7 +448,6 @@ class PARC:
         node_communities = np.reshape(node_communities, (n_elements, 1))
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
 
-        small_community_size = 10
         node_communities, small_community_exists = self.reassign_small_communities(
             node_communities, small_community_size, neighbor_array, exclude_neighbors_small=True
         )
@@ -463,18 +464,19 @@ class PARC:
 
         return node_communities
 
-    def run_subPARC(self):
+    def run_parc(self):
 
-        X_data = self.data
+        x_data = self.data
         small_community_size = self.small_pop
-        n_elements = X_data.shape[0]
+
+        n_elements = x_data.shape[0]
 
         if self.neighbor_graph is not None:
             csr_array = self.neighbor_graph
             neighbor_array = np.split(csr_array.indices, csr_array.indptr)[1:-1]
         else:
             knn_struct = self.get_knn_struct()
-            neighbor_array, distance_array = knn_struct.knn_query(X_data, k=self.knn)
+            neighbor_array, distance_array = knn_struct.knn_query(x_data, k=self.knn)
             csr_array = self.prune_local(neighbor_array, distance_array)
 
         graph = self.prune_global(csr_array, self.jac_std_global)
@@ -492,8 +494,8 @@ class PARC:
 
         while too_big:
 
-            X_data_big = X_data[big_cluster_indices, :]
-            node_communities_big_cluster = self.run_toobig_subPARC(X_data_big)
+            x_data_big = x_data[big_cluster_indices, :]
+            node_communities_big_cluster = self.run_parc_big(x_data_big)
             node_communities_big_cluster = node_communities_big_cluster + 100000
 
             for cluster_index, index in zip(big_cluster_indices, range(0, len(big_cluster_indices))):
@@ -538,7 +540,7 @@ class PARC:
         time_start_total = time.time()
 
         # Query dataset, k - number of closest elements (returns 2 numpy arrays)
-        self.run_subPARC()
+        self.run_parc()
         run_time = time.time() - time_start_total
         print('time elapsed {:.1f} seconds'.format(run_time))
 
@@ -555,18 +557,18 @@ class PARC:
         if len(targets) > 1:
             f1_accumulated = 0
             f1_acc_noweighting = 0
-            for onevsall_val in targets:
-                print(f"target is {onevsall_val}")
+            for target in targets:
+                print(f"target is {target}")
                 vals_roc, predict_class_array, majority_truth_labels, numclusters_targetval = accuracy(
-                    self.true_label, self.labels, onevsall=onevsall_val
+                    self.true_label, self.labels, target=target
                 )
                 f1_current = vals_roc[1]
-                print('target', onevsall_val, 'has f1-score of %.2f' % (f1_current * 100))
-                f1_accumulated = f1_accumulated + f1_current * (list(self.true_label).count(onevsall_val)) / N
+                print('target', target, 'has f1-score of %.2f' % (f1_current * 100))
+                f1_accumulated = f1_accumulated + f1_current * (list(self.true_label).count(target)) / N
                 f1_acc_noweighting = f1_acc_noweighting + f1_current
 
                 list_roc.append(
-                    [self.jac_std_global, self.dist_std_local, onevsall_val] + vals_roc
+                    [self.jac_std_global, self.dist_std_local, target] + vals_roc
                     + [numclusters_targetval] + [run_time]
                 )
 
