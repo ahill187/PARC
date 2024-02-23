@@ -451,10 +451,9 @@ class PARC:
             print(f"New set of labels: {set(node_communities)}")
 
             too_big = False
-            set_node_communities = set(node_communities)
 
             node_communities = np.asarray(node_communities)
-            for cluster_ii in set_node_communities:
+            for cluster_ii in set(node_communities):
                 cluster_ii_loc = np.where(node_communities == cluster_ii)[0]
                 pop_ii = len(cluster_ii_loc)
                 not_yet_expanded = pop_ii not in big_cluster_sizes
