@@ -433,7 +433,7 @@ class PARC:
 
         while too_big:
 
-            X_data_big = X_data[cluster_big_loc, :]
+            X_data_big = X_data[big_cluster_indices, :]
             PARC_labels_leiden_big = self.run_toobig_subPARC(X_data_big)
             # print('set of new big labels ', set(PARC_labels_leiden_big.flatten()))
             PARC_labels_leiden_big = PARC_labels_leiden_big + 100000
@@ -445,7 +445,7 @@ class PARC:
             print('pop of big clusters', pop_list)
             jj = 0
             print('shape PARC_labels_leiden', PARC_labels_leiden.shape)
-            for j in cluster_big_loc:
+            for j in big_cluster_indices:
                 PARC_labels_leiden[j] = PARC_labels_leiden_big[jj]
                 jj = jj + 1
             dummy, PARC_labels_leiden = np.unique(list(PARC_labels_leiden.flatten()), return_inverse=True)
@@ -457,15 +457,15 @@ class PARC:
             for cluster_ii in set_PARC_labels_leiden:
                 cluster_ii_loc = np.where(PARC_labels_leiden == cluster_ii)[0]
                 pop_ii = len(cluster_ii_loc)
-                not_yet_expanded = pop_ii not in list_pop_too_bigs
+                not_yet_expanded = pop_ii not in big_cluster_sizes
                 if pop_ii > too_big_factor * n_elements and not_yet_expanded:
                     too_big = True
                     print('cluster', cluster_ii, 'is too big and has population', pop_ii)
-                    cluster_big_loc = cluster_ii_loc
+                    big_cluster_indices = cluster_ii_loc
                     cluster_big = cluster_ii
                     big_pop = pop_ii
             if too_big:
-                list_pop_too_bigs.append(big_pop)
+                big_cluster_sizes.append(big_pop)
                 print('cluster', cluster_big, 'is too big with population', big_pop, '. It will be expanded')
         dummy, PARC_labels_leiden = np.unique(list(PARC_labels_leiden.flatten()), return_inverse=True)
         small_pop_list = []
