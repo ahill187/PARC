@@ -443,6 +443,60 @@ class PARC:
 
         return communities
 
+    def reassign_small_communities(
+        self, node_communities, small_community_size, neighbor_array, exclude_neighbors_small=True
+    ):
+        """Move small communities into neighboring communities.
+
+        Args:
+            node_communities: (np.array) an array containing the community assignments for each
+                node.
+            small_community_size: (int) the maximum number of nodes in a community. Communities
+                with less nodes than the small_community_size are considered to be
+                small communities.
+            neighbor_array: TODO.
+            exclude_neighbors_small: (bool) If true, don't reassign nodes in small communities to
+                other small communities. If false, nodes may be reassigned to other small
+                communities which are larger than their current community.
+
+        Returns:
+            node_communities: (np.array) an array containing the community assignments for each
+                node.
+            small_community_exists: (bool) are there any small communities?
+        """
+        communities_small = self.get_small_communities(
+            node_communities, small_community_size
+        )
+        if communities_small == []:
+            small_community_exists = False
+        else:
+            small_community_exists = True
+
+        for community in communities_small:
+            for node in community.nodes:
+                neighbors = neighbor_array[node]
+                node_communities_neighbors = node_communities[neighbors]
+                node_communities_neighbors = list(node_communities_neighbors.flatten())
+
+                if exclude_neighbors_small:
+                    community_ids_small = [community.id for community in communities_small]
+                    community_ids_neighbors_available = set(node_communities_neighbors) - \
+                        set(community_ids_small)
+                else:
+                    community_ids_neighbors_available = set(node_communities_neighbors)
+
+                if len(community_ids_neighbors_available) > 0:
+                    node_communities_neighbors_available = [
+                        community_id for community_id in node_communities_neighbors if
+                        community_id in list(community_ids_neighbors_available)
+                    ]
+                    best_group = max(
+                        node_communities_neighbors_available,
+                        key=node_communities_neighbors_available.count
+                    )
+                    node_communities[node] = best_group
+        return node_communities, small_community_exists
+
     def run_subPARC(self):
 
         X_data = self.data
@@ -513,46 +567,16 @@ class PARC:
 
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
 
-        communities_small = self.get_small_communities(
-            node_communities, small_community_size
+        node_communities, small_community_exists = self.reassign_small_communities(
+            node_communities, small_community_size, neighbor_array, exclude_neighbors_small=True
         )
 
-        if communities_small == []:
-            small_pop_exist = False
-        else:
-            small_pop_exist = True
-
-        community_ids_small = [community.id for community in communities_small]
-
-        for community in communities_small:
-            for node in community.nodes:
-                old_neighbors = neighbor_array[node]
-                group_of_old_neighbors = node_communities[old_neighbors]
-                group_of_old_neighbors = list(group_of_old_neighbors.flatten())
-                available_neighbours = set(group_of_old_neighbors) - set(community_ids_small)
-                if len(available_neighbours) > 0:
-                    available_neighbours_list = [value for value in group_of_old_neighbors if
-                                                 value in list(available_neighbours)]
-                    best_group = max(available_neighbours_list, key=available_neighbours_list.count)
-                    node_communities[node] = best_group
-
         time_start = time.time()
-        while (small_pop_exist) & ((time.time() - time_start) < self.time_smallpop):
-            communities_small = self.get_small_communities(
-                node_communities, small_community_size
+        while (small_community_exists) & ((time.time() - time_start) < self.time_smallpop):
+            node_communities, small_community_exists = self.reassign_small_communities(
+                node_communities, small_community_size, neighbor_array,
+                exclude_neighbors_small=False
             )
-            if communities_small == []:
-                small_pop_exist = False
-            else:
-                small_pop_exist = True
-
-            for community in communities_small:
-                for node in community.nodes:
-                    old_neighbors = neighbor_array[node]
-                    group_of_old_neighbors = node_communities[old_neighbors]
-                    group_of_old_neighbors = list(group_of_old_neighbors.flatten())
-                    best_group = max(set(group_of_old_neighbors), key=group_of_old_neighbors.count)
-                    node_communities[node] = best_group
 
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
         node_communities = list(node_communities.flatten())
