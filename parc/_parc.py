@@ -314,7 +314,7 @@ class PARC:
         small_pop_list = []
         small_cluster_list = []
         small_pop_exist = False
-        dummy, node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)
+        node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
         for cluster in set(node_communities):
             population = len(np.where(node_communities == cluster)[0])
             if population < 10:
@@ -353,7 +353,7 @@ class PARC:
                     best_group = max(set(group_of_old_neighbors), key=group_of_old_neighbors.count)
                     node_communities[single_cell] = best_group
 
-        dummy, node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)
+        node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
 
         return node_communities
 
@@ -451,7 +451,7 @@ class PARC:
             for j in big_cluster_indices:
                 node_communities[j] = node_communities_big[jj]
                 jj = jj + 1
-            dummy, node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)
+            node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
             print('new set of labels ', set(node_communities))
             too_big = False
             set_node_communities = set(node_communities)
@@ -470,7 +470,7 @@ class PARC:
             if too_big:
                 big_cluster_sizes.append(big_pop)
                 print('cluster', cluster_big, 'is too big with population', big_pop, '. It will be expanded')
-        dummy, node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)
+        node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
         small_pop_list = []
         small_cluster_list = []
         small_pop_exist = False
@@ -514,7 +514,7 @@ class PARC:
                     best_group = max(set(group_of_old_neighbors), key=group_of_old_neighbors.count)
                     node_communities[single_cell] = best_group
 
-        dummy, node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)
+        node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
         node_communities = list(node_communities.flatten())
 
         pop_list = [(item, node_communities.count(item)) for item in set(node_communities)]
