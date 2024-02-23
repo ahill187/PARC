@@ -438,9 +438,7 @@ class PARC:
 
             X_data_big = X_data[big_cluster_indices, :]
             node_communities_big = self.run_toobig_subPARC(X_data_big)
-            # print('set of new big labels ', set(node_communities_big.flatten()))
             node_communities_big = node_communities_big + 100000
-            # print('set of new big labels +100000 ', set(list(node_communities_big.flatten())))
             pop_list = []
 
             for item in set(list(node_communities_big.flatten())):
