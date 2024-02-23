@@ -8,6 +8,7 @@ import time
 from umap.umap_ import find_ab_params, simplicial_set_embedding
 from parc.k_nearest_neighbours import create_hnsw_index
 from parc.utils import get_mode
+from parc.graph import Community
 
 
 class PARC:
@@ -422,24 +423,25 @@ class PARC:
                 small communities.
 
         Returns:
-            communities: (np.array) an array where each element is a community, which is a list
-                of nodes.
+            communities: (np.array) an array where each element is a community object.
             community_ids_small: (np.array) an array of the community ids corresponding to the
                 small communities.
         """
         communities = []
-        community_ids_small = []
         community_ids = set(list(node_communities.flatten()))
 
         for community_id in community_ids:
-            community_indices = np.where(node_communities == community_id)[0]
-            community_size = len(community_indices)
+            nodes = np.where(node_communities == community_id)[0]
+            community_size = len(nodes)
 
             if community_size < small_community_size:
-                communities.append(list(community_indices))
-                community_ids_small.append(community_id)
+                community = Community(
+                    id=community_id,
+                    nodes=list(nodes)
+                )
+                communities.append(community)
 
-        return communities, community_ids_small
+        return communities
 
     def run_subPARC(self):
 
@@ -511,7 +513,7 @@ class PARC:
 
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
 
-        communities_small, community_ids_small = self.get_small_communities(
+        communities_small = self.get_small_communities(
             node_communities, small_community_size
         )
 
@@ -520,8 +522,10 @@ class PARC:
         else:
             small_pop_exist = True
 
+        community_ids_small = [community.id for community in communities_small]
+
         for community in communities_small:
-            for node in community:
+            for node in community.nodes:
                 old_neighbors = neighbor_array[node]
                 group_of_old_neighbors = node_communities[old_neighbors]
                 group_of_old_neighbors = list(group_of_old_neighbors.flatten())
@@ -534,7 +538,7 @@ class PARC:
 
         time_start = time.time()
         while (small_pop_exist) & ((time.time() - time_start) < self.time_smallpop):
-            communities_small, _ = self.get_small_communities(
+            communities_small = self.get_small_communities(
                 node_communities, small_community_size
             )
             if communities_small == []:
@@ -543,7 +547,7 @@ class PARC:
                 small_pop_exist = True
 
             for community in communities_small:
-                for node in community:
+                for node in community.nodes:
                     old_neighbors = neighbor_array[node]
                     group_of_old_neighbors = node_communities[old_neighbors]
                     group_of_old_neighbors = list(group_of_old_neighbors.flatten())
