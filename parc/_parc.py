@@ -411,10 +411,40 @@ class PARC:
 
         return too_big, big_cluster_indices, big_cluster_sizes
 
+    def get_small_communities(self, node_communities, small_community_size):
+        """Find communities which are below the small_community_size cutoff.
+
+        Args:
+            node_communities: (np.array) an array containing the community assignments for each
+                node.
+            small_community_size: (int) the maximum number of nodes in a community. Communities
+                with less nodes than the small_community_size are considered to be
+                small communities.
+
+        Returns:
+            communities: (np.array) an array where each element is a community, which is a list
+                of nodes.
+            community_ids_small: (np.array) an array of the community ids corresponding to the
+                small communities.
+        """
+        communities = []
+        community_ids_small = []
+        community_ids = set(node_communities.flatten())
+
+        for community_id in community_ids:
+            community_indices = np.where(node_communities == community_id)[0]
+            community_size = len(community_indices)
+
+            if community_size < small_community_size:
+                communities.append(list(community_indices))
+                community_ids_small.append(community_id)
+
+        return communities, community_ids_small
+
     def run_subPARC(self):
 
         X_data = self.data
-        small_pop = self.small_pop
+        small_community_size = self.small_pop
         jac_weighted_edges = self.jac_weighted_edges
         knn = self.knn
         n_elements = X_data.shape[0]
@@ -480,38 +510,35 @@ class PARC:
             )
 
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
-        small_pop_list = []
-        small_cluster_list = []
-        small_pop_exist = False
 
-        for cluster in set(node_communities):
-            population = len(np.where(node_communities == cluster)[0])
+        communities_small, community_ids_small = self.get_small_communities(
+            node_communities, small_community_size
+        )
 
-            if population < small_pop:  # 10
-                small_pop_exist = True
+        if communities_small == []:
+            small_pop_exist = False
+        else:
+            small_pop_exist = True
 
-                small_pop_list.append(list(np.where(node_communities == cluster)[0]))
-                small_cluster_list.append(cluster)
-
-        for small_cluster in small_pop_list:
-
+        for small_cluster in communities_small:
             for single_cell in small_cluster:
                 old_neighbors = neighbor_array[single_cell]
                 group_of_old_neighbors = node_communities[old_neighbors]
                 group_of_old_neighbors = list(group_of_old_neighbors.flatten())
-                available_neighbours = set(group_of_old_neighbors) - set(small_cluster_list)
+                available_neighbours = set(group_of_old_neighbors) - set(community_ids_small)
                 if len(available_neighbours) > 0:
                     available_neighbours_list = [value for value in group_of_old_neighbors if
                                                  value in list(available_neighbours)]
                     best_group = max(available_neighbours_list, key=available_neighbours_list.count)
                     node_communities[single_cell] = best_group
+
         time_smallpop_start = time.time()
         while (small_pop_exist) & ((time.time() - time_smallpop_start) < self.time_smallpop):
             small_pop_list = []
             small_pop_exist = False
             for cluster in set(list(node_communities.flatten())):
                 population = len(np.where(node_communities == cluster)[0])
-                if population < small_pop:
+                if population < small_community_size:
                     small_pop_exist = True
                     print(cluster, ' has small population of', population, )
                     small_pop_list.append(np.where(node_communities == cluster)[0])
