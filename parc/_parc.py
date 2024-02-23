@@ -357,30 +357,33 @@ class PARC:
 
         return node_communities
 
-    def check_if_clusters_oversized(self, cluster_ids, n_samples):
-        """Check if the clusters are too big.
-
-        The 0th cluster is the largest one. So if cluster 0 is not too big, then the others won't
-        be too big either.
+    def check_if_cluster_oversized(self, node_communities, community_id, big_cluster_sizes=[]):
+        """Check if the community is too big.
 
         Args:
-            cluster_ids: TODO.
-            n_samples: (int) the number of samples in the data.
+            node_communities: (np.array) an array containing the community assignments for each
+                node.
+            community_id: (int) the integer id of the community.
 
         Returns:
-            too_big: (bool) whether or not the clusters are too big.
-            big_cluster_indices: (list) a list of indices of the 0th cluster, if it is too big.
-            cluster_size: (int) the size of the 0th cluster.
+            too_big: (bool) whether or not the community is too big.
+            big_cluster_indices: (list) a list of node indices for the community, if it is too big.
+            big_cluster_sizes: (list) the sizes of the communities that are too big.
         """
 
         too_big = False
-        cluster_0_indices = np.where(cluster_ids == 0)[0]
-        cluster_size = len(cluster_0_indices)
+        n_samples = node_communities.shape[0]
+        cluster_indices = np.where(node_communities == community_id)[0]
+        cluster_size = len(cluster_indices)
         big_cluster_indices = []
-        if cluster_size > self.too_big_factor * n_samples:  # 0.4
+        not_yet_expanded = cluster_size not in big_cluster_sizes
+        if cluster_size > self.too_big_factor * n_samples and not_yet_expanded:
             too_big = True
-            big_cluster_indices = cluster_0_indices
-        return too_big, big_cluster_indices, cluster_size
+            big_cluster_indices = cluster_indices
+            big_cluster_sizes.append(cluster_size)
+            print(f"""Community {community_id} is too big, cluster size = {cluster_size}.
+                It will be expanded.""")
+        return too_big, big_cluster_indices, big_cluster_sizes
 
     def run_subPARC(self):
 
@@ -426,10 +429,10 @@ class PARC:
         node_communities = np.asarray(partition.membership)
         node_communities = np.reshape(node_communities, (n_elements, 1))
 
-        too_big, big_cluster_indices, cluster_size = self.check_if_clusters_oversized(
-            node_communities, n_elements
+        # Check if the 0th cluster is too big. This is always the largest cluster.
+        too_big, big_cluster_indices, big_cluster_sizes = self.check_if_cluster_oversized(
+            node_communities=node_communities, community_id=0
         )
-        big_cluster_sizes = [cluster_size]
 
         while too_big:
 
