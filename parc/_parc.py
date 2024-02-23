@@ -311,21 +311,10 @@ class PARC:
         time_start = time.time()
         print("Handling fragments")
         while (small_community_exists) & (time.time() - time_start < self.time_smallpop):
-            small_pop_list = []
-            small_community_exists = False
-            for cluster in set(list(node_communities.flatten())):
-                population = len(np.where(node_communities == cluster)[0])
-                if population < small_community_size:
-                    small_community_exists = True
-
-                    small_pop_list.append(np.where(node_communities == cluster)[0])
-            for small_cluster in small_pop_list:
-                for single_cell in small_cluster:
-                    old_neighbors = neighbor_array[single_cell, :]
-                    group_of_old_neighbors = node_communities[old_neighbors]
-                    group_of_old_neighbors = list(group_of_old_neighbors.flatten())
-                    best_group = max(set(group_of_old_neighbors), key=group_of_old_neighbors.count)
-                    node_communities[single_cell] = best_group
+            node_communities, small_community_exists = self.reassign_small_communities(
+                node_communities, small_community_size, neighbor_array,
+                exclude_neighbors_small=False
+            )
 
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
 
