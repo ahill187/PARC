@@ -490,7 +490,6 @@ class PARC:
 
         X_data = self.data
         small_community_size = self.small_pop
-        jac_weighted_edges = self.jac_weighted_edges
         knn = self.knn
         n_elements = X_data.shape[0]
 
@@ -505,7 +504,7 @@ class PARC:
         graph = self.prune_global(csr_array, self.jac_std_global)
 
         print("Starting community detection")
-        if jac_weighted_edges:
+        if self.jac_weighted_edges:
             weights = "weight"
         else:
             weights = None
