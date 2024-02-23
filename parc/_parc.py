@@ -279,37 +279,26 @@ class PARC:
         graph = self.prune_global(csr_array, jac_std_threshold, jac_weighted_edges)
 
         if jac_weighted_edges:
-            if self.partition_type == 'ModularityVP':
-                partition = leidenalg.find_partition(
-                    graph=graph,
-                    partition_type=leidenalg.ModularityVertexPartition, weights='weight',
-                    n_iterations=self.n_iter_leiden, seed=self.random_seed)
-                print('partition type MVP')
-            else:
-                partition = leidenalg.find_partition(
-                    graph=graph,
-                    partition_type=leidenalg.RBConfigurationVertexPartition, weights='weight',
-                    n_iterations=self.n_iter_leiden, seed=self.random_seed,
-                    resolution_parameter=self.resolution_parameter
-                )
-                print('partition type RBC')
+            weights = "weight"
         else:
-            if self.partition_type == 'ModularityVP':
-                print('partition type MVP')
-                partition = leidenalg.find_partition(
-                    graph=graph,
-                    partition_type=leidenalg.ModularityVertexPartition,
-                    n_iterations=self.n_iter_leiden,
-                    seed=self.random_seed
-                )
-            else:
-                print('partition type RBC')
-                partition = leidenalg.find_partition(
-                    graph=graph, partition_type=leidenalg.RBConfigurationVertexPartition,
-                    n_iterations=self.n_iter_leiden, seed=self.random_seed,
-                    resolution_parameter=self.resolution_parameter
-                )
-        # print('Q= %.2f' % partition.quality())
+            weights = None
+
+        if self.partition_type == "ModularityVP":
+            print("Leiden algorithm find partition: partition type = ModularityVertexPartition")
+            partition = leidenalg.find_partition(
+                graph=graph,
+                partition_type=leidenalg.ModularityVertexPartition, weights=weights,
+                n_iterations=self.n_iter_leiden, seed=self.random_seed
+            )
+        else:
+            print("Leiden algorithm find partition: partition type = RBConfigurationVertexPartition")
+            partition = leidenalg.find_partition(
+                graph=graph,
+                partition_type=leidenalg.RBConfigurationVertexPartition, weights=weights,
+                n_iterations=self.n_iter_leiden, seed=self.random_seed,
+                resolution_parameter=self.resolution_parameter
+            )
+
         node_communities = np.asarray(partition.membership)
         node_communities = np.reshape(node_communities, (n_elements, 1))
         small_pop_list = []
