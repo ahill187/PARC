@@ -452,7 +452,6 @@ class PARC:
 
             too_big = False
 
-            node_communities = np.asarray(node_communities)
             for cluster_ii in set(node_communities):
                 cluster_ii_loc = np.where(node_communities == cluster_ii)[0]
                 pop_ii = len(cluster_ii_loc)
