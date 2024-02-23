@@ -263,21 +263,7 @@ class PARC:
         graph_pruned.simplify(combine_edges="sum")  # "first"
         return graph_pruned
 
-    def run_toobig_subPARC(self, X_data, jac_std_threshold=0.3, jac_weighted_edges=True):
-        n_elements = X_data.shape[0]
-        hnsw = self.make_knn_struct(too_big=True, big_cluster=X_data)
-        if n_elements <= 10:
-            print('consider increasing the too_big_factor')
-        if n_elements > self.knn:
-            knnbig = self.knn
-        else:
-            knnbig = int(max(5, 0.2 * n_elements))
-
-        neighbor_array, distance_array = hnsw.knn_query(X_data, k=knnbig)
-
-        csr_array = self.prune_local(neighbor_array, distance_array)
-        graph = self.prune_global(csr_array, jac_std_threshold, jac_weighted_edges)
-
+    def get_leiden_partition(self, graph, jac_weighted_edges=True):
         if jac_weighted_edges:
             weights = "weight"
         else:
@@ -298,6 +284,24 @@ class PARC:
                 n_iterations=self.n_iter_leiden, seed=self.random_seed,
                 resolution_parameter=self.resolution_parameter
             )
+        return partition
+
+    def run_toobig_subPARC(self, X_data, jac_std_threshold=0.3, jac_weighted_edges=True):
+        n_elements = X_data.shape[0]
+        hnsw = self.make_knn_struct(too_big=True, big_cluster=X_data)
+        if n_elements <= 10:
+            print('consider increasing the too_big_factor')
+        if n_elements > self.knn:
+            knnbig = self.knn
+        else:
+            knnbig = int(max(5, 0.2 * n_elements))
+
+        neighbor_array, distance_array = hnsw.knn_query(X_data, k=knnbig)
+
+        csr_array = self.prune_local(neighbor_array, distance_array)
+        graph = self.prune_global(csr_array, jac_std_threshold, jac_weighted_edges)
+
+        partition = self.get_leiden_partition(graph, jac_weighted_edges)
 
         node_communities = np.asarray(partition.membership)
         node_communities = np.reshape(node_communities, (n_elements, 1))
@@ -463,7 +467,6 @@ class PARC:
 
         X_data = self.data
         small_community_size = self.small_pop
-        knn = self.knn
         n_elements = X_data.shape[0]
 
         if self.neighbor_graph is not None:
@@ -471,32 +474,13 @@ class PARC:
             neighbor_array = np.split(csr_array.indices, csr_array.indptr)[1:-1]
         else:
             knn_struct = self.get_knn_struct()
-            neighbor_array, distance_array = knn_struct.knn_query(X_data, k=knn)
+            neighbor_array, distance_array = knn_struct.knn_query(X_data, k=self.knn)
             csr_array = self.prune_local(neighbor_array, distance_array)
 
         graph = self.prune_global(csr_array, self.jac_std_global)
 
         print("Starting community detection")
-        if self.jac_weighted_edges:
-            weights = "weight"
-        else:
-            weights = None
-
-        if self.partition_type == 'ModularityVP':
-            print('partition type MVP')
-            partition = leidenalg.find_partition(
-                graph=graph,
-                partition_type=leidenalg.ModularityVertexPartition, weights=weights,
-                n_iterations=self.n_iter_leiden, seed=self.random_seed
-            )
-        else:
-            print('partition type RBC')
-            partition = leidenalg.find_partition(
-                graph=graph,
-                partition_type=leidenalg.RBConfigurationVertexPartition, weights=weights,
-                n_iterations=self.n_iter_leiden, seed=self.random_seed,
-                resolution_parameter=self.resolution_parameter
-            )
+        partition = self.get_leiden_partition(graph, self.jac_weighted_edges)
 
         node_communities = np.asarray(partition.membership)
         node_communities = np.reshape(node_communities, (n_elements, 1))
