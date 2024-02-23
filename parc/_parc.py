@@ -440,14 +440,16 @@ class PARC:
             node_communities_big_cluster = self.run_toobig_subPARC(X_data_big)
             node_communities_big_cluster = node_communities_big_cluster + 100000
 
-            print('shape PARC_labels_leiden', node_communities.shape)
+            for cluster_index, index in zip(big_cluster_indices, range(0, len(big_cluster_indices))):
+                node_communities[cluster_index] = node_communities_big_cluster[index]
 
-            jj = 0
-            for j in big_cluster_indices:
-                node_communities[j] = node_communities_big_cluster[jj]
-                jj = jj + 1
-            node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
-            print('new set of labels ', set(node_communities))
+            node_communities = np.asarray(np.unique(
+                list(node_communities.flatten()),
+                return_inverse=True
+            )[1])
+
+            print(f"New set of labels: {set(node_communities)}")
+
             too_big = False
             set_node_communities = set(node_communities)
 
