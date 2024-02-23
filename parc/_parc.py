@@ -385,10 +385,35 @@ class PARC:
                 It will be expanded.""")
         return too_big, big_cluster_indices, big_cluster_sizes
 
+    def get_next_big_community(self, node_communities, big_cluster_sizes):
+        """Find the next community which is too big, if it exists.
+
+        Args:
+            node_communities: (np.array) an array containing the community assignments for each
+                node.
+            big_cluster_sizes: (list) a list of community sizes which have already been identified
+                and processed as too big.
+
+        Returns:
+            too_big: (bool) whether or not the community is too big.
+            big_cluster_indices: (list) a list of node indices for the community, if it is too big.
+            big_cluster_sizes: (list) the sizes of the communities that are too big.
+        """
+        too_big = False
+        communities = set(node_communities)
+
+        for community_id in communities:
+            too_big, big_cluster_indices, big_cluster_sizes = self.check_if_cluster_oversized(
+                node_communities, community_id, big_cluster_sizes
+            )
+            if too_big:
+                break
+
+        return too_big, big_cluster_indices, big_cluster_sizes
+
     def run_subPARC(self):
 
         X_data = self.data
-        too_big_factor = self.too_big_factor
         small_pop = self.small_pop
         jac_weighted_edges = self.jac_weighted_edges
         knn = self.knn
@@ -450,21 +475,10 @@ class PARC:
 
             print(f"New set of labels: {set(node_communities)}")
 
-            too_big = False
+            too_big, big_cluster_indices, big_cluster_sizes = self.get_next_big_community(
+                node_communities, big_cluster_sizes
+            )
 
-            for cluster_ii in set(node_communities):
-                cluster_ii_loc = np.where(node_communities == cluster_ii)[0]
-                pop_ii = len(cluster_ii_loc)
-                not_yet_expanded = pop_ii not in big_cluster_sizes
-                if pop_ii > too_big_factor * n_elements and not_yet_expanded:
-                    too_big = True
-                    print('cluster', cluster_ii, 'is too big and has population', pop_ii)
-                    big_cluster_indices = cluster_ii_loc
-                    cluster_big = cluster_ii
-                    big_pop = pop_ii
-            if too_big:
-                big_cluster_sizes.append(big_pop)
-                print('cluster', cluster_big, 'is too big with population', big_pop, '. It will be expanded')
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
         small_pop_list = []
         small_cluster_list = []
