@@ -301,38 +301,22 @@ class PARC:
 
         node_communities = np.asarray(partition.membership)
         node_communities = np.reshape(node_communities, (n_elements, 1))
-        small_pop_list = []
-        small_cluster_list = []
-        small_pop_exist = False
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
-        for cluster in set(node_communities):
-            population = len(np.where(node_communities == cluster)[0])
-            if population < 10:
-                small_pop_exist = True
-                small_pop_list.append(list(np.where(node_communities == cluster)[0]))
-                small_cluster_list.append(cluster)
 
-        for small_cluster in small_pop_list:
-            for single_cell in small_cluster:
-                old_neighbors = neighbor_array[single_cell, :]
-                group_of_old_neighbors = node_communities[old_neighbors]
-                group_of_old_neighbors = list(group_of_old_neighbors.flatten())
-                available_neighbours = set(group_of_old_neighbors) - set(small_cluster_list)
-                if len(available_neighbours) > 0:
-                    available_neighbours_list = [value for value in group_of_old_neighbors if
-                                                 value in list(available_neighbours)]
-                    best_group = max(available_neighbours_list, key=available_neighbours_list.count)
-                    node_communities[single_cell] = best_group
+        small_community_size = 10
+        node_communities, small_community_exists = self.reassign_small_communities(
+            node_communities, small_community_size, neighbor_array, exclude_neighbors_small=True
+        )
 
-        time_smallpop_start = time.time()
-        print('handling fragments')
-        while (small_pop_exist) & (time.time() - time_smallpop_start < self.time_smallpop):
+        time_start = time.time()
+        print("Handling fragments")
+        while (small_community_exists) & (time.time() - time_start < self.time_smallpop):
             small_pop_list = []
-            small_pop_exist = False
+            small_community_exists = False
             for cluster in set(list(node_communities.flatten())):
                 population = len(np.where(node_communities == cluster)[0])
-                if population < 10:
-                    small_pop_exist = True
+                if population < small_community_size:
+                    small_community_exists = True
 
                     small_pop_list.append(np.where(node_communities == cluster)[0])
             for small_cluster in small_pop_list:
