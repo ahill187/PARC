@@ -454,10 +454,10 @@ class PARC:
         return node_communities, small_community_exists
 
     def run_parc_big(
-        self, X_data, jac_std_threshold=0.3, jac_weighted_edges=True, small_community_size=10
+        self, x_data, jac_std_threshold=0.3, jac_weighted_edges=True, small_community_size=10
     ):
-        n_elements = X_data.shape[0]
-        hnsw = self.make_knn_struct(too_big=True, big_cluster=X_data)
+        n_elements = x_data.shape[0]
+        hnsw = self.make_knn_struct(too_big=True, big_cluster=x_data)
         if n_elements <= 10:
             print(f"Number of samples = {n_elements} is low; consider increasing the too_big_factor")
         if n_elements > self.knn:
@@ -465,7 +465,7 @@ class PARC:
         else:
             knnbig = int(max(5, 0.2 * n_elements))
 
-        neighbor_array, distance_array = hnsw.knn_query(X_data, k=knnbig)
+        neighbor_array, distance_array = hnsw.knn_query(x_data, k=knnbig)
 
         csr_array = self.prune_local(neighbor_array, distance_array)
         graph = self.prune_global(csr_array, jac_std_threshold, jac_weighted_edges)
