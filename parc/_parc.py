@@ -50,7 +50,7 @@ class PARC:
             Even for O(100 000) cells, 150-200 is adequate.
     """
 
-    def __init__(self, data, true_label=None, dist_std_local=3, jac_std_global="median",
+    def __init__(self, x_data, y_data_true=None, dist_std_local=3, jac_std_global="median",
                  keep_all_local_dist='auto', too_big_factor=0.4, small_pop=10,
                  jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
                  num_threads=-1, distance='l2', time_smallpop=15, partition_type="ModularityVP",
@@ -58,14 +58,14 @@ class PARC:
                  hnsw_param_ef_construction=150):
 
         if keep_all_local_dist == "auto":
-            if data.shape[0] > 300000:
+            if x_data.shape[0] > 300000:
                 keep_all_local_dist = True  # skips local pruning to increase speed
             else:
                 keep_all_local_dist = False
         if resolution_parameter != 1:
             partition_type = "RBVP"
-        self.data = data
-        self.true_label = true_label
+        self.y_data_true = y_data_true
+        self._x_data = x_data
         self.dist_std_local = dist_std_local
         self.jac_std_global = jac_std_global
         self.keep_all_local_dist = keep_all_local_dist
@@ -83,6 +83,16 @@ class PARC:
         self.knn_struct = knn_struct
         self.neighbor_graph = neighbor_graph
         self.hnsw_param_ef_construction = hnsw_param_ef_construction
+
+    @property
+    def x_data(self):
+        return self._x_data
+
+    @x_data.setter
+    def x_data(self, x_data):
+        self._x_data = x_data
+        if self.y_data_true is None:
+            self.y_data_true = [1] * x_data.shape[0]
 
     def get_knn_struct(self):
         if self.knn_struct is None:
@@ -106,7 +116,7 @@ class PARC:
             print(f"knn = {self.knn}; consider using a lower K_in for KNN graph construction")
 
         if not too_big:
-            data = self.data
+            data = self.x_data
             distance = self.distance
         else:
             data = big_cluster
@@ -123,7 +133,7 @@ class PARC:
         k_umap = 15
         # neighbors in array are not listed in in any order of proximity
         self.knn_struct.set_ef(k_umap+1)
-        neighbor_array, distance_array = self.knn_struct.knn_query(self.data, k=k_umap)
+        neighbor_array, distance_array = self.knn_struct.knn_query(self.x_data, k=k_umap)
 
         row_list = []
         n_neighbors = neighbor_array.shape[1]
@@ -466,7 +476,7 @@ class PARC:
 
     def run_parc(self):
 
-        x_data = self.data
+        x_data = self.x_data
         small_community_size = self.small_pop
 
         n_elements = x_data.shape[0]
@@ -528,13 +538,11 @@ class PARC:
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
         node_communities = list(node_communities.flatten())
 
-        self.labels = node_communities
+        self.y_data_pred = node_communities
         return
 
     def run_PARC(self):
-        print('input data has shape', self.data.shape[0], '(samples) x', self.data.shape[1], '(features)')
-        if self.true_label is None:
-            self.true_label = [1] * self.data.shape[0]
+        print(f"Input data has shape {self.x_data.shape[0]} (samples) x {self.x_data.shape[1]} (features)")
         list_roc = []
 
         time_start_total = time.time()
@@ -544,8 +552,8 @@ class PARC:
         run_time = time.time() - time_start_total
         print('time elapsed {:.1f} seconds'.format(run_time))
 
-        targets = list(set(self.true_label))
-        N = len(list(self.true_label))
+        targets = list(set(self.y_data_true))
+        N = len(list(self.y_data_true))
         self.f1_accumulated = 0
         self.f1_mean = 0
         self.stats_df = pd.DataFrame({
@@ -559,12 +567,12 @@ class PARC:
             f1_acc_noweighting = 0
             for target in targets:
                 print(f"target is {target}")
-                vals_roc, predict_class_array, majority_truth_labels, numclusters_targetval = accuracy(
-                    self.true_label, self.labels, target=target
+                vals_roc, majority_truth_labels, numclusters_targetval = accuracy(
+                    self.y_data_true, self.y_data_pred, target=target
                 )
                 f1_current = vals_roc[1]
                 print('target', target, 'has f1-score of %.2f' % (f1_current * 100))
-                f1_accumulated = f1_accumulated + f1_current * (list(self.true_label).count(target)) / N
+                f1_accumulated = f1_accumulated + f1_current * (list(self.y_data_true).count(target)) / N
                 f1_acc_noweighting = f1_acc_noweighting + f1_current
 
                 list_roc.append(
