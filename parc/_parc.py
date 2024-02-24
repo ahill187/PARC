@@ -493,6 +493,11 @@ class PARC:
         return node_communities
 
     def run_parc(self):
+        print(
+            f"Input data has shape {self.x_data.shape[0]} (samples) x"
+            f"{self.x_data.shape[1]} (features)"
+        )
+        time_start = time.time()
 
         x_data = self.x_data
         small_community_size = self.small_pop
@@ -509,7 +514,7 @@ class PARC:
 
         graph = self.prune_global(csr_array, self.jac_std_global)
 
-        print("Starting community detection")
+        print("Starting community detection...")
         partition = self.get_leiden_partition(graph, self.jac_weighted_edges)
 
         node_communities = np.asarray(partition.membership)
@@ -557,19 +562,12 @@ class PARC:
         node_communities = list(node_communities.flatten())
 
         self.y_data_pred = node_communities
+        run_time = time.time() - time_start
+        print(f"time elapsed: {run_time} seconds")
+        self.compute_performance_metrics(run_time)
         return
 
-    def run_PARC(self):
-        print(f"Input data has shape {self.x_data.shape[0]} (samples) x {self.x_data.shape[1]} (features)")
-        list_roc = []
-
-        time_start_total = time.time()
-
-        # Query dataset, k - number of closest elements (returns 2 numpy arrays)
-        self.run_parc()
-        run_time = time.time() - time_start_total
-        print('time elapsed {:.1f} seconds'.format(run_time))
-
+    def compute_performance_metrics(self, run_time):
         targets = list(set(self.y_data_true))
         N = len(list(self.y_data_true))
         self.f1_accumulated = 0
@@ -580,6 +578,7 @@ class PARC:
             'runtime(s)': [run_time]
         })
         self.majority_truth_labels = []
+        list_roc = []
         if len(targets) > 1:
             f1_accumulated = 0
             f1_acc_noweighting = 0
@@ -615,7 +614,6 @@ class PARC:
             self.f1_mean = f1_mean
             self.stats_df = df_accuracy
             self.majority_truth_labels = majority_truth_labels
-        return
 
     def run_umap_hnsw(self, X_input, graph, n_components=2, alpha: float = 1.0,
                       negative_sample_rate: int = 5, gamma: float = 1.0, spread=1.0, min_dist=0.1,
