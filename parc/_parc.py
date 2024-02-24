@@ -57,18 +57,11 @@ class PARC:
                  resolution_parameter=1.0, knn_struct=None, neighbor_graph=None,
                  hnsw_param_ef_construction=150):
 
-        if keep_all_local_dist == "auto":
-            if x_data.shape[0] > 300000:
-                keep_all_local_dist = True  # skips local pruning to increase speed
-            else:
-                keep_all_local_dist = False
-        if resolution_parameter != 1:
-            partition_type = "RBVP"
         self.y_data_true = y_data_true
         self._x_data = x_data
         self.dist_std_local = dist_std_local
         self.jac_std_global = jac_std_global
-        self.keep_all_local_dist = keep_all_local_dist
+        self._keep_all_local_dist = keep_all_local_dist
         self.too_big_factor = too_big_factor
         self.small_pop = small_pop
         self.jac_weighted_edges = jac_weighted_edges
@@ -78,8 +71,8 @@ class PARC:
         self.num_threads = num_threads
         self.distance = distance
         self.time_smallpop = time_smallpop
-        self.partition_type = partition_type
         self.resolution_parameter = resolution_parameter
+        self._partition_type = partition_type
         self.knn_struct = knn_struct
         self.neighbor_graph = neighbor_graph
         self.hnsw_param_ef_construction = hnsw_param_ef_construction
@@ -93,6 +86,31 @@ class PARC:
         self._x_data = x_data
         if self.y_data_true is None:
             self.y_data_true = [1] * x_data.shape[0]
+
+    @property
+    def keep_all_local_dist(self):
+        return self._keep_all_local_dist
+
+    @keep_all_local_dist.setter
+    def keep_all_local_dist(self, keep_all_local_dist):
+        if keep_all_local_dist == "auto":
+            if self.x_data.shape[0] > 300000:
+                keep_all_local_dist = True  # skips local pruning to increase speed
+            else:
+                keep_all_local_dist = False
+
+        self.keep_all_local_dist = keep_all_local_dist
+
+    @property
+    def partition_type(self):
+        return self._partition_type
+
+    @partition_type.setter
+    def partition_type(self, partition_type):
+        if self.resolution_parameter != 1:
+            self.partition_type = "RBVP"
+        else:
+            self.partition_type = partition_type
 
     def get_knn_struct(self):
         if self.knn_struct is None:
