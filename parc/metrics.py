@@ -2,57 +2,49 @@ import numpy as np
 from parc.utils import get_mode
 
 
-def accuracy(labels_true, labels_pred, target=1):
+def accuracy(y_data_true, y_data_pred, target=1):
 
-    Index_dict = {}
-    N = len(labels_pred)
-    n_cancer = list(labels_true).count(target)
-    n_pbmc = N - n_cancer
+    pred_to_true_dict = {}
+    n_samples = len(y_data_pred)
+    n_target = list(y_data_true).count(target)
 
-    for k in range(N):
-        Index_dict.setdefault(labels_pred[k], []).append(labels_true[k])
-    num_groups = len(Index_dict)
-    sorted_keys = list(sorted(Index_dict.keys()))
+    for k in range(n_samples):
+        pred_to_true_dict.setdefault(y_data_pred[k], []).append(y_data_true[k])
+    n_clusters = len(pred_to_true_dict)
+    labels = list(sorted(pred_to_true_dict.keys()))
     error_count = []
-    pbmc_labels = []
-    thp1_labels = []
+    negative_labels = []
+    positive_labels = []
     fp, fn, tp, tn, precision, recall, f1_score = 0, 0, 0, 0, 0, 0, 0
 
-    for kk in sorted_keys:
-        vals = [t for t in Index_dict[kk]]
-        majority_val = get_mode(vals)
+    for label in labels:
+        targets = pred_to_true_dict[label]
+        majority_val = get_mode(targets)
         if majority_val == target:
-            print(f"cluster {kk} has majority {target} with population {len(vals)}")
-        if kk == -1:
-            len_unknown = len(vals)
+            print(f"cluster {label} has majority {target} with population {len(targets)}")
+        if label == -1:
+            len_unknown = len(targets)
             print('len unknown', len_unknown)
-        if (majority_val == target) and (kk != -1):
-            thp1_labels.append(kk)
-            fp = fp + len([e for e in vals if e != target])
-            tp = tp + len([e for e in vals if e == target])
-            list_error = [e for e in vals if e != majority_val]
+        elif (majority_val == target):
+            positive_labels.append(label)
+            fp = fp + len([e for e in targets if e != target])
+            tp = tp + len([e for e in targets if e == target])
+            list_error = [e for e in targets if e != majority_val]
             e_count = len(list_error)
             error_count.append(e_count)
-        elif (majority_val != target) and (kk != -1):
-            pbmc_labels.append(kk)
-            tn = tn + len([e for e in vals if e != target])
-            fn = fn + len([e for e in vals if e == target])
-            error_count.append(len([e for e in vals if e != majority_val]))
+        else:
+            negative_labels.append(label)
+            tn = tn + len([e for e in targets if e != target])
+            fn = fn + len([e for e in targets if e == target])
+            error_count.append(len([e for e in targets if e != majority_val]))
 
-    predict_class_array = np.array(labels_pred)
-    labels_pred_array = np.array(labels_pred)
-    number_clusters_for_target = len(thp1_labels)
-    for cancer_class in thp1_labels:
-        predict_class_array[labels_pred_array == cancer_class] = 1
-    for benign_class in pbmc_labels:
-        predict_class_array[labels_pred_array == benign_class] = 0
-    predict_class_array.reshape((predict_class_array.shape[0], -1))
-    error_rate = sum(error_count) / N
+    number_clusters_for_target = len(positive_labels)
+    error_rate = sum(error_count) / n_samples
     n_target = tp + fn
-    tnr = tn / n_pbmc
-    fnr = fn / n_cancer
-    tpr = tp / n_cancer
-    fpr = fp / n_pbmc
+    tnr = tn / (n_samples - n_target)
+    fnr = fn / n_target
+    tpr = tp / n_target
+    fpr = fp / (n_samples - n_target)
 
     if tp != 0 or fn != 0:
         recall = tp / (tp + fn)  # ability to find all positives
@@ -60,19 +52,16 @@ def accuracy(labels_true, labels_pred, target=1):
         precision = tp / (tp + fp)  # ability to not misclassify negatives as positives
     if precision != 0 or recall != 0:
         f1_score = precision * recall * 2 / (precision + recall)
-    majority_truth_labels = np.empty((len(labels_true), 1), dtype=object)
+    majority_truth_labels = np.empty((len(y_data_true), 1), dtype=object)
 
-    for cluster_i in set(labels_pred):
-        cluster_i_loc = np.where(np.asarray(labels_pred) == cluster_i)[0]
-        labels_true = np.asarray(labels_true)
-        majority_truth = get_mode(list(labels_true[cluster_i_loc]))
+    for cluster_id in set(y_data_pred):
+        cluster_i_loc = np.where(np.asarray(y_data_pred) == cluster_id)[0]
+        y_data_true = np.asarray(y_data_true)
+        majority_truth = get_mode(list(y_data_true[cluster_i_loc]))
         majority_truth_labels[cluster_i_loc] = majority_truth
 
     majority_truth_labels = list(majority_truth_labels.flatten())
     accuracy_val = [error_rate, f1_score, tnr, fnr, tpr, fpr, precision,
-                    recall, num_groups, n_target]
+                    recall, n_clusters, n_target]
 
-    return accuracy_val, predict_class_array, majority_truth_labels, number_clusters_for_target
-
-
-def compute_f1_score():
+    return accuracy_val, majority_truth_labels, number_clusters_for_target
