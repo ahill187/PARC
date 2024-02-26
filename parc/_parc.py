@@ -36,7 +36,7 @@ class PARC:
         n_iter_leiden: (int) the number of iterations for the Leiden algorithm.
         random_seed: (int) the random seed to enable reproducible Leiden clustering.
         n_threads: (int) the number of threads used in the KNN algorithm.
-        distance: (string) the distance metric to be used in the KNN algorithm:
+        distance_metric: (string) the distance metric to be used in the KNN algorithm:
             "l2": Euclidean distance L^2 norm, d = sum((x_i - y_i)^2)
             "cosine": cosine similarity, d = 1.0 - sum(x_i*y_i) / sqrt(sum(x_i*x_i) * sum(y_i*y_i))
             "ip": inner product distance, d = 1.0 - sum(x_i*y_i)
@@ -55,7 +55,7 @@ class PARC:
     def __init__(self, x_data, y_data_true=None, dist_std_local=3, jac_std_global="median",
                  keep_all_local_dist=None, large_community_factor=0.4, small_community_size=10,
                  jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
-                 n_threads=-1, distance="l2", small_community_timeout=15, partition_type="ModularityVP",
+                 n_threads=-1, distance_metric="l2", small_community_timeout=15, partition_type="ModularityVP",
                  resolution_parameter=1.0, knn_struct=None, neighbor_graph=None,
                  hnsw_param_ef_construction=150):
 
@@ -71,7 +71,7 @@ class PARC:
         self.n_iter_leiden = n_iter_leiden
         self.random_seed = random_seed
         self.n_threads = n_threads
-        self.distance = distance
+        self.distance_metric = distance_metric
         self.small_community_timeout = small_community_timeout
         self.resolution_parameter = resolution_parameter
         self._partition_type = partition_type
@@ -137,13 +137,13 @@ class PARC:
 
         if not too_big:
             data = self.x_data
-            distance = self.distance
+            distance_metric = self.distance_metric
         else:
             data = big_cluster
-            distance = "l2"
+            distance_metric = "l2"
 
         hnsw_index = create_hnsw_index(
-            data, distance, self.knn, self.n_threads,
+            data, distance_metric, self.knn, self.n_threads,
             self.hnsw_param_ef_construction, too_big
         )
 
