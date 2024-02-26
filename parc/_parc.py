@@ -462,63 +462,42 @@ class PARC:
                     node_communities[node] = best_group
         return node_communities, small_community_exists
 
-    def run_parc_big(
-        self, x_data, jac_std_threshold=0.3, jac_weighted_edges=True, small_community_size=10
+    def run_parc(
+        self, x_data=None, recursion_level=0, small_community_size=None, jac_std_global=None
     ):
-        n_elements = x_data.shape[0]
-        hnsw = self.make_knn_struct(is_large_community=True, big_cluster=x_data)
-        if n_elements <= 10:
-            print(f"Number of samples = {n_elements} is low; consider increasing the large_community_factor")
-        if n_elements > self.knn:
-            knnbig = self.knn
-        else:
-            knnbig = int(max(5, 0.2 * n_elements))
-
-        neighbor_array, distance_array = hnsw.knn_query(x_data, k=knnbig)
-
-        csr_array = self.prune_local(neighbor_array, distance_array)
-        graph = self.prune_global(csr_array, jac_std_threshold, jac_weighted_edges)
-
-        partition = self.get_leiden_partition(graph, jac_weighted_edges)
-
-        node_communities = np.asarray(partition.membership)
-        node_communities = np.reshape(node_communities, (n_elements, 1))
-        node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
-
-        node_communities, small_community_exists = self.reassign_small_communities(
-            node_communities, small_community_size, neighbor_array, exclude_neighbors_small=True
-        )
 
         time_start = time.time()
-        print("Handling fragments")
-        while (small_community_exists) & (time.time() - time_start < self.small_community_timeout):
-            node_communities, small_community_exists = self.reassign_small_communities(
-                node_communities, small_community_size, neighbor_array,
-                exclude_neighbors_small=False
-            )
 
-        node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
+        if jac_std_global is None:
+            jac_std_global = self.jac_std_global
 
-        return node_communities
+        if x_data is None:
+            x_data = self.x_data
 
-    def run_parc(self):
+        if small_community_size is None:
+            small_community_size = self.small_community_size
+
         print(
             f"Input data has shape {self.x_data.shape[0]} (samples) x"
             f"{self.x_data.shape[1]} (features)"
         )
-        time_start = time.time()
-
-        x_data = self.x_data
-        small_community_size = self.small_community_size
 
         n_elements = x_data.shape[0]
 
-        if self.neighbor_graph is not None:
+        if self.neighbor_graph is not None and recursion_level == 0:
             csr_array = self.neighbor_graph
             neighbor_array = np.split(csr_array.indices, csr_array.indptr)[1:-1]
         else:
-            knn_struct = self.get_knn_struct()
-            neighbor_array, distance_array = knn_struct.knn_query(x_data, k=self.knn)
+            if recursion_level > 0:
+                knn_struct = self.make_knn_struct(is_large_community=True, big_cluster=x_data)
+                if n_elements <= self.knn:
+                    k = int(max(5, 0.2 * n_elements))
+                else:
+                    k = self.knn
+            else:
+                knn_struct = self.get_knn_struct()
+                k = self.knn
+            neighbor_array, distance_array = knn_struct.knn_query(x_data, k=k)
             csr_array = self.prune_local(neighbor_array, distance_array)
 
         graph = self.prune_global(csr_array, self.jac_std_global)
@@ -529,15 +508,21 @@ class PARC:
         node_communities = np.asarray(partition.membership)
         node_communities = np.reshape(node_communities, (n_elements, 1))
 
-        # Check if the 0th cluster is too big. This is always the largest cluster.
-        large_community_exists, big_cluster_indices, big_cluster_sizes = self.check_if_large_community(
-            node_communities=node_communities, community_id=0
-        )
+        if recursion_level == 0:
+            # Check if the 0th cluster is too big. This is always the largest cluster.
+            large_community_exists, big_cluster_indices, big_cluster_sizes = self.check_if_large_community(
+                node_communities=node_communities, community_id=0
+            )
+        else:
+            large_community_exists = False
 
         while large_community_exists:
-
-            x_data_big = x_data[big_cluster_indices, :]
-            node_communities_big_cluster = self.run_parc_big(x_data_big)
+            node_communities_big_cluster = self.run_parc(
+                x_data=x_data[big_cluster_indices, :],
+                recursion_level=recursion_level + 1,
+                small_community_size=10,
+                jac_std_global=0.3
+            )
             node_communities_big_cluster = node_communities_big_cluster + 100000
 
             for cluster_index, index in zip(big_cluster_indices, range(0, len(big_cluster_indices))):
@@ -560,8 +545,8 @@ class PARC:
             node_communities, small_community_size, neighbor_array, exclude_neighbors_small=True
         )
 
-        time_start = time.time()
-        while (small_community_exists) & ((time.time() - time_start) < self.small_community_timeout):
+        time_start_sc = time.time()
+        while (small_community_exists) & ((time.time() - time_start_sc) < self.small_community_timeout):
             node_communities, small_community_exists = self.reassign_small_communities(
                 node_communities, small_community_size, neighbor_array,
                 exclude_neighbors_small=False
@@ -570,11 +555,12 @@ class PARC:
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
         node_communities = list(node_communities.flatten())
 
-        self.y_data_pred = node_communities
         run_time = time.time() - time_start
         print(f"time elapsed: {run_time} seconds")
-        self.compute_performance_metrics(run_time)
-        return
+        if recursion_level == 0:
+            self.y_data_pred = node_communities
+            self.compute_performance_metrics(run_time)
+        return node_communities
 
     def compute_performance_metrics(self, run_time):
         if self.y_data_true is None:
