@@ -568,6 +568,10 @@ class PARC:
         return
 
     def compute_performance_metrics(self, run_time):
+        if self.y_data_true is None:
+            print("Unable to compute performance metrics, true target values not provided.")
+            return
+
         targets = list(set(self.y_data_true))
         N = len(list(self.y_data_true))
         self.f1_accumulated = 0

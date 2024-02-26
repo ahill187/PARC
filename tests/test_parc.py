@@ -21,9 +21,21 @@ def test_parc_run_umap_hnsw(iris_data):
     assert x_umap.shape == (150, 2)
 
 
-def test_parc_run_parc(iris_data):
+@pytest.mark.parametrize(
+    "targets_exist",
+    [(
+        True
+    ),
+    (
+        False
+    )]
+)
+def test_parc_run_parc(iris_data, targets_exist):
     x_data, y_data = iris_data
-    parc_model = PARC(x_data, y_data_true=y_data)
+    if targets_exist:
+        parc_model = PARC(x_data, y_data_true=y_data)
+    else:
+        parc_model = PARC(x_data)
     parc_model.run_parc()
 
     assert len(parc_model.y_data_pred) == 150
