@@ -13,17 +13,17 @@ def iris_data():
 
 def test_parc_run_umap_hnsw(iris_data):
     x_data, y_data = iris_data
-    parc_model = PARC(x_data, true_label=y_data)
-    parc_model.run_PARC()
+    parc_model = PARC(x_data, y_data_true=y_data)
+    parc_model.run_parc()
 
     graph = parc_model.knngraph_full()
     x_umap = parc_model.run_umap_hnsw(x_data, graph)
     assert x_umap.shape == (150, 2)
 
 
-def test_parc_run_PARC(iris_data):
+def test_parc_run_parc(iris_data):
     x_data, y_data = iris_data
-    parc_model = PARC(x_data, true_label=y_data)
-    parc_model.run_PARC()
+    parc_model = PARC(x_data, y_data_true=y_data)
+    parc_model.run_parc()
 
-    assert len(parc_model.labels) == 150
+    assert len(parc_model.y_data_pred) == 150
