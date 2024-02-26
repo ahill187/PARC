@@ -15,8 +15,9 @@ class PARC:
     """Phenotyping by accelerated refined community-partitioning.
 
     Attributes:
-        data: (np.array) a Numpy array of the input x data, with dimensions (n_samples, n_features).
-        true_label: (np.array) a Numpy array of the output y labels.
+        x_data: (np.array) a Numpy array of the input x data, with dimensions
+            (n_samples, n_features).
+        y_data_true: (np.array) a Numpy array of the output y labels.
         dist_std_local: (int) similar to the jac_std_global parameter. Avoid setting local and
             global pruning to both be below 0.5 as this is very aggresive pruning.
             Higher ``dist_std_local`` means more edges are kept.
@@ -24,10 +25,12 @@ class PARC:
             to ``median``. Generally values between 0-1.5 are reasonable.
             Higher ``jac_std_global`` means more edges are kept.
         keep_all_local_dist: (bool) whether or not to do local pruning.
-            Default is 'auto' which omits LOCAL pruning for samples > 300 000 cells.
-        too_big_factor: (float) if a cluster exceeds this share of the entire cell population,
+            Default is None, which omits local pruning for samples > 300 000 cells.
+        large_community_factor: (float) if a cluster exceeds this share of the entire cell population,
             then the PARC will be run on the large cluster. At 0.4 it does not come into play.
         small_community_size: (int) the smallest population size to be considered a community.
+        small_community_timeout: (int) the maximum number of seconds trying to check an outlying
+            small community.
         jac_weighted_edges: (bool) whether to partition using the weighted graph.
         knn: (int) the number of clusters k for the k-nearest neighbours algorithm.
         n_iter_leiden: (int) the number of iterations for the Leiden algorithm.
@@ -37,7 +40,6 @@ class PARC:
             "l2": Euclidean distance L^2 norm, d = sum((x_i - y_i)^2)
             "cosine": cosine similarity, d = 1.0 - sum(x_i*y_i) / sqrt(sum(x_i*x_i) * sum(y_i*y_i))
             "ip": inner product distance, d = 1.0 - sum(x_i*y_i)
-        small_community_timeout: (int) number of seconds trying to check an outlier
         partition_type: (string) the partition type to be used in the Leiden algorithm:
             "ModularityVP": ModularityVertexPartition, ``resolution_parameter=1``
             "RBVP": RBConfigurationVP, Reichardt and Bornholdt’s Potts model. Note that this is the
@@ -51,9 +53,9 @@ class PARC:
     """
 
     def __init__(self, x_data, y_data_true=None, dist_std_local=3, jac_std_global="median",
-                 keep_all_local_dist='auto', too_big_factor=0.4, small_community_size=10,
+                 keep_all_local_dist=None, large_community_factor=0.4, small_community_size=10,
                  jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
-                 num_threads=-1, distance='l2', small_community_timeout=15, partition_type="ModularityVP",
+                 num_threads=-1, distance="l2", small_community_timeout=15, partition_type="ModularityVP",
                  resolution_parameter=1.0, knn_struct=None, neighbor_graph=None,
                  hnsw_param_ef_construction=150):
 
@@ -62,7 +64,7 @@ class PARC:
         self.dist_std_local = dist_std_local
         self.jac_std_global = jac_std_global
         self._keep_all_local_dist = keep_all_local_dist
-        self.too_big_factor = too_big_factor
+        self.large_community_factor = large_community_factor
         self.small_community_size = small_community_size
         self.jac_weighted_edges = jac_weighted_edges
         self.knn = knn
@@ -93,7 +95,7 @@ class PARC:
 
     @keep_all_local_dist.setter
     def keep_all_local_dist(self, keep_all_local_dist):
-        if keep_all_local_dist == "auto":
+        if keep_all_local_dist is None:
             if self.x_data.shape[0] > 300000:
                 keep_all_local_dist = True  # skips local pruning to increase speed
             else:
@@ -334,7 +336,7 @@ class PARC:
         cluster_size = len(cluster_indices)
         big_cluster_indices = []
         not_yet_expanded = cluster_size not in big_cluster_sizes
-        if cluster_size > self.too_big_factor * n_samples and not_yet_expanded:
+        if cluster_size > self.large_community_factor * n_samples and not_yet_expanded:
             too_big = True
             big_cluster_indices = cluster_indices
             big_cluster_sizes.append(cluster_size)
@@ -459,7 +461,7 @@ class PARC:
         n_elements = x_data.shape[0]
         hnsw = self.make_knn_struct(too_big=True, big_cluster=x_data)
         if n_elements <= 10:
-            print(f"Number of samples = {n_elements} is low; consider increasing the too_big_factor")
+            print(f"Number of samples = {n_elements} is low; consider increasing the large_community_factor")
         if n_elements > self.knn:
             knnbig = self.knn
         else:
