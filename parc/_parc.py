@@ -18,14 +18,15 @@ class PARC:
         x_data: (np.array) a Numpy array of the input x data, with dimensions
             (n_samples, n_features).
         y_data_true: (np.array) a Numpy array of the output y labels.
-        dist_std_local: (int) similar to the jac_std_global parameter. Avoid setting local and
-            global pruning to both be below 0.5 as this is very aggresive pruning.
-            Higher ``dist_std_local`` means more edges are kept.
         jac_std_global: (float) 0.15 is a recommended value performing empirically similar
             to ``median``. Generally values between 0-1.5 are reasonable.
             Higher ``jac_std_global`` means more edges are kept.
         keep_all_local_dist: (bool) whether or not to do local pruning.
-            Default is None, which omits local pruning for samples > 300 000 cells.
+            If None (default), set to ``true`` if the number of samples is > 300 000,
+            and set to ``false`` otherwise.
+        dist_std_local: (int) similar to the jac_std_global parameter. Avoid setting local and
+            global pruning to both be below 0.5 as this is very aggresive pruning.
+            Higher ``dist_std_local`` means more edges are kept.
         large_community_factor: (float) if a cluster exceeds this share of the entire cell population,
             then the PARC will be run on the large cluster. At 0.4 it does not come into play.
         small_community_size: (int) the smallest population size to be considered a community.
@@ -55,9 +56,9 @@ class PARC:
     def __init__(self, x_data, y_data_true=None, dist_std_local=3, jac_std_global="median",
                  keep_all_local_dist=None, large_community_factor=0.4, small_community_size=10,
                  jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
-                 n_threads=-1, distance_metric="l2", small_community_timeout=15, partition_type="ModularityVP",
-                 resolution_parameter=1.0, knn_struct=None, neighbor_graph=None,
-                 hnsw_param_ef_construction=150):
+                 n_threads=-1, distance_metric="l2", small_community_timeout=15,
+                 partition_type="ModularityVP", resolution_parameter=1.0, knn_struct=None,
+                 neighbor_graph=None, hnsw_param_ef_construction=150):
 
         self.y_data_true = y_data_true
         self._x_data = x_data
@@ -119,14 +120,15 @@ class PARC:
             self.knn_struct = self.make_knn_struct()
         return self.knn_struct
 
-    def make_knn_struct(self, too_big=False, big_cluster=None):
+    def make_knn_struct(self, is_large_community=False, big_cluster=None):
         """Create a Hierarchical Navigable Small Worlds (HNSW) graph.
 
         See `hnswlib.Index
         <https://github.com/nmslib/hnswlib/blob/master/python_bindings/LazyIndex.py>`__.
 
         Args:
-            too_big: (bool) TODO.
+            is_large_community: (bool) whether or not the community size is above a
+                certain threshold.
             big_cluster: TODO.
 
         Returns:
@@ -135,7 +137,7 @@ class PARC:
         if self.knn > 190:
             print(f"knn = {self.knn}; consider using a lower K_in for KNN graph construction")
 
-        if not too_big:
+        if not is_large_community:
             data = self.x_data
             distance_metric = self.distance_metric
         else:
@@ -144,7 +146,7 @@ class PARC:
 
         hnsw_index = create_hnsw_index(
             data, distance_metric, self.knn, self.n_threads,
-            self.hnsw_param_ef_construction, too_big
+            self.hnsw_param_ef_construction, is_large_community
         )
 
         return hnsw_index
@@ -222,7 +224,13 @@ class PARC:
         n_neighbors = neighbor_array.shape[1]
         n_samples = neighbor_array.shape[0]
         discard_count = 0
-        if not self.keep_all_local_dist:  # locally prune based on (squared) l2 distance
+        if self.keep_all_local_dist:  # don't prune based on distance
+            row_list.extend(list(np.transpose(
+                np.ones((n_neighbors, n_samples)) * range(0, n_samples)).flatten()
+            ))
+            col_list = neighbor_array.flatten().tolist()
+            weight_list = (1. / (distance_array.flatten() + 0.1)).tolist()
+        else:  # locally prune based on (squared) l2 distance
 
             print(f"""Starting local pruning based on Euclidean distance metric at
                    {self.dist_std_local} standard deviations above mean""")
@@ -241,13 +249,6 @@ class PARC:
                         col_list.append(updated_neighbors[index])
                         dist = np.sqrt(updated_distances[index])
                         weight_list.append(1 / (dist + 0.1))
-
-        if self.keep_all_local_dist:  # dont prune based on distance
-            row_list.extend(list(np.transpose(
-                np.ones((n_neighbors, n_samples)) * range(0, n_samples)).flatten()
-            ))
-            col_list = neighbor_array.flatten().tolist()
-            weight_list = (1. / (distance_array.flatten() + 0.1)).tolist()
 
         csr_graph = csr_matrix((np.array(weight_list), (np.array(row_list), np.array(col_list))),
                                shape=(n_samples, n_samples))
@@ -331,24 +332,24 @@ class PARC:
             community_id: (int) the integer id of the community.
 
         Returns:
-            too_big: (bool) whether or not the community is too big.
+            is_large_community: (bool) whether or not the community is too big.
             big_cluster_indices: (list) a list of node indices for the community, if it is too big.
             big_cluster_sizes: (list) the sizes of the communities that are too big.
         """
 
-        too_big = False
+        is_large_community = False
         n_samples = node_communities.shape[0]
         cluster_indices = np.where(node_communities == community_id)[0]
         cluster_size = len(cluster_indices)
         big_cluster_indices = []
         not_yet_expanded = cluster_size not in big_cluster_sizes
         if cluster_size > self.large_community_factor * n_samples and not_yet_expanded:
-            too_big = True
+            is_large_community = True
             big_cluster_indices = cluster_indices
             big_cluster_sizes.append(cluster_size)
             print(f"""Community {community_id} is too big, cluster size = {cluster_size}.
                 It will be expanded.""")
-        return too_big, big_cluster_indices, big_cluster_sizes
+        return is_large_community, big_cluster_indices, big_cluster_sizes
 
     def get_next_big_community(self, node_communities, big_cluster_sizes):
         """Find the next community which is too big, if it exists.
@@ -360,21 +361,21 @@ class PARC:
                 and processed as too big.
 
         Returns:
-            too_big: (bool) whether or not the community is too big.
+            large_community_exists: (bool) whether or not the community is too big.
             big_cluster_indices: (list) a list of node indices for the community, if it is too big.
             big_cluster_sizes: (list) the sizes of the communities that are too big.
         """
-        too_big = False
+        large_community_exists = False
         communities = set(node_communities)
 
         for community_id in communities:
-            too_big, big_cluster_indices, big_cluster_sizes = self.check_if_large_community(
+            large_community_exists, big_cluster_indices, big_cluster_sizes = self.check_if_large_community(
                 node_communities, community_id, big_cluster_sizes
             )
-            if too_big:
+            if large_community_exists:
                 break
 
-        return too_big, big_cluster_indices, big_cluster_sizes
+        return large_community_exists, big_cluster_indices, big_cluster_sizes
 
     def get_small_communities(self, node_communities, small_community_size):
         """Find communities which are below the small_community_size cutoff.
@@ -465,7 +466,7 @@ class PARC:
         self, x_data, jac_std_threshold=0.3, jac_weighted_edges=True, small_community_size=10
     ):
         n_elements = x_data.shape[0]
-        hnsw = self.make_knn_struct(too_big=True, big_cluster=x_data)
+        hnsw = self.make_knn_struct(is_large_community=True, big_cluster=x_data)
         if n_elements <= 10:
             print(f"Number of samples = {n_elements} is low; consider increasing the large_community_factor")
         if n_elements > self.knn:
@@ -529,11 +530,11 @@ class PARC:
         node_communities = np.reshape(node_communities, (n_elements, 1))
 
         # Check if the 0th cluster is too big. This is always the largest cluster.
-        too_big, big_cluster_indices, big_cluster_sizes = self.check_if_large_community(
+        large_community_exists, big_cluster_indices, big_cluster_sizes = self.check_if_large_community(
             node_communities=node_communities, community_id=0
         )
 
-        while too_big:
+        while large_community_exists:
 
             x_data_big = x_data[big_cluster_indices, :]
             node_communities_big_cluster = self.run_parc_big(x_data_big)
@@ -549,7 +550,7 @@ class PARC:
 
             print(f"New set of labels: {set(node_communities)}")
 
-            too_big, big_cluster_indices, big_cluster_sizes = self.get_next_big_community(
+            large_community_exists, big_cluster_indices, big_cluster_sizes = self.get_next_big_community(
                 node_communities, big_cluster_sizes
             )
 
