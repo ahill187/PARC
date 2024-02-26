@@ -148,11 +148,11 @@ with open(file_path_y, "rt") as file:
       y_data.append(line.strip().replace('\"', ''))   
 
 # Instantiate the PARC class
-# Note: setting small_pop to 50 cleans up some of the smaller clusters, but can also be left
-# at the default 10
+# Note: setting small_community_size to 50 cleans up some of the smaller clusters,
+# but can also be left at the default 10
 
 parc_model = parc.PARC(
-  x_data=x_data, y_data_true=y_data, jac_std_global=0.15, random_seed=1, small_pop=50
+  x_data=x_data, y_data_true=y_data, jac_std_global=0.15, random_seed=1, small_community_size=50
 )
 
 # Run the PARC algorithm
@@ -188,10 +188,12 @@ adata.obs['annotations'] = pd.Categorical(annotations)
 # pre-process as per Zheng et al., and take first 50 PCs for analysis
 sc.pp.recipe_zheng17(adata)
 sc.tl.pca(adata, n_comps=50)
-# setting small_pop to 50 cleans up some of the smaller clusters, but can also be left at the default 10
+# setting small_community_size to 50 cleans up some of the smaller clusters,
+# but can also be left at the default 10
+
 parc_model = parc.PARC(
   x_data=adata.obsm['X_pca'], y_data_true=annotations, jac_std_global=0.15, random_seed=1,
-  small_pop=50
+  small_community_size=50
 )  
 parc_model.run_parc() # run the clustering
 parc_labels = parc_model.labels

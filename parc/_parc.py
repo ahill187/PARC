@@ -27,7 +27,7 @@ class PARC:
             Default is 'auto' which omits LOCAL pruning for samples > 300 000 cells.
         too_big_factor: (float) if a cluster exceeds this share of the entire cell population,
             then the PARC will be run on the large cluster. At 0.4 it does not come into play.
-        small_pop: (int) the smallest cluster population size to be considered a community.
+        small_community_size: (int) the smallest population size to be considered a community.
         jac_weighted_edges: (bool) whether to partition using the weighted graph.
         knn: (int) the number of clusters k for the k-nearest neighbours algorithm.
         n_iter_leiden: (int) the number of iterations for the Leiden algorithm.
@@ -51,7 +51,7 @@ class PARC:
     """
 
     def __init__(self, x_data, y_data_true=None, dist_std_local=3, jac_std_global="median",
-                 keep_all_local_dist='auto', too_big_factor=0.4, small_pop=10,
+                 keep_all_local_dist='auto', too_big_factor=0.4, small_community_size=10,
                  jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
                  num_threads=-1, distance='l2', time_smallpop=15, partition_type="ModularityVP",
                  resolution_parameter=1.0, knn_struct=None, neighbor_graph=None,
@@ -63,7 +63,7 @@ class PARC:
         self.jac_std_global = jac_std_global
         self._keep_all_local_dist = keep_all_local_dist
         self.too_big_factor = too_big_factor
-        self.small_pop = small_pop
+        self.small_community_size = small_community_size
         self.jac_weighted_edges = jac_weighted_edges
         self.knn = knn
         self.n_iter_leiden = n_iter_leiden
@@ -500,7 +500,7 @@ class PARC:
         time_start = time.time()
 
         x_data = self.x_data
-        small_community_size = self.small_pop
+        small_community_size = self.small_community_size
 
         n_elements = x_data.shape[0]
 
