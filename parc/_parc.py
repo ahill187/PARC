@@ -322,7 +322,7 @@ class PARC:
             )
         return partition
 
-    def check_if_cluster_oversized(self, node_communities, community_id, big_cluster_sizes=[]):
+    def check_if_large_community(self, node_communities, community_id, big_cluster_sizes=[]):
         """Check if the community is too big.
 
         Args:
@@ -368,7 +368,7 @@ class PARC:
         communities = set(node_communities)
 
         for community_id in communities:
-            too_big, big_cluster_indices, big_cluster_sizes = self.check_if_cluster_oversized(
+            too_big, big_cluster_indices, big_cluster_sizes = self.check_if_large_community(
                 node_communities, community_id, big_cluster_sizes
             )
             if too_big:
@@ -529,7 +529,7 @@ class PARC:
         node_communities = np.reshape(node_communities, (n_elements, 1))
 
         # Check if the 0th cluster is too big. This is always the largest cluster.
-        too_big, big_cluster_indices, big_cluster_sizes = self.check_if_cluster_oversized(
+        too_big, big_cluster_indices, big_cluster_sizes = self.check_if_large_community(
             node_communities=node_communities, community_id=0
         )
 
