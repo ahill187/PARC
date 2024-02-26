@@ -23,12 +23,10 @@ def test_parc_run_umap_hnsw(iris_data):
 
 @pytest.mark.parametrize(
     "targets_exist",
-    [(
-        True
-    ),
-    (
-        False
-    )]
+    [
+        (True),
+        (False)
+    ]
 )
 def test_parc_run_parc(iris_data, targets_exist):
     x_data, y_data = iris_data
