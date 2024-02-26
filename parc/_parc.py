@@ -621,7 +621,7 @@ class PARC:
             self.stats_df = df_accuracy
             self.majority_truth_labels = majority_truth_labels
 
-    def run_umap_hnsw(self, X_input, graph, n_components=2, alpha: float = 1.0,
+    def run_umap_hnsw(self, x_data, graph, n_components=2, alpha: float = 1.0,
                       negative_sample_rate: int = 5, gamma: float = 1.0, spread=1.0, min_dist=0.1,
                       n_epochs=0, init_pos="spectral", random_state_seed=1, densmap=False,
                       densmap_kwds={}, output_dens=False):
@@ -633,7 +633,7 @@ class PARC:
         <https://github.com/lmcinnes/umap/blob/master/umap/umap_.py>`__.
 
         Args:
-            X_input: (array) an array containing the input data, with shape n_samples x n_features.
+            x_data: (array) an array containing the input data, with shape n_samples x n_features.
             graph: (array) the 1-skeleton of the high dimensional fuzzy simplicial set as
                 represented by a graph for which we require a sparse matrix for the
                 (weighted) adjacency matrix.
@@ -675,8 +675,8 @@ class PARC:
         a, b = find_ab_params(spread, min_dist)
         print(f"a: {a}, b: {b}, spread: {spread}, dist: {min_dist}")
 
-        X_umap = simplicial_set_embedding(
-            data=X_input,
+        umap_embedding = simplicial_set_embedding(
+            data=x_data,
             graph=graph,
             n_components=n_components,
             initial_alpha=alpha,
@@ -694,4 +694,4 @@ class PARC:
             densmap_kwds=densmap_kwds,
             output_dens=output_dens
         )
-        return X_umap[0]
+        return umap_embedding[0]
