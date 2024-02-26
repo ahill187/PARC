@@ -37,7 +37,7 @@ class PARC:
             "l2": Euclidean distance L^2 norm, d = sum((x_i - y_i)^2)
             "cosine": cosine similarity, d = 1.0 - sum(x_i*y_i) / sqrt(sum(x_i*x_i) * sum(y_i*y_i))
             "ip": inner product distance, d = 1.0 - sum(x_i*y_i)
-        time_smallpop: (int) number of seconds trying to check an outlier
+        small_community_timeout: (int) number of seconds trying to check an outlier
         partition_type: (string) the partition type to be used in the Leiden algorithm:
             "ModularityVP": ModularityVertexPartition, ``resolution_parameter=1``
             "RBVP": RBConfigurationVP, Reichardt and Bornholdt’s Potts model. Note that this is the
@@ -53,7 +53,7 @@ class PARC:
     def __init__(self, x_data, y_data_true=None, dist_std_local=3, jac_std_global="median",
                  keep_all_local_dist='auto', too_big_factor=0.4, small_community_size=10,
                  jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
-                 num_threads=-1, distance='l2', time_smallpop=15, partition_type="ModularityVP",
+                 num_threads=-1, distance='l2', small_community_timeout=15, partition_type="ModularityVP",
                  resolution_parameter=1.0, knn_struct=None, neighbor_graph=None,
                  hnsw_param_ef_construction=150):
 
@@ -70,7 +70,7 @@ class PARC:
         self.random_seed = random_seed
         self.num_threads = num_threads
         self.distance = distance
-        self.time_smallpop = time_smallpop
+        self.small_community_timeout = small_community_timeout
         self.resolution_parameter = resolution_parameter
         self._partition_type = partition_type
         self.knn_struct = knn_struct
@@ -482,7 +482,7 @@ class PARC:
 
         time_start = time.time()
         print("Handling fragments")
-        while (small_community_exists) & (time.time() - time_start < self.time_smallpop):
+        while (small_community_exists) & (time.time() - time_start < self.small_community_timeout):
             node_communities, small_community_exists = self.reassign_small_communities(
                 node_communities, small_community_size, neighbor_array,
                 exclude_neighbors_small=False
@@ -552,7 +552,7 @@ class PARC:
         )
 
         time_start = time.time()
-        while (small_community_exists) & ((time.time() - time_start) < self.time_smallpop):
+        while (small_community_exists) & ((time.time() - time_start) < self.small_community_timeout):
             node_communities, small_community_exists = self.reassign_small_communities(
                 node_communities, small_community_size, neighbor_array,
                 exclude_neighbors_small=False
