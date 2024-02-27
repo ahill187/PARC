@@ -297,7 +297,7 @@ To install a development version:
 ```
 git clone https://github.com/ShobiStassen/PARC.git
 cd PARC
-pip install -e ".[extra]"
+pip install -e ".[dev]"
 ```
 
 ### Testing
