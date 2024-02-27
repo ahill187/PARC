@@ -520,44 +520,41 @@ class PARC:
             large_community_exists, big_cluster_indices, big_cluster_sizes = self.check_if_large_community(
                 node_communities=node_communities, community_id=0
             )
-        else:
-            large_community_exists = False
+            while large_community_exists:
+                if len(big_cluster_indices) <= self.knn:
+                    k = int(max(5, 0.2 * n_elements))
+                else:
+                    k = self.knn
 
-        while large_community_exists:
-            if len(big_cluster_indices) <= self.knn:
-                k = int(max(5, 0.2 * n_elements))
-            else:
-                k = self.knn
+                parc_model_large_community = PARC(
+                    x_data=x_data[big_cluster_indices, :],
+                    small_community_size=10,
+                    jac_std_global=0.3,
+                    distance_metric="l2",
+                    n_threads=None,
+                    knn=k,
+                    hnsw_param_ef_construction=200,
+                    hnsw_param_m=30,
+                    hnsw_param_allow_override=False
+                )
+                node_communities_big_cluster = parc_model_large_community.run_parc(
+                    should_check_large_communities=False, should_compute_metrics=False
+                )
+                node_communities_big_cluster = node_communities_big_cluster + 100000
 
-            parc_model_large_community = PARC(
-                x_data=x_data[big_cluster_indices, :],
-                small_community_size=10,
-                jac_std_global=0.3,
-                distance_metric="l2",
-                n_threads=None,
-                knn=k,
-                hnsw_param_ef_construction=200,
-                hnsw_param_m=30,
-                hnsw_param_allow_override=False
-            )
-            node_communities_big_cluster = parc_model_large_community.run_parc(
-                should_check_large_communities=False, should_compute_metrics=False
-            )
-            node_communities_big_cluster = node_communities_big_cluster + 100000
+                for cluster_index, index in zip(big_cluster_indices, range(0, len(big_cluster_indices))):
+                    node_communities[cluster_index] = node_communities_big_cluster[index]
 
-            for cluster_index, index in zip(big_cluster_indices, range(0, len(big_cluster_indices))):
-                node_communities[cluster_index] = node_communities_big_cluster[index]
+                node_communities = np.asarray(np.unique(
+                    list(node_communities.flatten()),
+                    return_inverse=True
+                )[1])
 
-            node_communities = np.asarray(np.unique(
-                list(node_communities.flatten()),
-                return_inverse=True
-            )[1])
+                print(f"New set of labels: {set(node_communities)}")
 
-            print(f"New set of labels: {set(node_communities)}")
-
-            large_community_exists, big_cluster_indices, big_cluster_sizes = self.get_next_big_community(
-                node_communities, big_cluster_sizes
-            )
+                large_community_exists, big_cluster_indices, big_cluster_sizes = self.get_next_big_community(
+                    node_communities, big_cluster_sizes
+                )
 
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
 
