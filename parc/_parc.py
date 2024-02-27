@@ -152,11 +152,6 @@ class PARC:
         See `hnswlib.Index
         <https://github.com/nmslib/hnswlib/blob/master/python_bindings/LazyIndex.py>`__.
 
-        Args:
-            n_threads: (int) the number of threads to be used.
-                If ``n_threads`` is -1, will set to default ``self.n_threads``.
-                If ``n_threads`` is ``None``, won't set the threads in the HNSW computation.
-
         Returns:
             (hnswlib.Index): TODO.
         """
