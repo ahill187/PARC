@@ -107,7 +107,7 @@ plt.show()
 # If you choose to visualize before running PARC clustering, then you need to include the next line:
 # parc_model.knn_struct = parc_model.make_knn_struct()
 graph = parc_model.create_knn_graph()
-x_umap = parc_model.run_umap_hnsw(x_data, graph)
+x_umap = parc.run_umap_hnsw(x_data, graph)
 plt.scatter(x_umap[:, 0], x_umap[:, 1], c=parc_model.labels)
 plt.show()
 
