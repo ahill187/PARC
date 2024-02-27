@@ -36,8 +36,7 @@ def choose_m(n_samples, n_components, clusters_are_oversized=False):
 
 
 def create_hnsw_index(
-    data, distance, k, num_threads, default_ef_construction,
-    clusters_are_oversized=False
+    data, distance, k, default_ef_construction, n_threads=None
 ):
     n_components = data.shape[1]
     n_samples = data.shape[0]
@@ -49,8 +48,9 @@ def create_hnsw_index(
         n_samples, default_ef_construction, k, clusters_are_oversized
     )
 
+    if n_threads is not None:
     if not clusters_are_oversized:
-        hnsw_index.set_num_threads(num_threads)
+        hnsw_index.set_num_threads(n_threads)
 
     hnsw_index.init_index(max_elements=n_samples, ef_construction=ef_construction, M=M)
     hnsw_index.add_items(data)

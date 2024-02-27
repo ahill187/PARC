@@ -48,7 +48,8 @@ class PARC:
         resolution_parameter: (float) the resolution parameter to be used in the Leiden algorithm.
             In order to change ``resolution_parameter``, we switch to ``RBVP``.
         knn_struct: (TODO) the hnsw index of the KNN graph on which we perform queries.
-        neighbor_graph: (TODO) CSR affinity matrix for pre-computed nearest neighbors.
+        neighbor_graph: (Compressed Sparse Row Matrix) A sparse matrix with dimensions
+            (n_samples, n_samples), containing the distances between nodes.
         hnsw_param_ef_construction: (int) a higher value increases accuracy of index construction.
             Even for O(100 000) cells, 150-200 is adequate.
     """
@@ -115,12 +116,12 @@ class PARC:
         else:
             self.partition_type = partition_type
 
-    def get_knn_struct(self):
+    def get_knn_struct(self, n_threads=None):
         if self.knn_struct is None:
-            self.knn_struct = self.make_knn_struct()
+            self.knn_struct = self.make_knn_struct(n_threads=n_threads)
         return self.knn_struct
 
-    def make_knn_struct(self, is_large_community=False, big_cluster=None):
+    def make_knn_struct(self, x_data=None, distance_metric=None, n_threads=-1):
         """Create a Hierarchical Navigable Small Worlds (HNSW) graph.
 
         See `hnswlib.Index
@@ -129,24 +130,28 @@ class PARC:
         Args:
             is_large_community: (bool) whether or not the community size is above a
                 certain threshold.
-            big_cluster: TODO.
+            n_threads: (int) the number of threads to be used.
+                If ``n_threads`` is -1, will set to default ``self.n_threads``.
+                If ``n_threads`` is ``None``, won't set the threads in the HNSW computation.
 
         Returns:
             (hnswlib.Index): TODO.
         """
         if self.knn > 190:
-            print(f"knn = {self.knn}; consider using a lower K_in for KNN graph construction")
+            print(f"knn = {self.knn}; consider using a lower k for KNN graph construction")
 
-        if not is_large_community:
-            data = self.x_data
+        if x_data is None:
+            x_data = self.x_data
+
+        if distance_metric is None:
             distance_metric = self.distance_metric
-        else:
-            data = big_cluster
-            distance_metric = "l2"
+
+        if n_threads == -1:
+            n_threads = self.n_threads
 
         hnsw_index = create_hnsw_index(
-            data, distance_metric, self.knn, self.n_threads,
-            self.hnsw_param_ef_construction, is_large_community
+            x_data, distance_metric, self.knn,
+            self.hnsw_param_ef_construction, n_threads
         )
 
         return hnsw_index
@@ -489,7 +494,11 @@ class PARC:
             neighbor_array = np.split(csr_array.indices, csr_array.indptr)[1:-1]
         else:
             if recursion_level > 0:
-                knn_struct = self.make_knn_struct(is_large_community=True, big_cluster=x_data)
+                knn_struct = self.make_knn_struct(
+                    x_data=x_data,
+                    distance_metric="l2",
+                    n_threads=None
+                )
                 if n_elements <= self.knn:
                     k = int(max(5, 0.2 * n_elements))
                 else:
