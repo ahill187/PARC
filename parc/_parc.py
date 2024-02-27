@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import hnswlib
 from scipy.sparse import csr_matrix
 import igraph as ig
 import leidenalg
@@ -52,6 +51,7 @@ class PARC:
             (n_samples, n_samples), containing the distances between nodes.
         hnsw_param_ef_construction: (int) a higher value increases accuracy of index construction.
             Even for O(100 000) cells, 150-200 is adequate.
+        hnsw_param_m: (int) TODO.
     """
 
     def __init__(self, x_data, y_data_true=None, dist_std_local=3, jac_std_global="median",
@@ -59,13 +59,15 @@ class PARC:
                  jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
                  n_threads=-1, distance_metric="l2", small_community_timeout=15,
                  partition_type="ModularityVP", resolution_parameter=1.0, knn_struct=None,
-                 neighbor_graph=None, hnsw_param_ef_construction=150):
+                 neighbor_graph=None, hnsw_param_ef_construction=150, hnsw_param_m=24,
+                 hnsw_param_allow_override=True):
 
         self.y_data_true = y_data_true
-        self._x_data = x_data
+        self.y_data_pred = None
+        self.x_data = x_data
         self.dist_std_local = dist_std_local
         self.jac_std_global = jac_std_global
-        self._keep_all_local_dist = keep_all_local_dist
+        self.keep_all_local_dist = keep_all_local_dist
         self.large_community_factor = large_community_factor
         self.small_community_size = small_community_size
         self.jac_weighted_edges = jac_weighted_edges
@@ -76,10 +78,14 @@ class PARC:
         self.distance_metric = distance_metric
         self.small_community_timeout = small_community_timeout
         self.resolution_parameter = resolution_parameter
-        self._partition_type = partition_type
+        self.partition_type = partition_type
         self.knn_struct = knn_struct
+        self.neighbor_array = None
+        self.distance_array = None
         self.neighbor_graph = neighbor_graph
         self.hnsw_param_ef_construction = hnsw_param_ef_construction
+        self.hnsw_param_m = hnsw_param_m
+        self.hnsw_param_allow_override = hnsw_param_allow_override
 
     @property
     def x_data(self):
@@ -103,7 +109,7 @@ class PARC:
             else:
                 keep_all_local_dist = False
 
-        self.keep_all_local_dist = keep_all_local_dist
+        self._keep_all_local_dist = keep_all_local_dist
 
     @property
     def partition_type(self):
@@ -112,24 +118,41 @@ class PARC:
     @partition_type.setter
     def partition_type(self, partition_type):
         if self.resolution_parameter != 1:
-            self.partition_type = "RBVP"
+            self._partition_type = "RBVP"
         else:
-            self.partition_type = partition_type
+            self._partition_type = partition_type
 
-    def get_knn_struct(self, n_threads=None):
+    @property
+    def neighbor_graph(self):
+        return self._neighbor_graph
+
+    @neighbor_graph.setter
+    def neighbor_graph(self, neighbor_graph):
+        if neighbor_graph is not None:
+            self.neighbor_array = np.split(neighbor_graph.indices, neighbor_graph.indptr)[1:-1]
+            self.distance_array = neighbor_graph.toarray()
+        self._neighbor_graph = neighbor_graph
+
+    def get_neighbor_distance_arrays(self, x_data):
+        if self.neighbor_array is not None and self.distance_array is not None:
+            return self.neighbor_array, self.distance_array
+        else:
+            knn_struct = self.get_knn_struct()
+            neighbor_array, distance_array = knn_struct.knn_query(x_data, k=self.knn)
+            return neighbor_array, distance_array
+
+    def get_knn_struct(self):
         if self.knn_struct is None:
-            self.knn_struct = self.make_knn_struct(n_threads=n_threads)
+            self.knn_struct = self.make_knn_struct()
         return self.knn_struct
 
-    def make_knn_struct(self, x_data=None, distance_metric=None, n_threads=-1):
+    def make_knn_struct(self):
         """Create a Hierarchical Navigable Small Worlds (HNSW) graph.
 
         See `hnswlib.Index
         <https://github.com/nmslib/hnswlib/blob/master/python_bindings/LazyIndex.py>`__.
 
         Args:
-            is_large_community: (bool) whether or not the community size is above a
-                certain threshold.
             n_threads: (int) the number of threads to be used.
                 If ``n_threads`` is -1, will set to default ``self.n_threads``.
                 If ``n_threads`` is ``None``, won't set the threads in the HNSW computation.
@@ -140,18 +163,14 @@ class PARC:
         if self.knn > 190:
             print(f"knn = {self.knn}; consider using a lower k for KNN graph construction")
 
-        if x_data is None:
-            x_data = self.x_data
-
-        if distance_metric is None:
-            distance_metric = self.distance_metric
-
-        if n_threads == -1:
-            n_threads = self.n_threads
-
         hnsw_index = create_hnsw_index(
-            x_data, distance_metric, self.knn,
-            self.hnsw_param_ef_construction, n_threads
+            data=self.x_data,
+            distance_metric=self.distance_metric,
+            k=self.knn,
+            M=self.hnsw_param_m,
+            default_ef_construction=self.hnsw_param_ef_construction,
+            n_threads=self.n_threads,
+            allow_override=self.hnsw_param_allow_override
         )
 
         return hnsw_index
@@ -468,19 +487,12 @@ class PARC:
         return node_communities, small_community_exists
 
     def run_parc(
-        self, x_data=None, recursion_level=0, small_community_size=None, jac_std_global=None
+        self, should_check_large_communities=True, should_compute_metrics=True
     ):
 
         time_start = time.time()
-
-        if jac_std_global is None:
-            jac_std_global = self.jac_std_global
-
-        if x_data is None:
-            x_data = self.x_data
-
-        if small_community_size is None:
-            small_community_size = self.small_community_size
+        x_data = self.x_data
+        small_community_size = self.small_community_size
 
         print(
             f"Input data has shape {self.x_data.shape[0]} (samples) x"
@@ -489,25 +501,11 @@ class PARC:
 
         n_elements = x_data.shape[0]
 
-        if self.neighbor_graph is not None and recursion_level == 0:
-            csr_array = self.neighbor_graph
-            neighbor_array = np.split(csr_array.indices, csr_array.indptr)[1:-1]
-        else:
-            if recursion_level > 0:
-                knn_struct = self.make_knn_struct(
-                    x_data=x_data,
-                    distance_metric="l2",
-                    n_threads=None
-                )
-                if n_elements <= self.knn:
-                    k = int(max(5, 0.2 * n_elements))
-                else:
-                    k = self.knn
-            else:
-                knn_struct = self.get_knn_struct()
-                k = self.knn
-            neighbor_array, distance_array = knn_struct.knn_query(x_data, k=k)
+        neighbor_array, distance_array = self.get_neighbor_distance_arrays(x_data)
+        if self.neighbor_graph is None:
             csr_array = self.prune_local(neighbor_array, distance_array)
+        else:
+            csr_array = self.neighbor_graph
 
         graph = self.prune_global(csr_array, self.jac_std_global)
 
@@ -517,7 +515,7 @@ class PARC:
         node_communities = np.asarray(partition.membership)
         node_communities = np.reshape(node_communities, (n_elements, 1))
 
-        if recursion_level == 0:
+        if should_check_large_communities:
             # Check if the 0th cluster is too big. This is always the largest cluster.
             large_community_exists, big_cluster_indices, big_cluster_sizes = self.check_if_large_community(
                 node_communities=node_communities, community_id=0
@@ -526,11 +524,24 @@ class PARC:
             large_community_exists = False
 
         while large_community_exists:
-            node_communities_big_cluster = self.run_parc(
+            if len(big_cluster_indices) <= self.knn:
+                k = int(max(5, 0.2 * n_elements))
+            else:
+                k = self.knn
+
+            parc_model_large_community = PARC(
                 x_data=x_data[big_cluster_indices, :],
-                recursion_level=recursion_level + 1,
                 small_community_size=10,
-                jac_std_global=0.3
+                jac_std_global=0.3,
+                distance_metric="l2",
+                n_threads=None,
+                knn=k,
+                hnsw_param_ef_construction=200,
+                hnsw_param_m=30,
+                hnsw_param_allow_override=False
+            )
+            node_communities_big_cluster = parc_model_large_community.run_parc(
+                should_check_large_communities=False, should_compute_metrics=False
             )
             node_communities_big_cluster = node_communities_big_cluster + 100000
 
@@ -566,9 +577,11 @@ class PARC:
 
         run_time = time.time() - time_start
         print(f"time elapsed: {run_time} seconds")
-        if recursion_level == 0:
-            self.y_data_pred = node_communities
+        self.y_data_pred = node_communities
+
+        if should_compute_metrics:
             self.compute_performance_metrics(run_time)
+
         return node_communities
 
     def compute_performance_metrics(self, run_time):
