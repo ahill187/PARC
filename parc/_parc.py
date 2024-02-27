@@ -1,12 +1,14 @@
+import logging
 import numpy as np
-import pandas as pd
 from scipy.sparse import csr_matrix
 import igraph as ig
 import leidenalg
 import time
 from parc.k_nearest_neighbours import create_hnsw_index
-from parc.metrics import accuracy
+from parc.metrics import compute_performance_metrics
 from parc.graph import Community
+
+logger = logging.getLogger(__name__)
 
 
 class PARC:
@@ -603,55 +605,14 @@ class PARC:
 
     def compute_performance_metrics(self, run_time):
         if self.y_data_true is None:
-            print("Unable to compute performance metrics, true target values not provided.")
+            logger.error("Unable to compute performance metrics, true target values not provided.")
             return
 
-        targets = list(set(self.y_data_true))
-        n_samples = len(list(self.y_data_true))
-        self.f1_accumulated = 0
-        self.f1_mean = 0
-        self.stats_df = pd.DataFrame({
-            'jac_std_global': [self.jac_std_global],
-            'dist_std_local': [self.dist_std_local],
-            'runtime(s)': [run_time]
-        })
-        self.majority_truth_labels = []
-        list_roc = []
-        if len(targets) > 1:
-            f1_accumulated = 0
-            f1_acc_noweighting = 0
-            for target in targets:
-                print(f"target is {target}")
-                vals_roc, majority_truth_labels, numclusters_targetval = accuracy(
-                    self.y_data_true, self.y_data_pred, target=target
-                )
-                f1_current = vals_roc[1]
-                print('target', target, 'has f1-score of %.2f' % (f1_current * 100))
-                f1_accumulated = (
-                    f1_accumulated
-                    + f1_current * (list(self.y_data_true).count(target)) / n_samples
-                )
-                f1_acc_noweighting = f1_acc_noweighting + f1_current
+        f1_accumulated, f1_mean, stats_df, majority_truth_labels = compute_performance_metrics(
+            self.y_data_true, self.y_data_pred, self.jac_std_global, self.dist_std_local, run_time
+        )
 
-                list_roc.append(
-                    [self.jac_std_global, self.dist_std_local, target] + vals_roc
-                    + [numclusters_targetval] + [run_time]
-                )
-
-            f1_mean = f1_acc_noweighting / len(targets)
-            print("f1-score (unweighted) mean %.2f" % (f1_mean * 100), '%')
-            print('f1-score weighted (by population) %.2f' % (f1_accumulated * 100), '%')
-
-            df_accuracy = pd.DataFrame(
-                list_roc,
-                columns=[
-                    'jac_std_global', 'dist_std_local', 'onevsall-target', 'error rate',
-                    'f1-score', 'tnr', 'fnr', 'tpr', 'fpr', 'precision', 'recall', 'num_groups',
-                    'population of target', 'num clusters', 'clustering runtime'
-                ]
-            )
-
-            self.f1_accumulated = f1_accumulated
-            self.f1_mean = f1_mean
-            self.stats_df = df_accuracy
-            self.majority_truth_labels = majority_truth_labels
+        self.f1_accumulated = f1_accumulated
+        self.f1_mean = f1_mean
+        self.stats_df = stats_df
+        self.majority_truth_labels = majority_truth_labels

@@ -1,5 +1,9 @@
+import logging
 import numpy as np
+import pandas as pd
 from parc.utils import get_mode
+
+logger = logging.getLogger(__name__)
 
 
 def accuracy(y_data_true, y_data_pred, target=1):
@@ -65,3 +69,52 @@ def accuracy(y_data_true, y_data_pred, target=1):
                     recall, n_clusters, n_target]
 
     return accuracy_val, majority_truth_labels, number_clusters_for_target
+
+
+def compute_performance_metrics(y_data_true, y_data_pred, jac_std_global, dist_std_local, run_time):
+
+    targets = list(set(y_data_true))
+    n_samples = len(list(y_data_true))
+    f1_accumulated = 0
+    f1_mean = 0
+    stats_df = pd.DataFrame({
+        'jac_std_global': [jac_std_global],
+        'dist_std_local': [dist_std_local],
+        'runtime(s)': [run_time]
+    })
+    majority_truth_labels = []
+    list_roc = []
+    if len(targets) > 1:
+        f1_accumulated = 0
+        f1_acc_noweighting = 0
+        for target in targets:
+            vals_roc, majority_truth_labels, numclusters_targetval = accuracy(
+                y_data_true, y_data_pred, target=target
+            )
+            f1_current = vals_roc[1]
+            logger.info(f"target {target} has f1-score of {np.round(f1_current * 100, 2)}")
+            f1_accumulated = (
+                f1_accumulated
+                + f1_current * (list(y_data_true).count(target)) / n_samples
+            )
+            f1_acc_noweighting = f1_acc_noweighting + f1_current
+
+            list_roc.append(
+                [jac_std_global, dist_std_local, target] + vals_roc
+                + [numclusters_targetval] + [run_time]
+            )
+
+        f1_mean = f1_acc_noweighting / len(targets)
+        logger.info(f"f1-score (unweighted) mean {np.round(f1_mean * 100, 2)}")
+        logger.info(f"f1-score weighted (by population) {np.round(f1_accumulated * 100, 2)}")
+
+        stats_df = pd.DataFrame(
+            list_roc,
+            columns=[
+                'jac_std_global', 'dist_std_local', 'onevsall-target', 'error rate',
+                'f1-score', 'tnr', 'fnr', 'tpr', 'fpr', 'precision', 'recall', 'num_groups',
+                'population of target', 'num clusters', 'clustering runtime'
+            ]
+        )
+
+    return f1_accumulated, f1_mean, stats_df, majority_truth_labels
