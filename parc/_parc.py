@@ -401,6 +401,49 @@ class PARC:
 
         return large_community_exists, big_cluster_indices, big_cluster_sizes
 
+    def reassign_large_communities(self, x_data, node_communities):
+        # Check if the 0th cluster is too big. This is always the largest cluster.
+        large_community_exists, big_cluster_indices, big_cluster_sizes = self.check_if_large_community(
+            node_communities=node_communities, community_id=0
+        )
+        while large_community_exists:
+            if len(big_cluster_indices) <= self.knn:
+                k = int(max(5, 0.2 * x_data.shape[0]))
+            else:
+                k = self.knn
+
+            parc_model_large_community = PARC(
+                x_data=x_data[big_cluster_indices, :],
+                small_community_size=10,
+                jac_std_global=0.3,
+                distance_metric="l2",
+                n_threads=None,
+                knn=k,
+                hnsw_param_ef_construction=200,
+                hnsw_param_m=30,
+                hnsw_param_allow_override=False
+            )
+            node_communities_big_cluster = parc_model_large_community.run_parc(
+                should_check_large_communities=False, should_compute_metrics=False
+            )
+            node_communities_big_cluster = node_communities_big_cluster + 100000
+
+            for cluster_index, index in zip(big_cluster_indices, range(0, len(big_cluster_indices))):
+                node_communities[cluster_index] = node_communities_big_cluster[index]
+
+            node_communities = np.asarray(np.unique(
+                list(node_communities.flatten()),
+                return_inverse=True
+            )[1])
+
+            print(f"New set of labels: {set(node_communities)}")
+
+            large_community_exists, big_cluster_indices, big_cluster_sizes = self.get_next_big_community(
+                node_communities, big_cluster_sizes
+            )
+
+        return node_communities
+
     def get_small_communities(self, node_communities, small_community_size):
         """Find communities which are below the small_community_size cutoff.
 
@@ -516,45 +559,7 @@ class PARC:
         node_communities = np.reshape(node_communities, (n_elements, 1))
 
         if should_check_large_communities:
-            # Check if the 0th cluster is too big. This is always the largest cluster.
-            large_community_exists, big_cluster_indices, big_cluster_sizes = self.check_if_large_community(
-                node_communities=node_communities, community_id=0
-            )
-            while large_community_exists:
-                if len(big_cluster_indices) <= self.knn:
-                    k = int(max(5, 0.2 * n_elements))
-                else:
-                    k = self.knn
-
-                parc_model_large_community = PARC(
-                    x_data=x_data[big_cluster_indices, :],
-                    small_community_size=10,
-                    jac_std_global=0.3,
-                    distance_metric="l2",
-                    n_threads=None,
-                    knn=k,
-                    hnsw_param_ef_construction=200,
-                    hnsw_param_m=30,
-                    hnsw_param_allow_override=False
-                )
-                node_communities_big_cluster = parc_model_large_community.run_parc(
-                    should_check_large_communities=False, should_compute_metrics=False
-                )
-                node_communities_big_cluster = node_communities_big_cluster + 100000
-
-                for cluster_index, index in zip(big_cluster_indices, range(0, len(big_cluster_indices))):
-                    node_communities[cluster_index] = node_communities_big_cluster[index]
-
-                node_communities = np.asarray(np.unique(
-                    list(node_communities.flatten()),
-                    return_inverse=True
-                )[1])
-
-                print(f"New set of labels: {set(node_communities)}")
-
-                large_community_exists, big_cluster_indices, big_cluster_sizes = self.get_next_big_community(
-                    node_communities, big_cluster_sizes
-                )
+            node_communities = self.reassign_large_communities(x_data, node_communities)
 
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
 
