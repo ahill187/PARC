@@ -183,20 +183,19 @@ class PARC:
         neighbor_array, distance_array = self.knn_struct.knn_query(self.x_data, k=k_umap)
 
         row_list = []
+        col_list = neighbor_array.flatten().tolist()
         n_neighbors = neighbor_array.shape[1]
         n_samples = neighbor_array.shape[0]
 
         row_list.extend(list(np.transpose(
             np.ones((n_neighbors, n_samples)) * range(0, n_samples)).flatten()
         ))
-        col_list = neighbor_array.flatten().tolist()
 
         row_min = np.min(distance_array, axis=1)
         row_sigma = np.std(distance_array, axis=1)
 
         distance_array = (distance_array - row_min[:, np.newaxis]) / row_sigma[:, np.newaxis]
-        distance_array = distance_array.flatten()
-        distance_array = np.sqrt(distance_array) * -1
+        distance_array = np.sqrt(distance_array.flatten()) * -1
 
         weight_list = np.exp(distance_array)
 
@@ -342,8 +341,8 @@ class PARC:
             )
         return partition
 
-    def check_if_large_community(self, node_communities, community_id, big_cluster_sizes=[]):
-        """Check if the community is too big.
+    def check_if_large_community(self, node_communities, community_id, large_community_sizes=[]):
+        """Check if the community size is greater than the max community size.
 
         Args:
             node_communities: (np.array) an array containing the community assignments for each
@@ -352,63 +351,86 @@ class PARC:
 
         Returns:
             is_large_community: (bool) whether or not the community is too big.
-            big_cluster_indices: (list) a list of node indices for the community, if it is too big.
-            big_cluster_sizes: (list) the sizes of the communities that are too big.
+            large_community_indices: (list) a list of node indices for the community,
+                if it is too big.
+            large_community_sizes: (list) the sizes of the communities that are too big.
         """
 
         is_large_community = False
         n_samples = node_communities.shape[0]
-        cluster_indices = np.where(node_communities == community_id)[0]
-        cluster_size = len(cluster_indices)
-        big_cluster_indices = []
-        not_yet_expanded = cluster_size not in big_cluster_sizes
-        if cluster_size > self.large_community_factor * n_samples and not_yet_expanded:
+        community_indices = np.where(node_communities == community_id)[0]
+        community_size = len(community_indices)
+        large_community_indices = []
+        not_yet_expanded = community_size not in large_community_sizes
+        if community_size > self.large_community_factor * n_samples and not_yet_expanded:
             is_large_community = True
-            big_cluster_indices = cluster_indices
-            big_cluster_sizes.append(cluster_size)
-            print(f"""Community {community_id} is too big, cluster size = {cluster_size}.
+            large_community_indices = community_indices
+            large_community_sizes.append(community_size)
+            print(f"""Community {community_id} is too big, community size = {community_size}.
                 It will be expanded.""")
-        return is_large_community, big_cluster_indices, big_cluster_sizes
+        return is_large_community, large_community_indices, large_community_sizes
 
-    def get_next_big_community(self, node_communities, big_cluster_sizes):
+    def get_next_big_community(self, node_communities, large_community_sizes):
         """Find the next community which is too big, if it exists.
 
         Args:
             node_communities: (np.array) an array containing the community assignments for each
                 node.
-            big_cluster_sizes: (list) a list of community sizes which have already been identified
-                and processed as too big.
+            large_community_sizes: (list) a list of community sizes corresponding to communities
+                which have already been identified and processed as being too large.
 
         Returns:
             large_community_exists: (bool) whether or not the community is too big.
-            big_cluster_indices: (list) a list of node indices for the community, if it is too big.
-            big_cluster_sizes: (list) the sizes of the communities that are too big.
+            large_community_indices: (list) a list of node indices for the community,
+                if it is too big.
+            large_community_sizes: (list) the sizes of the communities that are too big.
         """
         large_community_exists = False
         communities = set(node_communities)
 
         for community_id in communities:
-            large_community_exists, big_cluster_indices, big_cluster_sizes = self.check_if_large_community(
-                node_communities, community_id, big_cluster_sizes
-            )
+            large_community_exists, large_community_indices, large_community_sizes = \
+                self.check_if_large_community(
+                    node_communities, community_id, large_community_sizes
+                )
             if large_community_exists:
                 break
 
-        return large_community_exists, big_cluster_indices, big_cluster_sizes
+        return large_community_exists, large_community_indices, large_community_sizes
 
     def reassign_large_communities(self, x_data, node_communities):
-        # Check if the 0th cluster is too big. This is always the largest cluster.
-        large_community_exists, big_cluster_indices, big_cluster_sizes = self.check_if_large_community(
-            node_communities=node_communities, community_id=0
-        )
+        """Find communities which are above the large_community_factor cutoff and split them.
+
+        1. Check if the 0th community is too large. Since this is always the largest community,
+            if it does not meet the threshold for a large community then all the other
+            communities will also not be too large.
+        2. If the 0th community is too large, then iterate through the rest of the communities. For
+            each large community, run the PARC algorithm (but don't check for large communities).
+            Reassign communities to split communities.
+
+        Args:
+            x_data: (np.array) an array containing the input data, with shape
+                (n_samples x n_features).
+            node_communities: (np.array) an array containing the community assignments for each
+                node.
+
+        Returns:
+            node_communities: (np.array) an array containing the new community assignments for each
+                node.
+        """
+
+        large_community_exists, large_community_indices, large_community_sizes = \
+            self.check_if_large_community(
+                node_communities=node_communities, community_id=0
+            )
         while large_community_exists:
-            if len(big_cluster_indices) <= self.knn:
+            if len(large_community_indices) <= self.knn:
                 k = int(max(5, 0.2 * x_data.shape[0]))
             else:
                 k = self.knn
 
             parc_model_large_community = PARC(
-                x_data=x_data[big_cluster_indices, :],
+                x_data=x_data[large_community_indices, :],
                 small_community_size=10,
                 jac_std_global=0.3,
                 distance_metric="l2",
@@ -418,13 +440,13 @@ class PARC:
                 hnsw_param_m=30,
                 hnsw_param_allow_override=False
             )
-            node_communities_big_cluster = parc_model_large_community.run_parc(
+            node_communities_large_community = parc_model_large_community.run_parc(
                 should_check_large_communities=False, should_compute_metrics=False
             )
-            node_communities_big_cluster = node_communities_big_cluster + 100000
+            node_communities_large_community = node_communities_large_community + 100000
 
-            for cluster_index, index in zip(big_cluster_indices, range(0, len(big_cluster_indices))):
-                node_communities[cluster_index] = node_communities_big_cluster[index]
+            for community_index, index in zip(large_community_indices, range(len(large_community_indices))):
+                node_communities[community_index] = node_communities_large_community[index]
 
             node_communities = np.asarray(np.unique(
                 list(node_communities.flatten()),
@@ -433,9 +455,10 @@ class PARC:
 
             print(f"New set of labels: {set(node_communities)}")
 
-            large_community_exists, big_cluster_indices, big_cluster_sizes = self.get_next_big_community(
-                node_communities, big_cluster_sizes
-            )
+            large_community_exists, large_community_indices, large_community_sizes = \
+                self.get_next_big_community(
+                    node_communities, large_community_sizes
+                )
 
         return node_communities
 
@@ -549,9 +572,7 @@ class PARC:
 
         print("Starting community detection...")
         partition = self.get_leiden_partition(graph, self.jac_weighted_edges)
-
-        node_communities = np.asarray(partition.membership)
-        node_communities = np.reshape(node_communities, (n_elements, 1))
+        node_communities = np.reshape(np.asarray(partition.membership), (n_elements, 1))
 
         if should_check_large_communities:
             node_communities = self.reassign_large_communities(x_data, node_communities)
@@ -587,7 +608,7 @@ class PARC:
             return
 
         targets = list(set(self.y_data_true))
-        N = len(list(self.y_data_true))
+        n_samples = len(list(self.y_data_true))
         self.f1_accumulated = 0
         self.f1_mean = 0
         self.stats_df = pd.DataFrame({
@@ -607,7 +628,10 @@ class PARC:
                 )
                 f1_current = vals_roc[1]
                 print('target', target, 'has f1-score of %.2f' % (f1_current * 100))
-                f1_accumulated = f1_accumulated + f1_current * (list(self.y_data_true).count(target)) / N
+                f1_accumulated = (
+                    f1_accumulated
+                    + f1_current * (list(self.y_data_true).count(target)) / n_samples
+                )
                 f1_acc_noweighting = f1_acc_noweighting + f1_current
 
                 list_roc.append(
