@@ -33,7 +33,7 @@ class PARC:
             the ``jac_std_factor``.
             Generally values between 0-1.5 are reasonable.
             Higher ``jac_std_factor`` means more edges are kept.
-        l2_std_factor: (int) The multiplier used in calculating the Euclidean distance threshold
+        l2_std_factor: (float) The multiplier used in calculating the Euclidean distance threshold
             for the distance between two nodes during local pruning:
 
             .. code-block:: python
@@ -74,7 +74,7 @@ class PARC:
         hnsw_param_m: (int) TODO.
     """
 
-    def __init__(self, x_data, y_data_true=None, l2_std_factor=3, jac_std_factor=0,
+    def __init__(self, x_data, y_data_true=None, l2_std_factor=3.0, jac_std_factor=0.0,
                  jac_threshold_type="median", keep_all_local_dist=None, large_community_factor=0.4,
                  small_community_size=10, jac_weighted_edges=True, knn=30, n_iter_leiden=5,
                  random_seed=42, n_threads=-1, distance_metric="l2", small_community_timeout=15,
