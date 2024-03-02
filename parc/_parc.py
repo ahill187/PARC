@@ -18,15 +18,27 @@ class PARC:
         x_data: (np.array) a Numpy array of the input x data, with dimensions
             (n_samples, n_features).
         y_data_true: (np.array) a Numpy array of the output y labels.
-        jac_std_global: (float) 0.15 is a recommended value performing empirically similar
-            to ``median``. Generally values between 0-1.5 are reasonable.
-            Higher ``jac_std_global`` means more edges are kept.
+        jac_threshold_type: (str) One of "median" or "mean". Determines how the Jaccard similarity
+            threshold is calculated during global pruning.
+        jac_std_factor: (float) The multiplier used in calculating the Jaccard similarity threshold
+            for the similarity between two edges during global pruning for
+            ``jac_threshold_type = "mean"``:
+
+            .. code-block:: python
+
+                threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
+
+            Setting ``jac_std_factor = 0.15`` and ``jac_threshold_type="mean"``
+            performs empirically similar to ``jac_threshold_type="median"``, which does not use
+            the ``jac_std_factor``.
+            Generally values between 0-1.5 are reasonable.
+            Higher ``jac_std_factor`` means more edges are kept.
+        dist_std_local: (int) similar to the ``jac_std_factor`` parameter. Avoid setting local and
+            global pruning to both be below 0.5 as this is very aggressive pruning.
+            Higher ``dist_std_local`` means more edges are kept.
         keep_all_local_dist: (bool) whether or not to do local pruning.
             If None (default), set to ``true`` if the number of samples is > 300 000,
             and set to ``false`` otherwise.
-        dist_std_local: (int) similar to the jac_std_global parameter. Avoid setting local and
-            global pruning to both be below 0.5 as this is very aggresive pruning.
-            Higher ``dist_std_local`` means more edges are kept.
         large_community_factor: (float) if a cluster exceeds this share of the entire cell population,
             then the PARC will be run on the large cluster. At 0.4 it does not come into play.
         small_community_size: (int) the smallest population size to be considered a community.
@@ -55,10 +67,10 @@ class PARC:
         hnsw_param_m: (int) TODO.
     """
 
-    def __init__(self, x_data, y_data_true=None, dist_std_local=3, jac_std_global="median",
-                 keep_all_local_dist=None, large_community_factor=0.4, small_community_size=10,
-                 jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
-                 n_threads=-1, distance_metric="l2", small_community_timeout=15,
+    def __init__(self, x_data, y_data_true=None, dist_std_local=3, jac_std_factor=0,
+                 jac_threshold_type="median", keep_all_local_dist=None, large_community_factor=0.4,
+                 small_community_size=10, jac_weighted_edges=True, knn=30, n_iter_leiden=5,
+                 random_seed=42, n_threads=-1, distance_metric="l2", small_community_timeout=15,
                  partition_type="ModularityVP", resolution_parameter=1.0, knn_struct=None,
                  neighbor_graph=None, hnsw_param_ef_construction=150, hnsw_param_m=24,
                  hnsw_param_allow_override=True):
@@ -67,7 +79,8 @@ class PARC:
         self.y_data_pred = None
         self.x_data = x_data
         self.dist_std_local = dist_std_local
-        self.jac_std_global = jac_std_global
+        self.jac_std_factor = jac_std_factor
+        self.jac_threshold_type = jac_threshold_type
         self.keep_all_local_dist = keep_all_local_dist
         self.large_community_factor = large_community_factor
         self.small_community_size = small_community_size
@@ -273,7 +286,7 @@ class PARC:
                                shape=(n_samples, n_samples))
         return csr_graph
 
-    def prune_global(self, csr_array, jac_std_threshold, jac_weighted_edges=True):
+    def prune_global(self, csr_array, jac_std_factor, jac_threshold_type, jac_weighted_edges=True):
         """Prune the graph globally based on the Jaccard similarity measure.
 
         The ``csr_array`` contains the locally-pruned pairwise distances. From this, we can
@@ -298,10 +311,10 @@ class PARC:
 
         print("Starting global pruning")
 
-        if jac_std_threshold == "median":
+        if jac_threshold_type == "median":
             threshold = np.median(similarities)
         else:
-            threshold = np.mean(similarities) - jac_std_threshold * np.std(similarities)
+            threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
 
         indices_similar = np.where(similarities > threshold)[0]
 
@@ -433,7 +446,8 @@ class PARC:
             parc_model_large_community = PARC(
                 x_data=x_data[large_community_indices, :],
                 small_community_size=10,
-                jac_std_global=0.3,
+                jac_std_factor=0.3,
+                jac_threshold_type="mean",
                 distance_metric="l2",
                 n_threads=None,
                 knn=k,
@@ -569,7 +583,7 @@ class PARC:
         else:
             csr_array = self.neighbor_graph
 
-        graph = self.prune_global(csr_array, self.jac_std_global)
+        graph = self.prune_global(csr_array, self.jac_std_factor, self.jac_threshold_type)
 
         print("Starting community detection...")
         partition = self.get_leiden_partition(graph, self.jac_weighted_edges)
@@ -609,7 +623,7 @@ class PARC:
             return
 
         f1_accumulated, f1_mean, stats_df, majority_truth_labels = compute_performance_metrics(
-            self.y_data_true, self.y_data_pred, self.jac_std_global, self.dist_std_local, run_time
+            self.y_data_true, self.y_data_pred, self.jac_std_factor, self.dist_std_local, run_time
         )
 
         self.f1_accumulated = f1_accumulated

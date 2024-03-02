@@ -71,14 +71,14 @@ def accuracy(y_data_true, y_data_pred, target=1):
     return accuracy_val, majority_truth_labels, number_clusters_for_target
 
 
-def compute_performance_metrics(y_data_true, y_data_pred, jac_std_global, dist_std_local, run_time):
+def compute_performance_metrics(y_data_true, y_data_pred, jac_std_factor, dist_std_local, run_time):
 
     targets = list(set(y_data_true))
     n_samples = len(list(y_data_true))
     f1_accumulated = 0
     f1_mean = 0
     stats_df = pd.DataFrame({
-        'jac_std_global': [jac_std_global],
+        'jac_std_factor': [jac_std_factor],
         'dist_std_local': [dist_std_local],
         'runtime(s)': [run_time]
     })
@@ -100,7 +100,7 @@ def compute_performance_metrics(y_data_true, y_data_pred, jac_std_global, dist_s
             f1_acc_noweighting = f1_acc_noweighting + f1_current
 
             list_roc.append(
-                [jac_std_global, dist_std_local, target] + vals_roc
+                [jac_std_factor, dist_std_local, target] + vals_roc
                 + [numclusters_targetval] + [run_time]
             )
 
@@ -111,7 +111,7 @@ def compute_performance_metrics(y_data_true, y_data_pred, jac_std_global, dist_s
         stats_df = pd.DataFrame(
             list_roc,
             columns=[
-                'jac_std_global', 'dist_std_local', 'onevsall-target', 'error rate',
+                'jac_std_factor', 'dist_std_local', 'onevsall-target', 'error rate',
                 'f1-score', 'tnr', 'fnr', 'tpr', 'fpr', 'precision', 'recall', 'num_groups',
                 'population of target', 'num clusters', 'clustering runtime'
             ]
