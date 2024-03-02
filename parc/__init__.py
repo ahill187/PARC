@@ -1,2 +1,2 @@
 from ._parc import PARC
-from .umap import run_umap_hnsw
+from .umap_embedding import run_umap_hnsw

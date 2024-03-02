@@ -14,37 +14,37 @@ def run_umap_hnsw(x_data, graph, n_components=2, alpha: float = 1.0,
     <https://github.com/lmcinnes/umap/blob/master/umap/umap_.py>`__.
 
     Args:
-        x_data: (array) an array containing the input data, with shape n_samples x n_features.
-        graph: (array) the 1-skeleton of the high dimensional fuzzy simplicial set as
+        x_data (array): an array containing the input data, with shape n_samples x n_features.
+        graph (array): the 1-skeleton of the high dimensional fuzzy simplicial set as
             represented by a graph for which we require a sparse matrix for the
-            (weighted) adjacency matrix.
-        n_components: (int) the dimensionality of the Euclidean space into which the data
+            (weighted): adjacency matrix.
+        n_components (int): the dimensionality of the Euclidean space into which the data
             will be embedded.
-        alpha: (float) the initial learning rate for stochastic gradient descent (SGD).
-        negative_sample_rate: (int) the number of negative samples to select per positive
+        alpha (float): the initial learning rate for stochastic gradient descent (SGD).
+        negative_sample_rate (int): the number of negative samples to select per positive
             sample in the optimization process. Increasing this value will result in
             greater repulsive force being applied, greater optimization cost, but
             slightly more accuracy.
-        gamma: (float) weight to apply to negative samples.
-        spread: (float) the upper range of the x-value to be used to fit a curve for the
+        gamma (float): weight to apply to negative samples.
+        spread (float): the upper range of the x-value to be used to fit a curve for the
             low-dimensional fuzzy simplicial complex construction. This curve should be
             close to an offset exponential decay. Must be greater than 0. See
             ``umap.umap_.find_ab_params``.
-        min_dist: (float) See ``umap.umap_.find_ab_params``.
-        n_epochs: (int) the number of training epochs to be used in optimizing the
+        min_dist (float): See ``umap.umap_.find_ab_params``.
+        n_epochs (int): the number of training epochs to be used in optimizing the
             low-dimensional embedding. Larger values result in more accurate embeddings.
             If 0 is specified, a value will be selected based on the size of the input dataset
             (200 for large datasets, 500 for small).
-        init_pos: (string) how to initialize the low-dimensional embedding. One of:
+        init_pos (string): how to initialize the low-dimensional embedding. One of:
             `spectral`: use a spectral embedding of the fuzzy 1-skeleton
             `random`: assign initial embedding positions at random
             `pca`: use the first n components from Principal Component Analysis (PCA)
                 applied to the input data.
-        random_state_seed: (int) an integer to pass as a seed for the Numpy RandomState.
-        densmap: (bool) whether to use the density-augmented objective function to optimize
+        random_state_seed (int): an integer to pass as a seed for the Numpy RandomState.
+        densmap (bool): whether to use the density-augmented objective function to optimize
             the embedding according to the densMAP algorithm.
-        densmap_kwds: (dict) keyword arguments to be used by the densMAP optimization.
-        output_dens: (bool) whether to output local radii in the original data
+        densmap_kwds (dict): keyword arguments to be used by the densMAP optimization.
+        output_dens (bool): whether to output local radii in the original data
             and the embedding.
 
     Returns:
