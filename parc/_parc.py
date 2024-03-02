@@ -66,12 +66,15 @@ class PARC:
                 same as ModularityVertexPartition when setting 𝛾 = 1 and normalising by 2m.
         resolution_parameter: (float) the resolution parameter to be used in the Leiden algorithm.
             In order to change ``resolution_parameter``, we switch to ``RBVP``.
-        knn_struct: (TODO) the hnsw index of the KNN graph on which we perform queries.
+        knn_struct: (hnswlib.Index) the HNSW index of the KNN graph on which we perform queries.
         neighbor_graph: (Compressed Sparse Row Matrix) A sparse matrix with dimensions
             (n_samples, n_samples), containing the distances between nodes.
         hnsw_param_ef_construction: (int) a higher value increases accuracy of index construction.
             Even for O(100 000) cells, 150-200 is adequate.
         hnsw_param_m: (int) TODO.
+        hnsw_param_allow_override: (bool) If true, allow the HNSW parameters given to be adjusted
+            based on the number of samples and components. If false, use the HNSW parameters that
+            are given: ``hnsw_param_ef_construction``, ``hnsw_param_m``.
     """
 
     def __init__(self, x_data, y_data_true=None, l2_std_factor=3.0, jac_std_factor=0.0,
