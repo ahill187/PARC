@@ -21,7 +21,7 @@ class PARC:
         jac_threshold_type: (str) One of "median" or "mean". Determines how the Jaccard similarity
             threshold is calculated during global pruning.
         jac_std_factor: (float) The multiplier used in calculating the Jaccard similarity threshold
-            for the similarity between two edges during global pruning for
+            for the similarity between two nodes during global pruning for
             ``jac_threshold_type = "mean"``:
 
             .. code-block:: python
@@ -33,9 +33,16 @@ class PARC:
             the ``jac_std_factor``.
             Generally values between 0-1.5 are reasonable.
             Higher ``jac_std_factor`` means more edges are kept.
-        dist_std_local: (int) similar to the ``jac_std_factor`` parameter. Avoid setting local and
-            global pruning to both be below 0.5 as this is very aggressive pruning.
-            Higher ``dist_std_local`` means more edges are kept.
+        l2_std_factor: (int) The multiplier used in calculating the Euclidean distance threshold
+            for the distance between two nodes during local pruning:
+
+            .. code-block:: python
+
+                max_distance = np.mean(distances) + l2_std_factor * np.std(distances)
+
+            Avoid setting both the ``jac_std_factor`` (global) and the ``l2_std_factor`` (local)
+            to < 0.5 as this is very aggressive pruning.
+            Higher ``l2_std_factor`` means more edges are kept.
         keep_all_local_dist: (bool) whether or not to do local pruning.
             If None (default), set to ``true`` if the number of samples is > 300 000,
             and set to ``false`` otherwise.
@@ -67,7 +74,7 @@ class PARC:
         hnsw_param_m: (int) TODO.
     """
 
-    def __init__(self, x_data, y_data_true=None, dist_std_local=3, jac_std_factor=0,
+    def __init__(self, x_data, y_data_true=None, l2_std_factor=3, jac_std_factor=0,
                  jac_threshold_type="median", keep_all_local_dist=None, large_community_factor=0.4,
                  small_community_size=10, jac_weighted_edges=True, knn=30, n_iter_leiden=5,
                  random_seed=42, n_threads=-1, distance_metric="l2", small_community_timeout=15,
@@ -78,7 +85,7 @@ class PARC:
         self.y_data_true = y_data_true
         self.y_data_pred = None
         self.x_data = x_data
-        self.dist_std_local = dist_std_local
+        self.l2_std_factor = l2_std_factor
         self.jac_std_factor = jac_std_factor
         self.jac_threshold_type = jac_threshold_type
         self.keep_all_local_dist = keep_all_local_dist
@@ -265,11 +272,11 @@ class PARC:
         else:  # locally prune based on (squared) l2 distance
 
             print(f"""Starting local pruning based on Euclidean distance metric at
-                   {self.dist_std_local} standard deviations above mean""")
+                   {self.l2_std_factor} standard deviations above mean""")
             distance_array = distance_array + 0.1
             for neighbors, sample_index in zip(neighbor_array, range(n_samples)):
                 distances = distance_array[sample_index, :]
-                max_distance = np.mean(distances) + self.dist_std_local * np.std(distances)
+                max_distance = np.mean(distances) + self.l2_std_factor * np.std(distances)
                 to_keep = np.where(distances < max_distance)[0]
                 updated_neighbors = neighbors[np.ix_(to_keep)]
                 updated_distances = distances[np.ix_(to_keep)]
@@ -623,7 +630,7 @@ class PARC:
             return
 
         f1_accumulated, f1_mean, stats_df, majority_truth_labels = compute_performance_metrics(
-            self.y_data_true, self.y_data_pred, self.jac_std_factor, self.dist_std_local, run_time
+            self.y_data_true, self.y_data_pred, self.jac_std_factor, self.l2_std_factor, run_time
         )
 
         self.f1_accumulated = f1_accumulated
