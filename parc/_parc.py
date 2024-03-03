@@ -15,12 +15,12 @@ class PARC:
     """Phenotyping by accelerated refined community-partitioning.
 
     Attributes:
-        x_data: (np.array) a Numpy array of the input x data, with dimensions
+        x_data (np.array): a Numpy array of the input x data, with dimensions
             (n_samples, n_features).
-        y_data_true: (np.array) a Numpy array of the output y labels.
-        jac_threshold_type: (str) One of "median" or "mean". Determines how the Jaccard similarity
+        y_data_true (np.array): a Numpy array of the output y labels.
+        jac_threshold_type (str): One of "median" or "mean". Determines how the Jaccard similarity
             threshold is calculated during global pruning.
-        jac_std_factor: (float) The multiplier used in calculating the Jaccard similarity threshold
+        jac_std_factor (float): The multiplier used in calculating the Jaccard similarity threshold
             for the similarity between two nodes during global pruning for
             ``jac_threshold_type = "mean"``:
 
@@ -33,7 +33,7 @@ class PARC:
             the ``jac_std_factor``.
             Generally values between 0-1.5 are reasonable.
             Higher ``jac_std_factor`` means more edges are kept.
-        l2_std_factor: (float) The multiplier used in calculating the Euclidean distance threshold
+        l2_std_factor (float): The multiplier used in calculating the Euclidean distance threshold
             for the distance between two nodes during local pruning:
 
             .. code-block:: python
@@ -43,36 +43,51 @@ class PARC:
             Avoid setting both the ``jac_std_factor`` (global) and the ``l2_std_factor`` (local)
             to < 0.5 as this is very aggressive pruning.
             Higher ``l2_std_factor`` means more edges are kept.
-        keep_all_local_dist: (bool) whether or not to do local pruning.
-            If None (default), set to ``true`` if the number of samples is > 300 000,
-            and set to ``false`` otherwise.
-        large_community_factor: (float) if a cluster exceeds this share of the entire cell population,
+        keep_all_local_dist (bool): whether or not to do local pruning.
+            If None (default), set to ``True`` if the number of samples is > 300 000,
+            and set to ``False`` otherwise.
+        large_community_factor (float): if a cluster exceeds this share of the entire cell population,
             then the PARC will be run on the large cluster. At 0.4 it does not come into play.
-        small_community_size: (int) the smallest population size to be considered a community.
-        small_community_timeout: (int) the maximum number of seconds trying to check an outlying
+        small_community_size (int): the smallest population size to be considered a community.
+        small_community_timeout (int): the maximum number of seconds trying to check an outlying
             small community.
-        jac_weighted_edges: (bool) whether to partition using the weighted graph.
-        knn: (int) the number of clusters k for the k-nearest neighbours algorithm.
-        n_iter_leiden: (int) the number of iterations for the Leiden algorithm.
-        random_seed: (int) the random seed to enable reproducible Leiden clustering.
-        n_threads: (int) the number of threads used in the KNN algorithm.
-        distance_metric: (string) the distance metric to be used in the KNN algorithm:
-            "l2": Euclidean distance L^2 norm, d = sum((x_i - y_i)^2)
-            "cosine": cosine similarity, d = 1.0 - sum(x_i*y_i) / sqrt(sum(x_i*x_i) * sum(y_i*y_i))
-            "ip": inner product distance, d = 1.0 - sum(x_i*y_i)
-        partition_type: (string) the partition type to be used in the Leiden algorithm:
-            "ModularityVP": ModularityVertexPartition, ``resolution_parameter=1``
-            "RBVP": RBConfigurationVP, Reichardt and Bornholdt’s Potts model. Note that this is the
-                same as ModularityVertexPartition when setting 𝛾 = 1 and normalising by 2m.
-        resolution_parameter: (float) the resolution parameter to be used in the Leiden algorithm.
+        jac_weighted_edges (bool): whether to partition using the weighted graph.
+        knn (int): the number of clusters k for the k-nearest neighbours algorithm.
+        n_iter_leiden (int): the number of iterations for the Leiden algorithm.
+        random_seed (int): the random seed to enable reproducible Leiden clustering.
+        n_threads (int): the number of threads used in the KNN algorithm.
+        distance_metric (string): the distance metric to be used in the KNN algorithm:
+
+            - ``l2``: Euclidean distance L^2 norm:
+
+              .. code-block:: python
+
+                d = sum((x_i - y_i)^2)
+            - ``cosine``: cosine similarity
+
+              .. code-block:: python
+
+                d = 1.0 - sum(x_i*y_i) / sqrt(sum(x_i*x_i) * sum(y_i*y_i))
+            - ``ip``: inner product distance
+
+              .. code-block:: python
+
+                d = 1.0 - sum(x_i*y_i)
+        partition_type (string): the partition type to be used in the Leiden algorithm:
+
+            - ``ModularityVP``: ModularityVertexPartition, ``resolution_parameter=1``
+            - ``RBVP``: RBConfigurationVP, Reichardt and Bornholdt’s Potts model. Note that this is
+              the same as ``ModularityVP`` when setting 𝛾 = 1 and normalising by 2m.
+
+        resolution_parameter (float): the resolution parameter to be used in the Leiden algorithm.
             In order to change ``resolution_parameter``, we switch to ``RBVP``.
-        knn_struct: (hnswlib.Index) the HNSW index of the KNN graph on which we perform queries.
-        neighbor_graph: (Compressed Sparse Row Matrix) A sparse matrix with dimensions
+        knn_struct (hnswlib.Index): the HNSW index of the KNN graph on which we perform queries.
+        neighbor_graph (Compressed Sparse Row Matrix): A sparse matrix with dimensions
             (n_samples, n_samples), containing the distances between nodes.
-        hnsw_param_ef_construction: (int) a higher value increases accuracy of index construction.
+        hnsw_param_ef_construction (int): a higher value increases accuracy of index construction.
             Even for O(100 000) cells, 150-200 is adequate.
-        hnsw_param_m: (int) TODO.
-        hnsw_param_allow_override: (bool) If true, allow the HNSW parameters given to be adjusted
+        hnsw_param_m (int): TODO.
+        hnsw_param_allow_override (bool): If true, allow the HNSW parameters given to be adjusted
             based on the number of samples and components. If false, use the HNSW parameters that
             are given: ``hnsw_param_ef_construction``, ``hnsw_param_m``.
     """
@@ -198,8 +213,8 @@ class PARC:
         """Create a full k-nearest neighbors graph using the HNSW algorithm.
 
         Returns:
-            (Compressed Sparse Row Matrix) A sparse matrix with dimensions (n_samples, n_samples),
-                containing the pruned distances.
+            scipy.sparse.csr_matrix: A compressed sparse row matrix with dimensions
+            (n_samples, n_samples), containing the pruned distances.
         """
         k_umap = 15
         # neighbors in array are not listed in in any order of proximity
@@ -249,14 +264,14 @@ class PARC:
         arrays in the ``csr_matrix`` format.
 
         Args:
-            neighbor_array: (np.array) An array with dimensions (n_samples, k) listing the
+            neighbor_array (np.array): An array with dimensions (n_samples, k) listing the
                 k nearest neighbors for each data point.
-            neighbor_array: (np.array) An array with dimensions (n_samples, k) listing the
+            neighbor_array (np.array): An array with dimensions (n_samples, k) listing the
                 distances to each of the k nearest neighbors for each data point.
 
         Returns:
-            (Compressed Sparse Row Matrix) A sparse matrix with dimensions (n_samples, n_samples),
-                containing the pruned distances.
+            scipy.sparse.csr_matrix: A compressed sparse row matrix with dimensions
+            (n_samples, n_samples), containing the pruned distances.
         """
         # neighbor array not listed in in any order of proximity
         row_list = []
@@ -304,11 +319,11 @@ class PARC:
         remove any edges from the graph that do not meet a minimum similarity threshold.
 
         Args:
-            csr_array: (Compressed Sparse Row Matrix) A sparse matrix with dimensions
+            csr_array (Compressed Sparse Row Matrix): A sparse matrix with dimensions
                 (n_samples, n_samples), containing the locally-pruned pair-wise distances.
 
         Returns:
-            (igraph.Graph) a Graph object which has now been locally and globally pruned.
+            igraph.Graph: a Graph object which has now been locally and globally pruned.
         """
 
         input_nodes, output_nodes = csr_array.nonzero()
@@ -369,17 +384,18 @@ class PARC:
         """Check if the community size is greater than the max community size.
 
         Args:
-            node_communities: (np.array) an array containing the community assignments for each
+            node_communities (np.array): an array containing the community assignments for each
                 node.
-            community_id: (int) the integer id of the community.
+            community_id (int): the integer id of the community.
 
         Returns:
-            is_large_community: (bool) whether or not the community is too big.
-            large_community_indices: (list) a list of node indices for the community,
-                if it is too big.
-            large_community_sizes: (list) the sizes of the communities that are too big.
-        """
+            (bool, list, list): a 3-tuple consisting of:
 
+                - ``is_large_community``: whether or not the community is too large.
+                - ``large_community_indices``: a list of node indices for the community,
+                  if it is too big.
+                - ``large_community_sizes``: the sizes of the communities that are large.
+        """
         is_large_community = False
         n_samples = node_communities.shape[0]
         community_indices = np.where(node_communities == community_id)[0]
@@ -398,16 +414,18 @@ class PARC:
         """Find the next community which is too big, if it exists.
 
         Args:
-            node_communities: (np.array) an array containing the community assignments for each
+            node_communities (np.array): an array containing the community assignments for each
                 node.
-            large_community_sizes: (list) a list of community sizes corresponding to communities
+            large_community_sizes (list): a list of community sizes corresponding to communities
                 which have already been identified and processed as being too large.
 
         Returns:
-            large_community_exists: (bool) whether or not the community is too big.
-            large_community_indices: (list) a list of node indices for the community,
-                if it is too big.
-            large_community_sizes: (list) the sizes of the communities that are too big.
+            (bool, list, list): a 3-tuple consisting of:
+
+                - ``large_community_exists``: whether or not there is a large community in the set.
+                - ``large_community_indices``: a list of node indices for the community,
+                  if it is too big.
+                - ``large_community_sizes``: the sizes of the communities that are large.
         """
         large_community_exists = False
         communities = set(node_communities)
@@ -426,21 +444,20 @@ class PARC:
         """Find communities which are above the large_community_factor cutoff and split them.
 
         1. Check if the 0th community is too large. Since this is always the largest community,
-            if it does not meet the threshold for a large community then all the other
-            communities will also not be too large.
+           if it does not meet the threshold for a large community then all the other
+           communities will also not be too large.
         2. If the 0th community is too large, then iterate through the rest of the communities. For
-            each large community, run the PARC algorithm (but don't check for large communities).
-            Reassign communities to split communities.
+           each large community, run the PARC algorithm (but don't check for large communities).
+           Reassign communities to split communities.
 
         Args:
-            x_data: (np.array) an array containing the input data, with shape
+            x_data (np.array): an array containing the input data, with shape
                 (n_samples x n_features).
-            node_communities: (np.array) an array containing the community assignments for each
+            node_communities (np.array): an array containing the community assignments for each
                 node.
 
         Returns:
-            node_communities: (np.array) an array containing the new community assignments for each
-                node.
+            np.array: an array containing the new community assignments for each node.
         """
 
         large_community_exists, large_community_indices, large_community_sizes = \
@@ -491,16 +508,18 @@ class PARC:
         """Find communities which are below the small_community_size cutoff.
 
         Args:
-            node_communities: (np.array) an array containing the community assignments for each
+            node_communities (np.array): an array containing the community assignments for each
                 node.
-            small_community_size: (int) the maximum number of nodes in a community. Communities
+            small_community_size (int): the maximum number of nodes in a community. Communities
                 with less nodes than the small_community_size are considered to be
                 small communities.
 
         Returns:
-            communities: (np.array) an array where each element is a community object.
-            community_ids_small: (np.array) an array of the community ids corresponding to the
-                small communities.
+            (np.array, np.array): a 2-tuple consisting of:
+
+                - ``communities``: an array where each element is a community object.
+                - ``community_ids_small``: an array of the community ids corresponding to the
+                  small communities.
         """
         communities = []
         community_ids = set(list(node_communities.flatten()))
@@ -524,20 +543,21 @@ class PARC:
         """Move small communities into neighboring communities.
 
         Args:
-            node_communities: (np.array) an array containing the community assignments for each
+            node_communities (np.array): an array containing the community assignments for each
                 node.
-            small_community_size: (int) the maximum number of nodes in a community. Communities
+            small_community_size (int): the maximum number of nodes in a community. Communities
                 with less nodes than the small_community_size are considered to be
                 small communities.
             neighbor_array: TODO.
-            exclude_neighbors_small: (bool) If true, don't reassign nodes in small communities to
+            exclude_neighbors_small (bool): If true, don't reassign nodes in small communities to
                 other small communities. If false, nodes may be reassigned to other small
                 communities which are larger than their current community.
 
         Returns:
-            node_communities: (np.array) an array containing the community assignments for each
-                node.
-            small_community_exists: (bool) are there any small communities?
+            (np.array, bool): a 2-tuple consisting of:
+
+                - ``node_communities``: an array containing the community assignments for each node.
+                - ``small_community_exists``: are there any small communities?
         """
         communities_small = self.get_small_communities(
             node_communities, small_community_size
@@ -575,6 +595,18 @@ class PARC:
     def run_parc(
         self, should_check_large_communities=True, should_compute_metrics=True
     ):
+        """The main function to run the PARC algorithm.
+
+        Args:
+            should_check_large_communities (bool): If ``True``, check for large communities and if
+                they exist, recursively run the PARC algorithm to break them up into smaller
+                communities. Otherwise, don't check for large communities.
+            should_compute_metrics (bool): If ``True``, compute the performance metrics for the
+                current run of the algorithm.
+
+        Returns:
+            np.array: an array containing the community assignments for each node.
+        """
 
         time_start = time.time()
         x_data = self.x_data

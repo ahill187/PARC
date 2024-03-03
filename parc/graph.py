@@ -2,9 +2,9 @@ class Community:
     """A community in the graph.
 
     Attributes:
-        id: (int) the id for the community.
-        nodes: (list[int]) a list of node ids which are part of the community.
-        size: (int) the number of nodes in the community.
+        id (int): the id for the community.
+        nodes (list[int]): a list of node ids which are part of the community.
+        size (int): the number of nodes in the community.
     """
 
     def __init__(self, id=None, nodes=[], size=None):
