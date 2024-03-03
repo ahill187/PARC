@@ -18,7 +18,10 @@ setuptools.setup(
         'leidenalg>=0.7.0', 'umap-learn'
     ],
     extras_require={
-        "dev": ["pytest", "scikit-learn"]
+        "dev": [
+            "pytest", "scikit-learn", "myst-parser", "sphinx", "sphinx_rtd_theme",
+            "nbsphinx"
+        ]
     },
     long_description=long_description,
     long_description_content_type='text/markdown'

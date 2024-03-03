@@ -1,0 +1,11 @@
+{% extends "!layout.html" %}
+
+{% block extrahead %}
+  <!-- Grab JQuery, Bootstrap, CSS, and fonts -->
+  <link href="{{ pathto('_static/css/bootstrap.css', True) }}" rel="stylesheet" type="text/css">
+  <link href="{{ pathto('_static/css/custom.css', True) }}" rel="stylesheet" type="text/css">
+  <script src="{{ pathto('_static/js/jquery.min.js', True) }}"></script>
+  <link href='https://fonts.googleapis.com/css?family=Roboto:400,400italic,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Montserrat:400,400italic,700' rel='stylesheet' type='text/css'>
+  <script src="{{ pathto('_static/js/bootstrap.min.js', True) }}"></script>
+{% endblock %}

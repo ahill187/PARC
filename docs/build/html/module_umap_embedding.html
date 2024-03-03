@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UMAP Methods &mdash; PARC 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=f2a433a1"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="k-Nearest Neighbors" href="module_k_nearest_neighbors.html" />
+    <link rel="prev" title="PARC" href="module_parc.html" />
+  <!-- Grab JQuery, Bootstrap, CSS, and fonts -->
+  <link href="_static/css/bootstrap.css" rel="stylesheet" type="text/css">
+  <link href="_static/css/custom.css" rel="stylesheet" type="text/css">
+  <script src="_static/js/jquery.min.js"></script>
+  <link href='https://fonts.googleapis.com/css?family=Roboto:400,400italic,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Montserrat:400,400italic,700' rel='stylesheet' type='text/css'>
+  <script src="_static/js/bootstrap.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            PARC
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Main</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parameter_usage.html">Parameters and Attributes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook_covid19.html">Running PARC for clustering analysis of Covid-19 scRNA cells</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developers</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">PARC Methods</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="module_parc.html">PARC</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">UMAP Methods</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#parc.umap_embedding.run_umap_hnsw"><code class="docutils literal notranslate"><span class="pre">run_umap_hnsw()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="module_k_nearest_neighbors.html">k-Nearest Neighbors</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PARC</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">PARC Methods</a></li>
+      <li class="breadcrumb-item active">UMAP Methods</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/module_umap_embedding.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-parc.umap_embedding">
+<span id="umap-methods"></span><h1>UMAP Methods<a class="headerlink" href="#module-parc.umap_embedding" title="Link to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="parc.umap_embedding.run_umap_hnsw">
+<span class="sig-prename descclassname"><span class="pre">parc.umap_embedding.</span></span><span class="sig-name descname"><span class="pre">run_umap_hnsw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">graph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_components</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">negative_sample_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spread</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_dist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_pos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'spectral'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_state_seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">densmap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">densmap_kwds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dens</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#parc.umap_embedding.run_umap_hnsw" title="Link to this definition"></a></dt>
+<dd><p>Perform a fuzzy simplicial set embedding, using a specified initialisation method and
+then minimizing the fuzzy set cross entropy between the 1-skeletons of the high and
+low-dimensional fuzzy simplicial sets.</p>
+<p>See <a class="reference external" href="https://github.com/lmcinnes/umap/blob/master/umap/umap_.py">umap.umap_ simplicial_set_embedding</a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_data</strong> (<em>array</em>) – an array containing the input data, with shape n_samples x n_features.</p></li>
+<li><p><strong>graph</strong> (<em>array</em>) – the 1-skeleton of the high dimensional fuzzy simplicial set as
+represented by a graph for which we require a sparse matrix for the
+(weighted): adjacency matrix.</p></li>
+<li><p><strong>n_components</strong> (<em>int</em>) – the dimensionality of the Euclidean space into which the data
+will be embedded.</p></li>
+<li><p><strong>alpha</strong> (<em>float</em>) – the initial learning rate for stochastic gradient descent (SGD).</p></li>
+<li><p><strong>negative_sample_rate</strong> (<em>int</em>) – the number of negative samples to select per positive
+sample in the optimization process. Increasing this value will result in
+greater repulsive force being applied, greater optimization cost, but
+slightly more accuracy.</p></li>
+<li><p><strong>gamma</strong> (<em>float</em>) – weight to apply to negative samples.</p></li>
+<li><p><strong>spread</strong> (<em>float</em>) – the upper range of the x-value to be used to fit a curve for the
+low-dimensional fuzzy simplicial complex construction. This curve should be
+close to an offset exponential decay. Must be greater than 0. See
+<code class="docutils literal notranslate"><span class="pre">umap.umap_.find_ab_params</span></code>.</p></li>
+<li><p><strong>min_dist</strong> (<em>float</em>) – See <code class="docutils literal notranslate"><span class="pre">umap.umap_.find_ab_params</span></code>.</p></li>
+<li><p><strong>n_epochs</strong> (<em>int</em>) – the number of training epochs to be used in optimizing the
+low-dimensional embedding. Larger values result in more accurate embeddings.
+If 0 is specified, a value will be selected based on the size of the input dataset
+(200 for large datasets, 500 for small).</p></li>
+<li><p><strong>init_pos</strong> (<em>string</em>) – <p>how to initialize the low-dimensional embedding. One of:
+<cite>spectral</cite>: use a spectral embedding of the fuzzy 1-skeleton
+<cite>random</cite>: assign initial embedding positions at random
+<cite>pca</cite>: use the first n components from Principal Component Analysis (PCA)</p>
+<blockquote>
+<div><p>applied to the input data.</p>
+</div></blockquote>
+</p></li>
+<li><p><strong>random_state_seed</strong> (<em>int</em>) – an integer to pass as a seed for the Numpy RandomState.</p></li>
+<li><p><strong>densmap</strong> (<em>bool</em>) – whether to use the density-augmented objective function to optimize
+the embedding according to the densMAP algorithm.</p></li>
+<li><p><strong>densmap_kwds</strong> (<em>dict</em>) – keyword arguments to be used by the densMAP optimization.</p></li>
+<li><p><strong>output_dens</strong> (<em>bool</em>) – whether to output local radii in the original data
+and the embedding.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>array of shape (n_samples, n_components)</dt><dd><p>The optimized of <code class="docutils literal notranslate"><span class="pre">graph</span></code> into an <code class="docutils literal notranslate"><span class="pre">n_components</span></code> dimensional
+euclidean space.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>embedding</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="module_parc.html" class="btn btn-neutral float-left" title="PARC" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="module_k_nearest_neighbors.html" class="btn btn-neutral float-right" title="k-Nearest Neighbors" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Shobana Stassen.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

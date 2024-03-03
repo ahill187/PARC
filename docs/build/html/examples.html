@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Examples &mdash; PARC 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=f2a433a1"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Parameters and Attributes" href="parameter_usage.html" />
+    <link rel="prev" title="Installation" href="installation.html" />
+  <!-- Grab JQuery, Bootstrap, CSS, and fonts -->
+  <link href="_static/css/bootstrap.css" rel="stylesheet" type="text/css">
+  <link href="_static/css/custom.css" rel="stylesheet" type="text/css">
+  <script src="_static/js/jquery.min.js"></script>
+  <link href='https://fonts.googleapis.com/css?family=Roboto:400,400italic,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Montserrat:400,400italic,700' rel='stylesheet' type='text/css'>
+  <script src="_static/js/bootstrap.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            PARC
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Main</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parameter_usage.html">Parameters and Attributes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook_covid19.html">Running PARC for clustering analysis of Covid-19 scRNA cells</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developers</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">PARC Methods</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PARC</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Examples</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/examples.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="examples">
+<h1>Examples<a class="headerlink" href="#examples" title="Link to this heading"></a></h1>
+<p><strong>Example Usage 1.</strong></p>
+<p>(small test sets) - IRIS and Digits dataset from sklearn:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">parc</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">sklearn</span> <span class="kn">import</span> <span class="n">datasets</span>
+
+<span class="c1"># load sample IRIS data</span>
+<span class="c1"># data dimensions (n_obs x k_dim, 150x4)</span>
+<span class="n">iris</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">load_iris</span><span class="p">()</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">iris</span><span class="o">.</span><span class="n">data</span>
+<span class="n">y</span><span class="o">=</span><span class="n">iris</span><span class="o">.</span><span class="n">target</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">X</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">X</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">c</span> <span class="o">=</span> <span class="n">y</span><span class="p">)</span> <span class="o">//</span> <span class="n">colored</span> <span class="n">by</span> <span class="s1">&#39;ground truth&#39;</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="c1"># instantiate PARC</span>
+<span class="n">Parc1</span> <span class="o">=</span> <span class="n">parc</span><span class="o">.</span><span class="n">PARC</span><span class="p">(</span><span class="n">X</span><span class="p">,</span><span class="n">true_label</span><span class="o">=</span><span class="n">y</span><span class="p">)</span>
+<span class="c1"># Use &#39;Parc1 = parc.PARC(X) &#39; when no &#39;true labels&#39; are available</span>
+<span class="c1"># run the clustering</span>
+<span class="n">Parc1</span><span class="o">.</span><span class="n">run_PARC</span><span class="p">()</span>
+<span class="n">parc_labels</span> <span class="o">=</span> <span class="n">Parc1</span><span class="o">.</span><span class="n">labels</span>
+<span class="c1"># View scatterplot colored by PARC labels</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">X</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">X</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="n">parc_labels</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;rainbow&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="c1"># Run umap on the HNSW knngraph already built in PARC (more time and memory efficient for large datasets)</span>
+<span class="c1"># If you choose to visualize before running PARC clustering. then you need to include this line: Parc1.knn_struct = p1.make_knn_struct()</span>
+<span class="n">graph</span> <span class="o">=</span> <span class="n">Parc1</span><span class="o">.</span><span class="n">knngraph_full</span><span class="p">()</span>
+<span class="n">X_umap</span> <span class="o">=</span> <span class="n">Parc1</span><span class="o">.</span><span class="n">run_umap_hnsw</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">graph</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">X_umap</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">X_umap</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="n">Parc1</span><span class="o">.</span><span class="n">labels</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Example Usage 2</strong></p>
+<p>(mid-scale scRNA-seq): 10X PBMC (Zheng et al., 2017)
+<a class="reference external" href="https://drive.google.com/file/d/1H4gOZ09haP_VPCwsYxZt4vf3hJ1GZj3b/view?usp=sharing">pre-processed datafile</a></p>
+<p><a class="reference external" href="https://github.com/ShobiStassen/PARC/blob/master/Datasets/zheng17_annotations.txt">annotations of cells by cell type</a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">parc</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="c1">## load data (50 PCs of filtered gene matrix pre-processed as per Zheng et al. 2017)</span>
+
+<span class="n">X</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s2">&quot;./pca50_pbmc68k.txt&quot;</span><span class="p">,</span> <span class="s1">&#39;rt&#39;</span><span class="p">),</span><span class="n">delimiter</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="p">)</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">X</span><span class="p">))</span> <span class="o">//</span> <span class="p">(</span><span class="n">n_obs</span> <span class="n">x</span> <span class="n">k_dim</span><span class="p">,</span> <span class="mi">68579</span> <span class="n">x</span> <span class="mi">50</span><span class="p">)</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;float&quot;</span><span class="p">)</span>
+<span class="c1"># OR with pandas as: X = pd.read_csv(&quot;&#39;./pca50_pbmc68k.txt&quot;, header=None).values.astype(&quot;float&quot;)</span>
+
+<span class="n">y</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1"># annotations</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;./zheng17_annotations.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;rt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span> <span class="n">y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\&quot;</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+<span class="c1"># OR with pandas as: y =  list(pd.read_csv(&#39;./data/zheng17_annotations.txt&#39;, header=None)[0])</span>
+
+<span class="c1"># setting small_pop to 50 cleans up some of the smaller clusters, but can also be left at the default 10</span>
+<span class="n">parc1</span> <span class="o">=</span> <span class="n">parc</span><span class="o">.</span><span class="n">PARC</span><span class="p">(</span><span class="n">X</span><span class="p">,</span><span class="n">true_label</span><span class="o">=</span><span class="n">y</span><span class="p">,</span><span class="n">jac_std_global</span><span class="o">=</span><span class="mf">0.15</span><span class="p">,</span> <span class="n">random_seed</span> <span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">small_pop</span> <span class="o">=</span> <span class="mi">50</span><span class="p">)</span> <span class="o">//</span> <span class="n">instantiate</span> <span class="n">PARC</span>
+<span class="n">parc1</span><span class="o">.</span><span class="n">run_PARC</span><span class="p">()</span> <span class="o">//</span> <span class="n">run</span> <span class="n">the</span> <span class="n">clustering</span>
+<span class="n">parc_labels</span> <span class="o">=</span> <span class="n">parc1</span><span class="o">.</span><span class="n">labels</span>
+</pre></div>
+</div>
+<p><strong>TSNE colored by PARC clusters and cell type annotations</strong></p>
+<img src="https://github.com/ShobiStassen/PARC/blob/master/Images/10X_PBMC_PARC_andGround.png?raw=true" width="500px" align="center" </a><p><strong>Example Usage 3.</strong>
+10X PBMC (Zheng et al., 2017) Using PARC with the Scanpy pipeline</p>
+<p><a class="reference external" href="https://github.com/10XGenomics/single-cell-3prime-paper/tree/master/pbmc68k_analysis">raw datafile 68K pbmc from github page</a></p>
+<p><a class="reference external" href="http://cf.10xgenomics.com/samples/cell-exp/1.1.0/fresh_68k_pbmc_donor_a/fresh_68k_pbmc_donor_a_filtered_gene_bc_matrices.tar.gz">10X compressed file “filtered genes”</a></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">scanpy.api</span> <span class="k">as</span> <span class="nn">sc</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="c1"># load the data</span>
+<span class="n">path</span> <span class="o">=</span> <span class="s1">&#39;./data/filtered_matrices_mex/hg19/&#39;</span>
+<span class="n">adata</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s1">&#39;matrix.mtx&#39;</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>  <span class="c1"># transpose the data</span>
+<span class="n">adata</span><span class="o">.</span><span class="n">var_names</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s1">&#39;genes.tsv&#39;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">adata</span><span class="o">.</span><span class="n">obs_names</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s1">&#39;barcodes.tsv&#39;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">None</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="c1"># annotations as per correlation with pure samples</span>
+<span class="n">annotations</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">&#39;./data/zheng17_annotations.txt&#39;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">None</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s1">&#39;annotations&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Categorical</span><span class="p">(</span><span class="n">annotations</span><span class="p">)</span>
+
+<span class="c1"># pre-process as per Zheng et al., and take first 50 PCs for analysis</span>
+<span class="n">sc</span><span class="o">.</span><span class="n">pp</span><span class="o">.</span><span class="n">recipe_zheng17</span><span class="p">(</span><span class="n">adata</span><span class="p">)</span>
+<span class="n">sc</span><span class="o">.</span><span class="n">tl</span><span class="o">.</span><span class="n">pca</span><span class="p">(</span><span class="n">adata</span><span class="p">,</span> <span class="n">n_comps</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<span class="c1"># setting small_pop to 50 cleans up some of the smaller clusters, but can also be left at the default 10</span>
+<span class="n">parc1</span> <span class="o">=</span> <span class="n">parc</span><span class="o">.</span><span class="n">PARC</span><span class="p">(</span><span class="n">adata</span><span class="o">.</span><span class="n">obsm</span><span class="p">[</span><span class="s1">&#39;X_pca&#39;</span><span class="p">],</span> <span class="n">true_label</span> <span class="o">=</span> <span class="n">annotations</span><span class="p">,</span> <span class="n">jac_std_global</span><span class="o">=</span><span class="mf">0.15</span><span class="p">,</span> <span class="n">random_seed</span> <span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">small_pop</span> <span class="o">=</span> <span class="mi">50</span><span class="p">)</span>
+<span class="c1">#run the clustering</span>
+<span class="n">parc1</span><span class="o">.</span><span class="n">run_PARC</span><span class="p">()</span>
+<span class="n">parc_labels</span> <span class="o">=</span> <span class="n">parc1</span><span class="o">.</span><span class="n">labels</span>
+<span class="n">adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s2">&quot;PARC&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Categorical</span><span class="p">(</span><span class="n">parc_labels</span><span class="p">)</span>
+
+<span class="o">//</span><span class="n">visualize</span>
+<span class="n">sc</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">n_jobs</span><span class="o">=</span><span class="mi">4</span>
+<span class="n">sc</span><span class="o">.</span><span class="n">pp</span><span class="o">.</span><span class="n">neighbors</span><span class="p">(</span><span class="n">adata</span><span class="p">,</span> <span class="n">n_neighbors</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">n_pcs</span><span class="o">=</span><span class="mi">40</span><span class="p">)</span>
+<span class="n">sc</span><span class="o">.</span><span class="n">tl</span><span class="o">.</span><span class="n">umap</span><span class="p">(</span><span class="n">adata</span><span class="p">)</span>
+<span class="n">sc</span><span class="o">.</span><span class="n">pl</span><span class="o">.</span><span class="n">umap</span><span class="p">(</span><span class="n">adata</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;annotations&#39;</span><span class="p">)</span>
+<span class="n">sc</span><span class="o">.</span><span class="n">pl</span><span class="o">.</span><span class="n">umap</span><span class="p">(</span><span class="n">adata</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;PARC&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Example Usage 4.</strong></p>
+<p>Large-scale (70K subset and 1.1M cells) Lung Cancer cells (multi-ATOM imaging cytometry based features)</p>
+<p><a class="reference external" href="https://drive.google.com/open?id=1LeFjxGlaoaZN9sh0nuuMFBK0bvxPiaUz">normalized image-based feature matrix 70K cells</a></p>
+<p><a class="reference external" href="https://drive.google.com/open?id=1iwXQkdwEwplhZ1v0jYWnu2CHziOt_D9C">Lung Cancer cells annotation 70K cells</a></p>
+<p><a class="reference external" href="https://drive.google.com/open?id=1kWtx3j1ixua4nQt1HFHlwzCHnOr7gvKm">Lung Cancer Digital Spike Test of n=100 H1975 cells on N281604</a></p>
+<p><a class="reference external" href="https://data.mendeley.com/datasets/nnbfwjvmvw/draft?a=dae895d4-25cd-4bdf-b3e4-57dd31c11e37">1.1M cell features and annotations</a></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">parc</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="c1"># load data: digital mix of 7 cell lines from 7 sets of pure samples (1.1M cells)</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;&#39;./LungData.txt&quot;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;float&quot;</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">&#39;./LungData_annotations.txt&#39;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">None</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span> <span class="o">//</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">cell</span><span class="o">-</span><span class="nb">type</span> <span class="n">annotations</span>
+
+<span class="c1"># run PARC on 1.1M cells</span>
+<span class="c1"># jac_weighted_edges can be set to false which provides an unweighted graph to leiden and offers some speedup</span>
+<span class="n">parc1</span> <span class="o">=</span> <span class="n">parc</span><span class="o">.</span><span class="n">PARC</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">true_label</span><span class="o">=</span><span class="n">y</span><span class="p">,</span><span class="n">jac_weighted_edges</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+<span class="c1">#run the clustering</span>
+<span class="n">parc1</span><span class="o">.</span><span class="n">run_PARC</span><span class="p">()</span>
+<span class="n">parc_labels</span> <span class="o">=</span> <span class="n">parc1</span><span class="o">.</span><span class="n">labels</span>
+
+<span class="c1"># run PARC on H1975 spiked cells</span>
+<span class="n">parc2</span> <span class="o">=</span> <span class="n">parc</span><span class="o">.</span><span class="n">PARC</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">true_label</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">jac_std_global</span> <span class="o">=</span> <span class="mf">0.15</span><span class="p">,</span> <span class="n">jac_weighted_edges</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">//</span> <span class="mf">0.15</span> <span class="n">corresponds</span> <span class="n">to</span> <span class="n">pruning</span> <span class="o">~</span><span class="mi">60</span><span class="o">%</span> <span class="n">edges</span> <span class="ow">and</span> <span class="n">can</span> <span class="n">be</span> <span class="n">effective</span> <span class="k">for</span> <span class="n">rarer</span> <span class="n">populations</span> <span class="n">than</span> <span class="n">the</span> <span class="n">default</span> <span class="s1">&#39;median&#39;</span>
+<span class="c1"># run the clustering</span>
+<span class="n">parc2</span><span class="o">.</span><span class="n">run_PARC</span><span class="p">()</span>
+<span class="n">parc_labels_rare</span> <span class="o">=</span> <span class="n">parc2</span><span class="o">.</span><span class="n">labels</span>
+</pre></div>
+</div>
+<p><strong>TSNE plot of annotations and PARC clustering and heatmap of features by cluster</strong></p>
+<img src="https://github.com/ShobiStassen/PARC/blob/master/Images/70K_Lung_github_overview.png?raw=true" width="500px" align="center" </a></section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="parameter_usage.html" class="btn btn-neutral float-right" title="Parameters and Attributes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Shobana Stassen.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

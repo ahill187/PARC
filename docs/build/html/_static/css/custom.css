@@ -1,0 +1,9 @@
+.wy-table-responsive table td, .wy-table-responsive table th {
+    white-space: inherit;
+}
+
+html.writer-html5 .rst-content table.docutils td>p, html.writer-html5 .rst-content table.docutils th>p {
+    line-height: 2rem;
+    margin-bottom: 0;
+    font-size: 12.5px;
+}

@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PARC &mdash; PARC 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=f2a433a1"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="UMAP Methods" href="module_umap_embedding.html" />
+    <link rel="prev" title="PARC Methods" href="modules.html" />
+  <!-- Grab JQuery, Bootstrap, CSS, and fonts -->
+  <link href="_static/css/bootstrap.css" rel="stylesheet" type="text/css">
+  <link href="_static/css/custom.css" rel="stylesheet" type="text/css">
+  <script src="_static/js/jquery.min.js"></script>
+  <link href='https://fonts.googleapis.com/css?family=Roboto:400,400italic,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Montserrat:400,400italic,700' rel='stylesheet' type='text/css'>
+  <script src="_static/js/bootstrap.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            PARC
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Main</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parameter_usage.html">Parameters and Attributes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook_covid19.html">Running PARC for clustering analysis of Covid-19 scRNA cells</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developers</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">PARC Methods</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">PARC</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#parc._parc.PARC"><code class="docutils literal notranslate"><span class="pre">PARC</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.x_data"><code class="docutils literal notranslate"><span class="pre">PARC.x_data</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.y_data_true"><code class="docutils literal notranslate"><span class="pre">PARC.y_data_true</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.jac_threshold_type"><code class="docutils literal notranslate"><span class="pre">PARC.jac_threshold_type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.jac_std_factor"><code class="docutils literal notranslate"><span class="pre">PARC.jac_std_factor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.l2_std_factor"><code class="docutils literal notranslate"><span class="pre">PARC.l2_std_factor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.keep_all_local_dist"><code class="docutils literal notranslate"><span class="pre">PARC.keep_all_local_dist</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.large_community_factor"><code class="docutils literal notranslate"><span class="pre">PARC.large_community_factor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.small_community_size"><code class="docutils literal notranslate"><span class="pre">PARC.small_community_size</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.small_community_timeout"><code class="docutils literal notranslate"><span class="pre">PARC.small_community_timeout</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.jac_weighted_edges"><code class="docutils literal notranslate"><span class="pre">PARC.jac_weighted_edges</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.knn"><code class="docutils literal notranslate"><span class="pre">PARC.knn</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.n_iter_leiden"><code class="docutils literal notranslate"><span class="pre">PARC.n_iter_leiden</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.random_seed"><code class="docutils literal notranslate"><span class="pre">PARC.random_seed</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.n_threads"><code class="docutils literal notranslate"><span class="pre">PARC.n_threads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.distance_metric"><code class="docutils literal notranslate"><span class="pre">PARC.distance_metric</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.partition_type"><code class="docutils literal notranslate"><span class="pre">PARC.partition_type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.resolution_parameter"><code class="docutils literal notranslate"><span class="pre">PARC.resolution_parameter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.knn_struct"><code class="docutils literal notranslate"><span class="pre">PARC.knn_struct</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.neighbor_graph"><code class="docutils literal notranslate"><span class="pre">PARC.neighbor_graph</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.hnsw_param_ef_construction"><code class="docutils literal notranslate"><span class="pre">PARC.hnsw_param_ef_construction</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.hnsw_param_m"><code class="docutils literal notranslate"><span class="pre">PARC.hnsw_param_m</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.hnsw_param_allow_override"><code class="docutils literal notranslate"><span class="pre">PARC.hnsw_param_allow_override</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.check_if_large_community"><code class="docutils literal notranslate"><span class="pre">PARC.check_if_large_community()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.compute_performance_metrics"><code class="docutils literal notranslate"><span class="pre">PARC.compute_performance_metrics()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.create_knn_graph"><code class="docutils literal notranslate"><span class="pre">PARC.create_knn_graph()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.get_knn_struct"><code class="docutils literal notranslate"><span class="pre">PARC.get_knn_struct()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.get_leiden_partition"><code class="docutils literal notranslate"><span class="pre">PARC.get_leiden_partition()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.get_neighbor_distance_arrays"><code class="docutils literal notranslate"><span class="pre">PARC.get_neighbor_distance_arrays()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.get_next_big_community"><code class="docutils literal notranslate"><span class="pre">PARC.get_next_big_community()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.get_small_communities"><code class="docutils literal notranslate"><span class="pre">PARC.get_small_communities()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id0"><code class="docutils literal notranslate"><span class="pre">PARC.keep_all_local_dist</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.make_knn_struct"><code class="docutils literal notranslate"><span class="pre">PARC.make_knn_struct()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id1"><code class="docutils literal notranslate"><span class="pre">PARC.neighbor_graph</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id2"><code class="docutils literal notranslate"><span class="pre">PARC.partition_type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.prune_global"><code class="docutils literal notranslate"><span class="pre">PARC.prune_global()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.prune_local"><code class="docutils literal notranslate"><span class="pre">PARC.prune_local()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.reassign_large_communities"><code class="docutils literal notranslate"><span class="pre">PARC.reassign_large_communities()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.reassign_small_communities"><code class="docutils literal notranslate"><span class="pre">PARC.reassign_small_communities()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parc._parc.PARC.run_parc"><code class="docutils literal notranslate"><span class="pre">PARC.run_parc()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id3"><code class="docutils literal notranslate"><span class="pre">PARC.x_data</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="module_umap_embedding.html">UMAP Methods</a></li>
+<li class="toctree-l2"><a class="reference internal" href="module_k_nearest_neighbors.html">k-Nearest Neighbors</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PARC</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">PARC Methods</a></li>
+      <li class="breadcrumb-item active">PARC</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/module_parc.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-parc._parc">
+<span id="parc"></span><h1>PARC<a class="headerlink" href="#module-parc._parc" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="parc._parc.PARC">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">parc._parc.</span></span><span class="sig-name descname"><span class="pre">PARC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_data_true</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">l2_std_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jac_std_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jac_threshold_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'median'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_all_local_dist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">large_community_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">small_community_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jac_weighted_edges</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">knn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_iter_leiden</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distance_metric</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'l2'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">small_community_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">partition_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ModularityVP'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolution_parameter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">knn_struct</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neighbor_graph</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hnsw_param_ef_construction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">150</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hnsw_param_m</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">24</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hnsw_param_allow_override</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#parc._parc.PARC" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Phenotyping by accelerated refined community-partitioning.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="parc._parc.PARC.x_data">
+<span class="sig-name descname"><span class="pre">x_data</span></span><a class="headerlink" href="#parc._parc.PARC.x_data" title="Link to this definition"></a></dt>
+<dd><p>a Numpy array of the input x data, with dimensions
+(n_samples, n_features).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="parc._parc.PARC.y_data_true">
+<span class="sig-name descname"><span class="pre">y_data_true</span></span><a class="headerlink" href="#parc._parc.PARC.y_data_true" title="Link to this definition"></a></dt>
+<dd><p>a Numpy array of the output y labels.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="parc._parc.PARC.jac_threshold_type">
+<span class="sig-name descname"><span class="pre">jac_threshold_type</span></span><a class="headerlink" href="#parc._parc.PARC.jac_threshold_type" title="Link to this definition"></a></dt>
+<dd><p>One of “median” or “mean”. Determines how the Jaccard similarity
+threshold is calculated during global pruning.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="parc._parc.PARC.jac_std_factor">
+<span class="sig-name descname"><span class="pre">jac_std_factor</span></span><a class="headerlink" href="#parc._parc.PARC.jac_std_factor" title="Link to this definition"></a></dt>
+<dd><p>The multiplier used in calculating the Jaccard similarity threshold
+for the similarity between two nodes during global pruning for
+<code class="docutils literal notranslate"><span class="pre">jac_threshold_type</span> <span class="pre">=</span> <span class="pre">&quot;mean&quot;</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">threshold</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">similarities</span><span class="p">)</span> <span class="o">-</span> <span class="n">jac_std_factor</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">similarities</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Setting <code class="docutils literal notranslate"><span class="pre">jac_std_factor</span> <span class="pre">=</span> <span class="pre">0.15</span></code> and <code class="docutils literal notranslate"><span class="pre">jac_threshold_type=&quot;mean&quot;</span></code>
+performs empirically similar to <code class="docutils literal notranslate"><span class="pre">jac_threshold_type=&quot;median&quot;</span></code>, which does not use
+the <code class="docutils literal notranslate"><span class="pre">jac_std_factor</span></code>.
+Generally values between 0-1.5 are reasonable.
+Higher <code class="docutils literal notranslate"><span class="pre">jac_std_factor</span></code> means more edges are kept.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="parc._parc.PARC.l2_std_factor">
+<span class="sig-name descname"><span class="pre">l2_std_factor</span></span><a class="headerlink" href="#parc._parc.PARC.l2_std_factor" title="Link to this definition"></a></dt>
+<dd><p>The multiplier used in calculating the Euclidean distance threshold
+for the distance between two nodes during local pruning:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">max_distance</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">distances</span><span class="p">)</span> <span class="o">+</span> <span class="n">l2_std_factor</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">distances</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Avoid setting both the <code class="docutils literal notranslate"><span class="pre">jac_std_factor</span></code> (global) and the <code class="docutils literal notranslate"><span class="pre">l2_std_factor</span></code> (local)
+to &lt; 0.5 as this is very aggressive pruning.
+Higher <code class="docutils literal notranslate"><span class="pre">l2_std_factor</span></code> means more edges are kept.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="parc._parc.PARC.keep_all_local_dist">
+<span class="sig-name descname"><span class="pre">keep_all_local_dist</span></span><a class="headerlink" href="#parc._parc.PARC.keep_all_local_dist" title="Link to this definition"></a></dt>
+<dd><p>whether or not to do local pruning.
+If None (default), set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if the number of samples is &gt; 300 000,
+and set to <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="parc._parc.PARC.large_community_factor">
+<span class="sig-name descname"><span class="pre">large_community_factor</span></span><a class="headerlink" href="#parc._parc.PARC.large_community_factor" title="Link to this definition"></a></dt>
+<dd><p>if a cluster exceeds this share of the entire cell population,
+then the PARC will be run on the large cluster. At 0.4 it does not come into play.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="parc._parc.PARC.small_community_size">
+<span class="sig-name descname"><span class="pre">small_community_size</span></span><a class="headerlink" href="#parc._parc.PARC.small_community_size" title="Link to this definition"></a></dt>
+<dd><p>the smallest population size to be considered a community.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="parc._parc.PARC.small_community_timeout">
+<span class="sig-name descname"><span class="pre">small_community_timeout</span></span><a class="headerlink" href="#parc._parc.PARC.small_community_timeout" title="Link to this definition"></a></dt>
+<dd><p>the maximum number of seconds trying to check an outlying
+small community.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="parc._parc.PARC.jac_weighted_edges">
+<span class="sig-name descname"><span class="pre">jac_weighted_edges</span></span><a class="headerlink" href="#parc._parc.PARC.jac_weighted_edges" title="Link to this definition"></a></dt>
+<dd><p>whether to partition using the weighted graph.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="parc._parc.PARC.knn">
+<span class="sig-name descname"><span class="pre">knn</span></span><a class="headerlink" href="#parc._parc.PARC.knn" title="Link to this definition"></a></dt>
+<dd><p>the number of clusters k for the k-nearest neighbours algorithm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="parc._parc.PARC.n_iter_leiden">
+<span class="sig-name descname"><span class="pre">n_iter_leiden</span></span><a class="headerlink" href="#parc._parc.PARC.n_iter_leiden" title="Link to this definition"></a></dt>
+<dd><p>the number of iterations for the Leiden algorithm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="parc._parc.PARC.random_seed">
+<span class="sig-name descname"><span class="pre">random_seed</span></span><a class="headerlink" href="#parc._parc.PARC.random_seed" title="Link to this definition"></a></dt>
+<dd><p>the random seed to enable reproducible Leiden clustering.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="parc._parc.PARC.n_threads">
+<span class="sig-name descname"><span class="pre">n_threads</span></span><a class="headerlink" href="#parc._parc.PARC.n_threads" title="Link to this definition"></a></dt>
+<dd><p>the number of threads used in the KNN algorithm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="parc._parc.PARC.distance_metric">
+<span class="sig-name descname"><span class="pre">distance_metric</span></span><a class="headerlink" href="#parc._parc.PARC.distance_metric" title="Link to this definition"></a></dt>
+<dd><p>the distance metric to be used in the KNN algorithm:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">l2</span></code>: Euclidean distance L^2 norm:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">((</span><span class="n">x_i</span> <span class="o">-</span> <span class="n">y_i</span><span class="p">)</span><span class="o">^</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cosine</span></code>: cosine similarity</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="nb">sum</span><span class="p">(</span><span class="n">x_i</span><span class="o">*</span><span class="n">y_i</span><span class="p">)</span> <span class="o">/</span> <span class="n">sqrt</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">x_i</span><span class="o">*</span><span class="n">x_i</span><span class="p">)</span> <span class="o">*</span> <span class="nb">sum</span><span class="p">(</span><span class="n">y_i</span><span class="o">*</span><span class="n">y_i</span><span class="p">))</span>
+</pre></div>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ip</span></code>: inner product distance</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="nb">sum</span><span class="p">(</span><span class="n">x_i</span><span class="o">*</span><span class="n">y_i</span><span class="p">)</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>string</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="parc._parc.PARC.partition_type">
+<span class="sig-name descname"><span class="pre">partition_type</span></span><a class="headerlink" href="#parc._parc.PARC.partition_type" title="Link to this definition"></a></dt>
+<dd><p>the partition type to be used in the Leiden algorithm:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ModularityVP</span></code>: ModularityVertexPartition, <code class="docutils literal notranslate"><span class="pre">resolution_parameter=1</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">RBVP</span></code>: RBConfigurationVP, Reichardt and Bornholdt’s Potts model. Note that this is
+the same as <code class="docutils literal notranslate"><span class="pre">ModularityVP</span></code> when setting 𝛾 = 1 and normalising by 2m.</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>string</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="parc._parc.PARC.resolution_parameter">
+<span class="sig-name descname"><span class="pre">resolution_parameter</span></span><a class="headerlink" href="#parc._parc.PARC.resolution_parameter" title="Link to this definition"></a></dt>
+<dd><p>the resolution parameter to be used in the Leiden algorithm.
+In order to change <code class="docutils literal notranslate"><span class="pre">resolution_parameter</span></code>, we switch to <code class="docutils literal notranslate"><span class="pre">RBVP</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="parc._parc.PARC.knn_struct">
+<span class="sig-name descname"><span class="pre">knn_struct</span></span><a class="headerlink" href="#parc._parc.PARC.knn_struct" title="Link to this definition"></a></dt>
+<dd><p>the HNSW index of the KNN graph on which we perform queries.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>hnswlib.Index</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="parc._parc.PARC.neighbor_graph">
+<span class="sig-name descname"><span class="pre">neighbor_graph</span></span><a class="headerlink" href="#parc._parc.PARC.neighbor_graph" title="Link to this definition"></a></dt>
+<dd><p>A sparse matrix with dimensions
+(n_samples, n_samples), containing the distances between nodes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Compressed Sparse Row Matrix</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="parc._parc.PARC.hnsw_param_ef_construction">
+<span class="sig-name descname"><span class="pre">hnsw_param_ef_construction</span></span><a class="headerlink" href="#parc._parc.PARC.hnsw_param_ef_construction" title="Link to this definition"></a></dt>
+<dd><p>a higher value increases accuracy of index construction.
+Even for O(100 000) cells, 150-200 is adequate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="parc._parc.PARC.hnsw_param_m">
+<span class="sig-name descname"><span class="pre">hnsw_param_m</span></span><a class="headerlink" href="#parc._parc.PARC.hnsw_param_m" title="Link to this definition"></a></dt>
+<dd><p>TODO.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="parc._parc.PARC.hnsw_param_allow_override">
+<span class="sig-name descname"><span class="pre">hnsw_param_allow_override</span></span><a class="headerlink" href="#parc._parc.PARC.hnsw_param_allow_override" title="Link to this definition"></a></dt>
+<dd><p>If true, allow the HNSW parameters given to be adjusted
+based on the number of samples and components. If false, use the HNSW parameters that
+are given: <code class="docutils literal notranslate"><span class="pre">hnsw_param_ef_construction</span></code>, <code class="docutils literal notranslate"><span class="pre">hnsw_param_m</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="parc._parc.PARC.check_if_large_community">
+<span class="sig-name descname"><span class="pre">check_if_large_community</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node_communities</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">community_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">large_community_sizes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#parc._parc.PARC.check_if_large_community" title="Link to this definition"></a></dt>
+<dd><p>Check if the community size is greater than the max community size.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>node_communities</strong> (<em>np.array</em>) – an array containing the community assignments for each
+node.</p></li>
+<li><p><strong>community_id</strong> (<em>int</em>) – the integer id of the community.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>a 3-tuple consisting of:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">is_large_community</span></code>: whether or not the community is too large.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">large_community_indices</span></code>: a list of node indices for the community,
+if it is too big.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">large_community_sizes</span></code>: the sizes of the communities that are large.</p></li>
+</ul>
+</div></blockquote>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(bool, list, list)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="parc._parc.PARC.compute_performance_metrics">
+<span class="sig-name descname"><span class="pre">compute_performance_metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run_time</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#parc._parc.PARC.compute_performance_metrics" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="parc._parc.PARC.create_knn_graph">
+<span class="sig-name descname"><span class="pre">create_knn_graph</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#parc._parc.PARC.create_knn_graph" title="Link to this definition"></a></dt>
+<dd><p>Create a full k-nearest neighbors graph using the HNSW algorithm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A compressed sparse row matrix with dimensions
+(n_samples, n_samples), containing the pruned distances.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>scipy.sparse.csr_matrix</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="parc._parc.PARC.get_knn_struct">
+<span class="sig-name descname"><span class="pre">get_knn_struct</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#parc._parc.PARC.get_knn_struct" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="parc._parc.PARC.get_leiden_partition">
+<span class="sig-name descname"><span class="pre">get_leiden_partition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">graph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jac_weighted_edges</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#parc._parc.PARC.get_leiden_partition" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="parc._parc.PARC.get_neighbor_distance_arrays">
+<span class="sig-name descname"><span class="pre">get_neighbor_distance_arrays</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#parc._parc.PARC.get_neighbor_distance_arrays" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="parc._parc.PARC.get_next_big_community">
+<span class="sig-name descname"><span class="pre">get_next_big_community</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node_communities</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">large_community_sizes</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#parc._parc.PARC.get_next_big_community" title="Link to this definition"></a></dt>
+<dd><p>Find the next community which is too big, if it exists.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>node_communities</strong> (<em>np.array</em>) – an array containing the community assignments for each
+node.</p></li>
+<li><p><strong>large_community_sizes</strong> (<em>list</em>) – a list of community sizes corresponding to communities
+which have already been identified and processed as being too large.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>a 3-tuple consisting of:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">large_community_exists</span></code>: whether or not there is a large community in the set.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">large_community_indices</span></code>: a list of node indices for the community,
+if it is too big.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">large_community_sizes</span></code>: the sizes of the communities that are large.</p></li>
+</ul>
+</div></blockquote>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(bool, list, list)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="parc._parc.PARC.get_small_communities">
+<span class="sig-name descname"><span class="pre">get_small_communities</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node_communities</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">small_community_size</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#parc._parc.PARC.get_small_communities" title="Link to this definition"></a></dt>
+<dd><p>Find communities which are below the small_community_size cutoff.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>node_communities</strong> (<em>np.array</em>) – an array containing the community assignments for each
+node.</p></li>
+<li><p><strong>small_community_size</strong> (<em>int</em>) – the maximum number of nodes in a community. Communities
+with less nodes than the small_community_size are considered to be
+small communities.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>a 2-tuple consisting of:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">communities</span></code>: an array where each element is a community object.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">community_ids_small</span></code>: an array of the community ids corresponding to the
+small communities.</p></li>
+</ul>
+</div></blockquote>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(np.array, np.array)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="id0">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">keep_all_local_dist</span></span><a class="headerlink" href="#id0" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="parc._parc.PARC.make_knn_struct">
+<span class="sig-name descname"><span class="pre">make_knn_struct</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#parc._parc.PARC.make_knn_struct" title="Link to this definition"></a></dt>
+<dd><p>Create a Hierarchical Navigable Small Worlds (HNSW) graph.</p>
+<p>See <a class="reference external" href="https://github.com/nmslib/hnswlib/blob/master/python_bindings/LazyIndex.py">hnswlib.Index</a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>TODO.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(hnswlib.Index)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="id1">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">neighbor_graph</span></span><a class="headerlink" href="#id1" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="id2">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">partition_type</span></span><a class="headerlink" href="#id2" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="parc._parc.PARC.prune_global">
+<span class="sig-name descname"><span class="pre">prune_global</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">csr_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jac_std_factor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jac_threshold_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jac_weighted_edges</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#parc._parc.PARC.prune_global" title="Link to this definition"></a></dt>
+<dd><p>Prune the graph globally based on the Jaccard similarity measure.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">csr_array</span></code> contains the locally-pruned pairwise distances. From this, we can
+use the Jaccard similarity metric to compute the similarity score for each edge. We then
+remove any edges from the graph that do not meet a minimum similarity threshold.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>csr_array</strong> (<em>Compressed Sparse Row Matrix</em>) – A sparse matrix with dimensions
+(n_samples, n_samples), containing the locally-pruned pair-wise distances.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>a Graph object which has now been locally and globally pruned.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>igraph.Graph</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="parc._parc.PARC.prune_local">
+<span class="sig-name descname"><span class="pre">prune_local</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">neighbor_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distance_array</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#parc._parc.PARC.prune_local" title="Link to this definition"></a></dt>
+<dd><p>Prune the nearest neighbors array.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">keep_all_local_dist</span></code> is true, remove any neighbors which are further away than
+the specified cutoff distance. Also, remove any self-loops. Return in the <code class="docutils literal notranslate"><span class="pre">csr_matrix</span></code>
+format.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">keep_all_local_dist</span></code> is false, then don’t perform any pruning and return the original
+arrays in the <code class="docutils literal notranslate"><span class="pre">csr_matrix</span></code> format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>neighbor_array</strong> (<em>np.array</em>) – An array with dimensions (n_samples, k) listing the
+k nearest neighbors for each data point.</p></li>
+<li><p><strong>neighbor_array</strong> – An array with dimensions (n_samples, k) listing the
+distances to each of the k nearest neighbors for each data point.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A compressed sparse row matrix with dimensions
+(n_samples, n_samples), containing the pruned distances.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>scipy.sparse.csr_matrix</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="parc._parc.PARC.reassign_large_communities">
+<span class="sig-name descname"><span class="pre">reassign_large_communities</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">node_communities</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#parc._parc.PARC.reassign_large_communities" title="Link to this definition"></a></dt>
+<dd><p>Find communities which are above the large_community_factor cutoff and split them.</p>
+<ol class="arabic simple">
+<li><p>Check if the 0th community is too large. Since this is always the largest community,
+if it does not meet the threshold for a large community then all the other
+communities will also not be too large.</p></li>
+<li><p>If the 0th community is too large, then iterate through the rest of the communities. For
+each large community, run the PARC algorithm (but don’t check for large communities).
+Reassign communities to split communities.</p></li>
+</ol>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_data</strong> (<em>np.array</em>) – an array containing the input data, with shape
+(n_samples x n_features).</p></li>
+<li><p><strong>node_communities</strong> (<em>np.array</em>) – an array containing the community assignments for each
+node.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>an array containing the new community assignments for each node.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="parc._parc.PARC.reassign_small_communities">
+<span class="sig-name descname"><span class="pre">reassign_small_communities</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node_communities</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">small_community_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neighbor_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_neighbors_small</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#parc._parc.PARC.reassign_small_communities" title="Link to this definition"></a></dt>
+<dd><p>Move small communities into neighboring communities.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>node_communities</strong> (<em>np.array</em>) – an array containing the community assignments for each
+node.</p></li>
+<li><p><strong>small_community_size</strong> (<em>int</em>) – the maximum number of nodes in a community. Communities
+with less nodes than the small_community_size are considered to be
+small communities.</p></li>
+<li><p><strong>neighbor_array</strong> – TODO.</p></li>
+<li><p><strong>exclude_neighbors_small</strong> (<em>bool</em>) – If true, don’t reassign nodes in small communities to
+other small communities. If false, nodes may be reassigned to other small
+communities which are larger than their current community.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>a 2-tuple consisting of:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">node_communities</span></code>: an array containing the community assignments for each node.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">small_community_exists</span></code>: are there any small communities?</p></li>
+</ul>
+</div></blockquote>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(np.array, bool)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="parc._parc.PARC.run_parc">
+<span class="sig-name descname"><span class="pre">run_parc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">should_check_large_communities</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">should_compute_metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#parc._parc.PARC.run_parc" title="Link to this definition"></a></dt>
+<dd><p>The main function to run the PARC algorithm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>should_check_large_communities</strong> (<em>bool</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, check for large communities and if
+they exist, recursively run the PARC algorithm to break them up into smaller
+communities. Otherwise, don’t check for large communities.</p></li>
+<li><p><strong>should_compute_metrics</strong> (<em>bool</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, compute the performance metrics for the
+current run of the algorithm.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>an array containing the community assignments for each node.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="id3">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">x_data</span></span><a class="headerlink" href="#id3" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="modules.html" class="btn btn-neutral float-left" title="PARC Methods" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="module_umap_embedding.html" class="btn btn-neutral float-right" title="UMAP Methods" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Shobana Stassen.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PARC - Phenotyping by Accelerated Refined Community-Partitioning &mdash; PARC 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=f2a433a1"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Installation" href="installation.html" />
+  <!-- Grab JQuery, Bootstrap, CSS, and fonts -->
+  <link href="_static/css/bootstrap.css" rel="stylesheet" type="text/css">
+  <link href="_static/css/custom.css" rel="stylesheet" type="text/css">
+  <script src="_static/js/jquery.min.js"></script>
+  <link href='https://fonts.googleapis.com/css?family=Roboto:400,400italic,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Montserrat:400,400italic,700' rel='stylesheet' type='text/css'>
+  <script src="_static/js/bootstrap.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            PARC
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Main</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parameter_usage.html">Parameters and Attributes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook_covid19.html">Running PARC for clustering analysis of Covid-19 scRNA cells</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developers</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">PARC Methods</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">PARC</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">PARC - Phenotyping by Accelerated Refined Community-Partitioning</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="parc-phenotyping-by-accelerated-refined-community-partitioning">
+<h1>PARC - Phenotyping by Accelerated Refined Community-Partitioning<a class="headerlink" href="#parc-phenotyping-by-accelerated-refined-community-partitioning" title="Link to this heading"></a></h1>
+<p><strong>PARC</strong> is a fast, automated, combinatorial graph-based clustering approach that integrates
+hierarchical graph construction (HNSW) and data-driven graph-pruning with the new Leiden
+community-detection algorithm.
+<a class="reference external" href="https://academic.oup.com/bioinformatics/article/36/9/2778/5714737">Stassen et al. (Bioinformatics, 2020)</a> <em>PARC:ultrafast and accurate clustering of phenotypic data of millions of single cells.</em></p>
+<p><a href="#id1"><span class="problematic" id="id2">|:eight_spoked_asterisk:|</span></a> <strong>PARC</strong> forms the clustering basis for our new Trajectory Inference (TI)
+method <strong>VIA</strong> available on <a class="reference external" href="https://pyvia.readthedocs.io/en/latest/">Readthedocs</a> and
+<a class="reference external" href="https://github.com/ShobiStassen/VIA">Github</a>.
+<strong>VIA</strong> is a single-cell Trajectory Inference method that offers topology construction and
+visualization, pseudotimes, automated prediction of terminal cell fates and temporal gene
+dynamics along detected lineages. <strong>VIA can also be used to topologically visualize the graph-based
+connectivity of clusters found by PARC in a non-TI context.</strong></p>
+<section id="example-usage-on-covid-19-scrna-seq-data">
+<h2>Example Usage on COVID-19 scRNA-seq Data<a class="headerlink" href="#example-usage-on-covid-19-scrna-seq-data" title="Link to this heading"></a></h2>
+<p>Check out the <a class="reference external" href="https://github.com/ShobiStassen/PARC/blob/master/Covid19_Parc.ipynb">Jupyter Notebook</a> for how to pre-process and PARC cluster the new Covid-19 BALF dataset by <a class="reference external" href="https://www.nature.com/articles/s41591-020-0901-9">Liao et. al 2020</a>.
+We also show how to integrate UMAP with HNSW such that the embedding in UMAP is constructed using the HNSW graph built in PARC, enabling a very fast and memory efficient viusalization (particularly noticeable when number cells &gt; 1 Million)</p>
+<p><strong>PARC Cluster-level average gene expression</strong></p>
+<img src="https://github.com/ShobiStassen/PARC/blob/master/Images/Covid_matrixplot.png?raw=true" width="220px" align="center" </a>
+<img src ="https://github.com/ShobiStassen/PARC/blob/master/Images/Covid_hnsw_umap.png?raw=true" align="center" width ="600px" </a><p><strong>Citing</strong>
+If you find this code useful in your work, please consider citing this paper <a class="reference external" href="https://academic.oup.com/bioinformatics/advance-article/doi/10.1093/bioinformatics/btaa042/5714737">PARC:ultrafast and accurate clustering of phenotypic data of millions of single cells</a></p>
+<div class="toctree-wrapper compound">
+</div>
+<div class="toctree-wrapper compound">
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="installation.html" class="btn btn-neutral float-right" title="Installation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Shobana Stassen.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

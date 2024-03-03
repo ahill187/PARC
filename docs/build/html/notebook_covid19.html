@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Running PARC for clustering analysis of Covid-19 scRNA cells &mdash; PARC 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/nbsphinx-code-cells.css" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=f2a433a1"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="PARC Methods" href="modules.html" />
+    <link rel="prev" title="Parameters and Attributes" href="parameter_usage.html" />
+  <!-- Grab JQuery, Bootstrap, CSS, and fonts -->
+  <link href="_static/css/bootstrap.css" rel="stylesheet" type="text/css">
+  <link href="_static/css/custom.css" rel="stylesheet" type="text/css">
+  <script src="_static/js/jquery.min.js"></script>
+  <link href='https://fonts.googleapis.com/css?family=Roboto:400,400italic,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Montserrat:400,400italic,700' rel='stylesheet' type='text/css'>
+  <script src="_static/js/bootstrap.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            PARC
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Main</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parameter_usage.html">Parameters and Attributes</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Running PARC for clustering analysis of Covid-19 scRNA cells</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Load-Libraries">Load Libraries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Load-Data">Load Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Filtering-and-pre-processing">Filtering and pre-processing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Harmony-PCA-to-integrate-the-batches">Harmony PCA to integrate the batches</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Run-PARC-clustering-and-get-PARC-UMAP-embedding">Run PARC clustering and get PARC-UMAP embedding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Marker-gene-expression-of-macrophage-and-non-macrophage-clusters">Marker gene expression of macrophage and non-macrophage clusters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Expression-of-macrophage-marker-genes">Expression of macrophage marker genes</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developers</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">PARC Methods</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PARC</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Running PARC for clustering analysis of Covid-19 scRNA cells</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/notebook_covid19.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Running-PARC-for-clustering-analysis-of-Covid-19-scRNA-cells">
+<h1>Running PARC for clustering analysis of Covid-19 scRNA cells<a class="headerlink" href="#Running-PARC-for-clustering-analysis-of-Covid-19-scRNA-cells" title="Link to this heading"></a></h1>
+<section id="Introduction">
+<h2>Introduction<a class="headerlink" href="#Introduction" title="Link to this heading"></a></h2>
+<p>Parc is a fast clustering algorithm designed to effectively cluster heterogeneity in large single cell data. We show how PARC enables downstream analysis on the recent dataset published by <a class="reference external" href="https://www.nature.com/articles/s41591-020-0901-9">Liao. et al (2020)</a></p>
+</section>
+<section id="Load-Libraries">
+<h2>Load Libraries<a class="headerlink" href="#Load-Libraries" title="Link to this heading"></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import matplotlib.pyplot as plt
+import warnings
+from numba.errors import NumbaPerformanceWarning
+import numpy as np
+import pandas as pd
+import scanpy as sc
+import parc
+import harmonypy as hm
+import seaborn as sns
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Load-Data">
+<h2>Load Data<a class="headerlink" href="#Load-Data" title="Link to this heading"></a></h2>
+<p>The data is available on <a class="reference external" href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE145926">GEO GSE145926</a> with each of the 12 patients in a separate .h5 file. The result should be a matrix of shape (n_cells x n_genes) (108230, 33538).</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[181]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>datadir = &quot;/home/shobi/Thesis/Data/Covid/GSE145926_RAW/&quot;
+file_batches = [&#39;GSM4475051_C148_filtered_feature_bc_matrix.h5&#39;,&#39;GSM4475052_C149_filtered_feature_bc_matrix.h5&#39;,&#39;GSM4475053_C152_filtered_feature_bc_matrix.h5&#39;,&#39;GSM4475048_C51_filtered_feature_bc_matrix.h5&#39;,&#39;GSM4475049_C52_filtered_feature_bc_matrix.h5&#39;,&#39;GSM4339769_C141_filtered_feature_bc_matrix.h5&#39;,&#39;GSM4339770_C142_filtered_feature_bc_matrix.h5&#39;,&#39;GSM4339771_C143_filtered_feature_bc_matrix.h5&#39;,&#39;GSM4339772_C144_filtered_feature_bc_matrix.h5&#39;,&#39;GSM4475050_C100_filtered_feature_bc_matrix.h5&#39;,&#39;GSM4339773_C145_filtered_feature_bc_matrix.h5&#39;,&#39;GSM4339774_C146_filtered_feature_bc_matrix.h5&#39;]
+patient_type =[&#39;S4&#39;,&#39;S5&#39;,&#39;S6&#39;,&#39;HC1&#39;,&#39;HC2&#39;,&#39;M1&#39;,&#39;M2&#39;,&#39;S2&#39;,&#39;M3&#39;,&#39;HC3&#39;,&#39;S1&#39;,&#39;S3&#39;]
+patient_health = [&#39;S&#39;,&#39;S&#39;,&#39;S&#39;,&#39;H&#39;,&#39;H&#39;,&#39;M&#39;,&#39;M&#39;,&#39;S&#39;,&#39;M&#39;,&#39;H&#39;,&#39;S&#39;,&#39;S&#39;]
+
+for i in range(0,len(patient_type)):
+    if i ==0:
+        adata = sc.read_10x_h5(&#39;/home/shobi/Thesis/Data/Covid/GSE145926_RAW/&#39;+file_batches[i])
+        adata.obs[&#39;patient_type&#39;] = [patient_type[i] for i_range in range(adata.shape[0])]
+        adata.obs[&#39;patient_health&#39;] = [patient_health[i] for i_range in range(adata.shape[0])]
+        adata.var_names_make_unique()
+
+    else:
+        temp = sc.read_10x_h5(&#39;/home/shobi/Thesis/Data/Covid/GSE145926_RAW/&#39;+file_batches[i] )
+        temp.var_names_make_unique()
+        temp.obs[&#39;patient_type&#39;] = [patient_type[i] for i_range in range(temp.shape[0])]
+        temp.obs[&#39;patient_health&#39;] = [patient_health[i] for i_range in range(temp.shape[0])]
+        adata = adata.concatenate(temp, join=&#39;inner&#39;) #we want the genes in common
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+Variable names are not unique. To make them unique, call `.var_names_make_unique`.
+Trying to set attribute `.obs` of view, making a copy.
+Variable names are not unique. To make them unique, call `.var_names_make_unique`.
+Variable names are not unique. To make them unique, call `.var_names_make_unique`.
+Variable names are not unique. To make them unique, call `.var_names_make_unique`.
+Trying to set attribute `.obs` of view, making a copy.
+Variable names are not unique. To make them unique, call `.var_names_make_unique`.
+Trying to set attribute `.obs` of view, making a copy.
+Variable names are not unique. To make them unique, call `.var_names_make_unique`.
+Trying to set attribute `.obs` of view, making a copy.
+Variable names are not unique. To make them unique, call `.var_names_make_unique`.
+Trying to set attribute `.obs` of view, making a copy.
+Variable names are not unique. To make them unique, call `.var_names_make_unique`.
+Trying to set attribute `.obs` of view, making a copy.
+Variable names are not unique. To make them unique, call `.var_names_make_unique`.
+Trying to set attribute `.obs` of view, making a copy.
+Variable names are not unique. To make them unique, call `.var_names_make_unique`.
+Trying to set attribute `.obs` of view, making a copy.
+Variable names are not unique. To make them unique, call `.var_names_make_unique`.
+Trying to set attribute `.obs` of view, making a copy.
+Variable names are not unique. To make them unique, call `.var_names_make_unique`.
+Trying to set attribute `.obs` of view, making a copy.
+Variable names are not unique. To make them unique, call `.var_names_make_unique`.
+Trying to set attribute `.obs` of view, making a copy.
+Variable names are not unique. To make them unique, call `.var_names_make_unique`.
+Trying to set attribute `.obs` of view, making a copy.
+</pre></div></div>
+</div>
+</section>
+<section id="Filtering-and-pre-processing">
+<h2>Filtering and pre-processing<a class="headerlink" href="#Filtering-and-pre-processing" title="Link to this heading"></a></h2>
+<p>Following the filters used by Liao et.al (2020) and removing cells with mitochondrial gene proportion &gt; 0.1. After filtering the n_cells = 63753 and n_genes = 25668.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[182]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>min_cells=3
+min_genes=200
+max_genes = 6000
+min_counts=1000
+n_top_genes=2000
+n_comps_pca= 50
+
+sc.pp.filter_genes(adata, min_cells=min_cells)  # only consider genes expressed in more than min_cells
+sc.pp.filter_cells(adata, min_genes=min_genes) #only consider cells with more than min_genes
+sc.pp.filter_cells(adata,max_genes=max_genes) #only consider cells with less than max_cells
+sc.pp.filter_cells(adata, min_counts=min_counts) #only consider cells with more than min_counts
+
+mito_genes = adata.var_names.str.startswith(&#39;MT-&#39;)
+adata.obs[&#39;percent_mito&#39;] = np.sum(adata[:, mito_genes].X, axis=1).A1/ np.sum(adata.X, axis=1).A1
+adata = adata[adata.obs.percent_mito &lt; 0.1, :] #filter cells with high mito
+
+adata.obs[&#39;n_counts&#39;] = adata.X.sum(axis=1).A1 #add the total counts per cell as observations-annotation to adata
+
+print(&#39;shape after filtering&#39;, adata.shape)
+
+sc.pp.normalize_per_cell(adata, key_n_counts=&#39;n_counts_all&#39; )# normalize with total UMI count per cell
+sc.pp.log1p(adata)
+adata.raw = adata
+adata_beforeHVG =adata.copy()
+<br/><br/><br/></pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+Trying to set attribute `.obs` of view, making a copy.
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+shape after filtering (63753, 25668)
+</pre></div></div>
+</div>
+</section>
+<section id="Harmony-PCA-to-integrate-the-batches">
+<h2>Harmony PCA to integrate the batches<a class="headerlink" href="#Harmony-PCA-to-integrate-the-batches" title="Link to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[213]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>print(&#39;CD68&#39; in adata.raw.var_names)
+
+#select HVG
+filter_result = sc.pp.filter_genes_dispersion(adata.X, flavor=&#39;cell_ranger&#39;, n_top_genes=n_top_genes, log=False ) # select highly-variable genes
+print(filter_result, filter_result.gene_subset)
+
+adata = adata[:, filter_result.gene_subset]  # subset the genes
+
+sc.pp.scale(adata, max_value=5)  # scale to unit variance and shift to zero mean. Clip values exceeding standard deviation 10.
+sc.tl.pca(adata, svd_solver=&#39;arpack&#39;, n_comps=n_comps_pca)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+True
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">IndexError</span>                                Traceback (most recent call last)
+<span class="ansi-green-fg">&lt;ipython-input-213-2dc615a51645&gt;</span> in <span class="ansi-cyan-fg">&lt;module&gt;</span>
+<span class="ansi-green-intense-fg ansi-bold">      2</span>
+<span class="ansi-green-intense-fg ansi-bold">      3</span> <span class="ansi-red-fg">#select HVG</span>
+<span class="ansi-green-fg">----&gt; 4</span><span class="ansi-red-fg"> </span>filter_result <span class="ansi-blue-fg">=</span> sc<span class="ansi-blue-fg">.</span>pp<span class="ansi-blue-fg">.</span>filter_genes_dispersion<span class="ansi-blue-fg">(</span>adata<span class="ansi-blue-fg">.</span>X<span class="ansi-blue-fg">,</span> flavor<span class="ansi-blue-fg">=</span><span class="ansi-blue-fg">&#39;cell_ranger&#39;</span><span class="ansi-blue-fg">,</span> n_top_genes<span class="ansi-blue-fg">=</span>n_top_genes<span class="ansi-blue-fg">,</span> log<span class="ansi-blue-fg">=</span><span class="ansi-green-fg">False</span> <span class="ansi-blue-fg">)</span> <span class="ansi-red-fg"># select highly-variable genes</span>
+<span class="ansi-green-intense-fg ansi-bold">      5</span> print<span class="ansi-blue-fg">(</span>filter_result<span class="ansi-blue-fg">,</span> filter_result<span class="ansi-blue-fg">.</span>gene_subset<span class="ansi-blue-fg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">      6</span>
+
+<span class="ansi-green-fg">~/anaconda3/envs/ViaEnv/lib/python3.7/site-packages/scanpy/preprocessing/_deprecated/highly_variable_genes.py</span> in <span class="ansi-cyan-fg">filter_genes_dispersion</span><span class="ansi-blue-fg">(data, flavor, min_disp, max_disp, min_mean, max_mean, n_bins, n_top_genes, log, subset, copy)</span>
+<span class="ansi-green-intense-fg ansi-bold">    190</span>         dispersion_norm <span class="ansi-blue-fg">=</span> dispersion_norm<span class="ansi-blue-fg">[</span><span class="ansi-blue-fg">~</span>np<span class="ansi-blue-fg">.</span>isnan<span class="ansi-blue-fg">(</span>dispersion_norm<span class="ansi-blue-fg">)</span><span class="ansi-blue-fg">]</span>
+<span class="ansi-green-intense-fg ansi-bold">    191</span>         dispersion_norm<span class="ansi-blue-fg">[</span><span class="ansi-blue-fg">:</span><span class="ansi-blue-fg">:</span><span class="ansi-blue-fg">-</span><span class="ansi-cyan-fg">1</span><span class="ansi-blue-fg">]</span><span class="ansi-blue-fg">.</span>sort<span class="ansi-blue-fg">(</span><span class="ansi-blue-fg">)</span>  <span class="ansi-red-fg"># interestingly, np.argpartition is slightly slower</span>
+<span class="ansi-green-fg">--&gt; 192</span><span class="ansi-red-fg">         </span>disp_cut_off <span class="ansi-blue-fg">=</span> dispersion_norm<span class="ansi-blue-fg">[</span>n_top_genes<span class="ansi-blue-fg">-</span><span class="ansi-cyan-fg">1</span><span class="ansi-blue-fg">]</span>
+<span class="ansi-green-intense-fg ansi-bold">    193</span>         gene_subset <span class="ansi-blue-fg">=</span> df<span class="ansi-blue-fg">[</span><span class="ansi-blue-fg">&#39;dispersion_norm&#39;</span><span class="ansi-blue-fg">]</span><span class="ansi-blue-fg">.</span>values <span class="ansi-blue-fg">&gt;=</span> disp_cut_off
+<span class="ansi-green-intense-fg ansi-bold">    194</span>         logg.debug(
+
+<span class="ansi-red-fg">IndexError</span>: index 1999 is out of bounds for axis 0 with size 1999
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[123]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>df_meta = pd.DataFrame()
+df_meta[&#39;patient_type&#39;] = adata.obs[&#39;patient_type&#39;]
+harmony_out = hm.run_harmony(adata.obsm[&#39;X_pca&#39;], df_meta, &#39;patient_type&#39;)
+res = harmony_out.Z_corr.T
+print(&#39;size of harmony corrected output&#39;, res.shape, type(res))
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+2020-07-13 14:44:37,211 - harmonypy - INFO - Iteration 1 of 10
+2020-07-13 14:44:51,642 - harmonypy - INFO - Iteration 2 of 10
+2020-07-13 14:45:05,951 - harmonypy - INFO - Iteration 3 of 10
+2020-07-13 14:45:20,445 - harmonypy - INFO - Converged after 3 iterations
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+size of harmony corrected output (63753, 50) &lt;class &#39;numpy.ndarray&#39;&gt;
+</pre></div></div>
+</div>
+</section>
+<section id="Run-PARC-clustering-and-get-PARC-UMAP-embedding">
+<h2>Run PARC clustering and get PARC-UMAP embedding<a class="headerlink" href="#Run-PARC-clustering-and-get-PARC-UMAP-embedding" title="Link to this heading"></a></h2>
+<p>We construct the UMAP embedding my providing UMAP that KNN graph constructed in PARC. the PARC-UMAP implementation is runtime efficient, and has significantly lower RAM usage</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[209]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>p = parc.PARC(res, random_seed=42)
+p.run_PARC()
+adata.obs[&#39;parc&#39;] = [str(i) for i in p.labels]
+
+marker_genes = {&quot;macrophages&quot;: [&#39;CD68&#39;,&#39;FCN1&#39;,&#39;SPP1&#39;,&#39;FABP4&#39;], &quot;neutrophils&quot;: [&#39;FCGR3B&#39;],
+                &quot;mDC&quot;: [&#39;CD1C&#39;, &#39;CLEC9A&#39;], &quot;pDC&quot;: [&#39;LILRA4&#39;],
+                &quot;NK&quot;: [&#39;KLRD1&#39;], &#39;T-cell&#39;: [&#39;CD3D&#39;], &#39;B-cell&#39;: [&#39;CD19&#39;,&#39;MS4A1&#39;,&#39;IGHD&#39;, &#39;CD22&#39;], &#39;plasma&#39;: [&#39;IGHG4&#39;], #CD19 doesnt show up for B
+                &#39;epithel&#39;: [&#39;TPPP3&#39;, &#39;KRT18&#39;]}
+
+print(&#39;Plot cluster average expression of marker genes&#39;)
+ax_mat = sc.pl.matrixplot(adata, marker_genes, groupby=&#39;parc&#39;)
+graph = p.knngraph_full()
+embedding= p.run_umap_hnsw(res, graph, random_state = 1)
+print(&#39;completed embedding&#39;)
+<br/><br/></pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+input data has shape 63753 (samples) x 50 (features)
+knn struct was not available, so making one
+commencing local pruning based on Euclidean distance metric at 3 s.dev above mean
+commencing global pruning
+commencing community detection
+partition type MVP
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+... storing &#39;parc&#39; as categorical
+... storing &#39;health_parc&#39; as categorical
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+list of cluster labels and populations 26 [(0, 10325), (1, 10216), (2, 8257), (3, 7178), (4, 3541), (5, 3186), (6, 2807), (7, 2678), (8, 2663), (9, 2442), (10, 1460), (11, 1127), (12, 1113), (13, 1074), (14, 1070), (15, 882), (16, 875), (17, 799), (18, 726), (19, 526), (20, 226), (21, 189), (22, 156), (23, 138), (24, 54), (25, 45)]
+time elapsed 44.4 seconds
+Plot cluster average expression of marker genes
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/notebook_covid19_10_3.png" src="_images/notebook_covid19_10_3.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+a,b, spread, dist 1.576943460405378 0.8950608781227859 1.0 0.1
+        completed  0  /  200 epochs
+        completed  20  /  200 epochs
+        completed  40  /  200 epochs
+        completed  60  /  200 epochs
+        completed  80  /  200 epochs
+        completed  100  /  200 epochs
+        completed  120  /  200 epochs
+        completed  140  /  200 epochs
+        completed  160  /  200 epochs
+        completed  180  /  200 epochs
+completed embedding
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[210]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>print(&#39;CD68&#39; in adata.raw.var_names)
+marker_genes = { &quot;macrophages&quot;: [&#39;FCN1&#39;,&#39;SPP1&#39;,&#39;FABP4&#39;,&#39;CD68&#39;],&quot;neutrophils&quot;: [&#39;FCGR3B&#39;],
+                &quot;mDC&quot;: [&#39;CD1C&#39;, &#39;CLEC9A&#39;], &quot;pDC&quot;: [&#39;LILRA4&#39;],
+                &quot;NK&quot;: [&#39;KLRD1&#39;], &#39;T-cell&#39;: [&#39;CD3D&#39;], &#39;B-cell&#39;: [&#39;MS4A1&#39;,&#39;IGHD&#39;, &#39;CD22&#39;], &#39;plasma&#39;: [&#39;IGHG4&#39;], #CD19 doesnt show up for B
+                &#39;epithel&#39;: [&#39;TPPP3&#39;, &#39;KRT18&#39;]} #&quot;macrophages&quot;: [&#39;FCN1&#39;,&#39;SPP1&#39;,&#39;FABP4&#39;,&#39;CD68&#39;],
+
+for i in [&#39;ENSG00000129226&#39;,&#39;Cd68&#39;,&#39;SCARD1&#39;,&#39;GP110&#39;,&#39;LAMP4&#39;,&#39;Gp110&#39;,&#39;SPP1&#39;]:
+    print(i, &#39;in varnames&#39;, i in adata.var_names)
+print(&#39;Plot cluster average expression of marker genes&#39;)
+ax_mat = sc.pl.matrixplot(adata, marker_genes, groupby=&#39;parc&#39;)
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+True
+ENSG00000129226 in varnames False
+Cd68 in varnames False
+SCARD1 in varnames False
+GP110 in varnames False
+LAMP4 in varnames False
+Gp110 in varnames False
+SPP1 in varnames True
+Plot cluster average expression of marker genes
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/notebook_covid19_11_1.png" src="_images/notebook_covid19_11_1.png" />
+</div>
+</div>
+</section>
+<section id="Marker-gene-expression-of-macrophage-and-non-macrophage-clusters">
+<h2>Marker gene expression of macrophage and non-macrophage clusters<a class="headerlink" href="#Marker-gene-expression-of-macrophage-and-non-macrophage-clusters" title="Link to this heading"></a></h2>
+<p>Compute average cluster level gene expressions and sort those with high cd68 as macrophage clusters Identify the cluster composition in terms of H, M and S to label each cluster as predominantly H, M or S</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[211]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>clustermap_marker_ = {&#39;Group 1&#39;: [&#39;S100A8&#39;, &#39;FCN1&#39;,&#39;CD14&#39;],&#39;Group 2&#39;:[&#39;CCL2&#39;, &#39;CCL3&#39;, &#39;CXCL10&#39;],&#39;Group 1-2&#39;:[&#39;STAT1&#39;,&#39;STAT2&#39;],&#39;Group 3&#39;:[&#39;SPP1&#39;,&#39;A2M&#39;, &#39;GPR183&#39;,&#39;CCL13&#39;,&#39;CREB1&#39;,&#39;TFEB&#39;,&#39;NR1H3&#39;, &#39;PPARA&#39;],&#39;Group 4&#39;:[&#39;FABP4&#39;,&#39;APOC1&#39;, &#39;MARCO&#39;,&#39;PPARG&#39;, &#39;CEBPB&#39;] }
+clustermap_marker_genes = {&#39;Healthy&#39;:[&#39;FABP4&#39;], &#39;Moderate&#39;: [&#39;FABP4&#39;], &#39;Severe&#39;:[&#39;FCN1&#39;,&#39;SPP1&#39;,&#39;TFEB&#39;,&#39;PPARG&#39;, &#39;CEBPB&#39;,&#39;CREB1&#39;,&#39;NR1H3&#39;, &#39;PPARA&#39;]}
+#marker genes for non-macrophage clusters
+marker_genes = {
+                &quot;mDC&quot;: [&#39;CD1C&#39;, &#39;CLEC9A&#39;], &quot;pDC&quot;: [&#39;LILRA4&#39;],
+                &quot;NK&quot;: [&#39;KLRD1&#39;], &#39;T-cell&#39;: [&#39;CD3D&#39;], &#39;B-cell&#39;: [&#39;MS4A1&#39;,&#39;IGHD&#39;, &#39;CD22&#39;], &#39;plasma&#39;: [&#39;IGHG4&#39;], #CD19 doesnt show up for B
+                &#39;epithel&#39;: [&#39;TPPP3&#39;, &#39;KRT18&#39;]}
+
+adata.obs[&#39;macrophage&#39;] = adata.raw[:, &#39;CD68&#39;].X
+
+
+
+df_adata = pd.DataFrame(adata.X, columns = [i for i in list(adata.var_names)])
+df_adata[&#39;parc&#39;] = [i for i in adata.obs[&#39;parc&#39;]]
+df_adata[&#39;cd68&#39;] = [i for i in adata.obs[&#39;macrophage&#39;]] #CD68 is not in the filtered HVG genes, but in adata.RAW
+
+df_adata = df_adata.groupby(&#39;parc&#39;,as_index=False).mean()
+df_adata[&#39;macrophage&#39;] = df_adata[&#39;cd68&#39;]&gt;(np.mean(df_adata[&#39;cd68&#39;]+0.2*np.std(df_adata[&#39;cd68&#39;])))
+
+macrophage_cluster_list = df_adata[df_adata[&#39;macrophage&#39;]==True][&#39;parc&#39;].values
+
+patient_health_list = [i for i in adata.obs[&#39;patient_health&#39;]]
+parc_health = np.empty([len(p.labels), 1], dtype=object)
+health_dict = {&quot;H&quot;:[],&quot;S&quot;:[],&quot;M&quot;:[]}
+for i in set(p.labels):
+    loc_i = np.where(np.asarray(p.labels)==i)[0]
+    ll= list(np.asarray(patient_health_list)[loc_i])
+    mode_i = max(set(ll), key=ll.count)
+
+    if mode_i == &#39;S&#39;:
+        parc_health[loc_i] = &#39;S&#39;+str(i)
+        health_dict[&quot;S&quot;].append(i)
+    elif mode_i == &#39;M&#39;:
+        parc_health[loc_i] = &#39;M&#39;+str(i)
+        health_dict[&quot;M&quot;].append(i)
+    elif mode_i == &#39;H&#39;:
+        parc_health[loc_i] = &#39;H&#39;+str(i)
+        health_dict[&quot;H&quot;].append(i)
+
+parc_health = list(parc_health.flatten())
+
+adata.obs[&#39;health_parc&#39;] = [str(i) for i in parc_health]
+macrophage_cluster_bool = []
+for i in p.labels:
+    if str(i) in macrophage_cluster_list: macrophage_cluster_bool.append(True)
+    else: macrophage_cluster_bool.append(False)
+
+adata.obs[&#39;macro_clus&#39;] = macrophage_cluster_bool
+adata_macro = adata[adata.obs[&#39;macro_clus&#39;]==True]
+adata_not_macro = adata[adata.obs[&#39;macro_clus&#39;]!=True]
+
+new_health_parc = [i for i in adata_macro.obs[&#39;health_parc&#39;]]
+
+sc.pl.matrixplot(adata_macro, clustermap_marker_genes, groupby=&#39;health_parc&#39;, vmax=1, vmin=-1, dendrogram=True)
+sc.pl.matrixplot(adata_not_macro,marker_genes, groupby=&#39;health_parc&#39;, vmax=1, vmin=-1, dendrogram=True)
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/home/shobi/anaconda3/envs/ViaEnv/lib/python3.7/site-packages/anndata/core/anndata.py:299: FutureWarning: In anndata v0.7+, arrays contained within an AnnData object will maintain their dimensionality. For example, prior to v0.7 `adata[0, 0].X` returned a scalar and `adata[0, :]` returned a 1d array, post v0.7 they will return two dimensional arrays. If you would like to get a one dimensional array from your AnnData object, consider using the `adata.obs_vector`, `adata.var_vector` methods or accessing the array directly.
+  warn_flatten()
+Trying to set attribute `.obs` of view, making a copy.
+... storing &#39;health_parc&#39; as categorical
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+WARNING: dendrogram data not found (using key=dendrogram_health_parc). Running `sc.tl.dendrogram` with default parameters. For fine tuning it is recommended to run `sc.tl.dendrogram` independently.
+WARNING: Groups are not reordered because the `groupby` categories and the `var_group_labels` are different.
+categories: H0, H3, H7, etc.
+var_group_labels: Healthy, Moderate, Severe
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/notebook_covid19_13_2.png" src="_images/notebook_covid19_13_2.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+Trying to set attribute `.obs` of view, making a copy.
+... storing &#39;health_parc&#39; as categorical
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+WARNING: dendrogram data not found (using key=dendrogram_health_parc). Running `sc.tl.dendrogram` with default parameters. For fine tuning it is recommended to run `sc.tl.dendrogram` independently.
+WARNING: Groups are not reordered because the `groupby` categories and the `var_group_labels` are different.
+categories: H18, M5, S8, etc.
+var_group_labels: mDC, pDC, NK, etc.
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/notebook_covid19_13_5.png" src="_images/notebook_covid19_13_5.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[211]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+GridSpec(2, 3, height_ratios=[0.5, 10], width_ratios=[3.52, 0.8, 0.2])
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[208]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>color_views = [&#39;FCN1&#39;,&#39;SPP1&#39;,&#39;FABP4&#39;]
+
+fig, axs = plt.subplots(1,2 ,figsize=(24,12))
+
+
+color_views_categ = [&#39;patient_health&#39;, &#39;parc&#39;]
+color_dict = {&quot;H&quot;:&#39;Green&#39;,&quot;S&quot;:&#39;Red&#39;,&quot;M&quot;:&#39;Yellow&#39;}
+import matplotlib.colors as colors
+import matplotlib.cm as cmx
+
+
+cmap = plt.get_cmap(&#39;Wistia&#39;)
+new_Yellows = colors.LinearSegmentedColormap.from_list(&#39;name&#39;, cmap(np.linspace(0.1, 0.4, 100)))
+
+cmap = plt.get_cmap(&#39;Reds&#39;)
+new_Reds = colors.LinearSegmentedColormap.from_list(&#39;name&#39;, cmap(np.linspace(0.2, 1, 100)))
+
+cmap = plt.get_cmap(&#39;Greens&#39;)
+new_Greens = colors.LinearSegmentedColormap.from_list(&#39;name&#39;, cmap(np.linspace(0.2, 1, 100)))
+dict_color = {}
+for key in health_dict:
+    uniq = health_dict[key]
+    z = range(1,len(uniq))
+    cNorm  = colors.Normalize(vmin=0, vmax=len(uniq))
+    if key==&#39;S&#39;: scalarMap = cmx.ScalarMappable(norm=cNorm, cmap= new_Reds)
+    elif key ==&#39;H&#39;:scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=new_Greens)
+    elif key ==&#39;M&#39;:scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=new_Yellows)
+    for i in uniq:
+
+        indx = adata.obs[&#39;parc&#39;] == str(i)
+        axs[1].scatter(embedding[indx,0], embedding[indx,1], color =scalarMap.to_rgba(i), label=key+str(i), alpha=0.4, s =4)
+        axs[1].set_title(color_views_categ[i_ax])
+        axs[1].text(np.mean(embedding[indx,0]),np.mean(embedding[indx,1]),key+str(i))
+        axs[1].legend()
+    indx = adata.obs[&#39;patient_health&#39;]== key
+    axs[0].scatter(embedding[indx,0], embedding[indx,1], color =color_dict[key], label=key+str(i), alpha=0.4, s =4)
+    axs[0].legend()
+plt.show()
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/notebook_covid19_14_0.png" src="_images/notebook_covid19_14_0.png" />
+</div>
+</div>
+</section>
+<section id="Expression-of-macrophage-marker-genes">
+<h2>Expression of macrophage marker genes<a class="headerlink" href="#Expression-of-macrophage-marker-genes" title="Link to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[199]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>color_views = [&#39;FCN1&#39;,&#39;SPP1&#39;,&#39;FABP4&#39;]
+
+fig, axs = plt.subplots(2,3 ,figsize=(24,24))
+for i in range(3):
+    axs[1,i].scatter(embedding[:,0], embedding[:,1], c = adata[:,color_views[i]].X.flatten(), alpha=0.4, s =3)
+    axs[1,i].set_title(color_views[i])
+
+color_views_categ = [&#39;patient_type&#39;, &#39;patient_health&#39;, &#39;parc&#39;]
+color_dict = {&quot;H&quot;:&#39;Green&#39;,&quot;S&quot;:&#39;Red&#39;,&quot;M&quot;:&#39;Yellow&#39;}
+import matplotlib.colors as colors
+import matplotlib.cm as cmx
+for i_ax in range(2):
+    uniq = list(set(adata.obs[color_views_categ[i_ax]]))
+    # Set the color map to match the number of species
+    z = range(1,len(uniq))
+    #hot = plt.get_cmap(&#39;RdYlBu&#39;)
+    cNorm  = colors.Normalize(vmin=0, vmax=len(uniq))
+    scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=&#39;RdYlGn&#39;)
+    # Plot each species
+    for i in range(len(uniq)):
+        indx = adata.obs[color_views_categ[i_ax]] == uniq[i]
+        axs[0,i_ax].scatter(embedding[indx,0], embedding[indx,1], color =scalarMap.to_rgba(i), label=uniq[i], alpha=0.2, s =3)
+    axs[0,i_ax].set_title(color_views_categ[i_ax])
+    axs[0,i_ax].legend()
+
+cmap = plt.get_cmap(&#39;Wistia&#39;)
+new_Yellows = colors.LinearSegmentedColormap.from_list(&#39;name&#39;, cmap(np.linspace(0.1, 0.4, 100)))
+
+cmap = plt.get_cmap(&#39;Reds&#39;)
+new_Reds = colors.LinearSegmentedColormap.from_list(&#39;name&#39;, cmap(np.linspace(0.2, 1, 100)))
+
+cmap = plt.get_cmap(&#39;Greens&#39;)
+new_Greens = colors.LinearSegmentedColormap.from_list(&#39;name&#39;, cmap(np.linspace(0.2, 1, 100)))
+dict_color = {}
+for key in health_dict:
+    uniq = health_dict[key]
+    z = range(1,len(uniq))
+    cNorm  = colors.Normalize(vmin=0, vmax=len(uniq))
+    if key==&#39;S&#39;: scalarMap = cmx.ScalarMappable(norm=cNorm, cmap= new_Reds)
+    elif key ==&#39;H&#39;:scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=new_Greens)
+    elif key ==&#39;M&#39;:scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=new_Yellows)
+    for i in uniq:
+
+        indx = adata.obs[&#39;parc&#39;] == str(i)
+        axs[0,2].scatter(embedding[indx,0], embedding[indx,1], color =scalarMap.to_rgba(i), label=key+str(i), alpha=0.4, s =3)
+        axs[0,2].set_title(color_views_categ[i_ax])
+        axs[0,2].text(np.mean(embedding[indx,0]),np.mean(embedding[indx,1]),key+str(i))
+        axs[0,2].legend()
+    indx = adata.obs[&#39;patient_health&#39;]== key
+    axs[0,1].scatter(embedding[indx,0], embedding[indx,1], color =color_dict[key], label=key+str(i), alpha=0.4, s =3)
+plt.show()
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/home/shobi/anaconda3/envs/ViaEnv/lib/python3.7/site-packages/anndata/core/anndata.py:846: FutureWarning: In anndata v0.7+, arrays contained within an AnnData object will maintain their dimensionality. For example, prior to v0.7 `adata[0, 0].X` returned a scalar and `adata[0, :]` returned a 1d array, post v0.7 they will return two dimensional arrays. If you would like to get a one dimensional array from your AnnData object, consider using the `adata.obs_vector`, `adata.var_vector` methods or accessing the array directly.
+  warn_flatten()
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/notebook_covid19_16_1.png" src="_images/notebook_covid19_16_1.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="parameter_usage.html" class="btn btn-neutral float-left" title="Parameters and Attributes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="modules.html" class="btn btn-neutral float-right" title="PARC Methods" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Shobana Stassen.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

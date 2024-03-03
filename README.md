@@ -300,6 +300,9 @@ cd PARC
 pip install -e ".[dev]"
 ```
 
+In addition, if you want to work on the ``Sphinx`` documentation, you will need to install
+``pandoc``.
+
 ### Testing
 
 To run the test suite for the package:
