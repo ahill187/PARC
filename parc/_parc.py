@@ -1,4 +1,3 @@
-import logging
 import numpy as np
 from scipy.sparse import csr_matrix
 import igraph as ig
@@ -7,8 +6,9 @@ import time
 from parc.k_nearest_neighbours import create_hnsw_index
 from parc.metrics import compute_performance_metrics
 from parc.graph import Community
+from parc.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class PARC:
@@ -195,7 +195,7 @@ class PARC:
             (hnswlib.Index): TODO.
         """
         if self.knn > 190:
-            print(f"knn = {self.knn}; consider using a lower k for KNN graph construction")
+            logger.message(f"knn = {self.knn}; consider using a lower k for KNN graph construction")
 
         hnsw_index = create_hnsw_index(
             data=self.x_data,
@@ -288,9 +288,10 @@ class PARC:
             col_list = neighbor_array.flatten().tolist()
             weight_list = (1. / (distance_array.flatten() + 0.1)).tolist()
         else:  # locally prune based on (squared) l2 distance
-
-            print(f"""Starting local pruning based on Euclidean distance metric at
-                   {self.l2_std_factor} standard deviations above mean""")
+            logger.message(
+                f"Starting local pruning based on Euclidean distance metric at "
+                f"{self.l2_std_factor} standard deviations above mean"
+            )
             distance_array = distance_array + 0.1
             for neighbors, sample_index in zip(neighbor_array, range(n_samples)):
                 distances = distance_array[sample_index, :]
@@ -334,7 +335,7 @@ class PARC:
 
         similarities = np.asarray(graph.similarity_jaccard(pairs=list(edges_copy)))
 
-        print("Starting global pruning")
+        logger.message("Starting global pruning")
 
         if jac_threshold_type == "median":
             threshold = np.median(similarities)
@@ -364,14 +365,18 @@ class PARC:
             weights = None
 
         if self.partition_type == "ModularityVP":
-            print("Leiden algorithm find partition: partition type = ModularityVertexPartition")
+            logger.message(
+                "Leiden algorithm find partition: partition type = ModularityVertexPartition"
+            )
             partition = leidenalg.find_partition(
                 graph=graph,
                 partition_type=leidenalg.ModularityVertexPartition, weights=weights,
                 n_iterations=self.n_iter_leiden, seed=self.random_seed
             )
         else:
-            print("Leiden algorithm find partition: partition type = RBConfigurationVertexPartition")
+            logger.message(
+                "Leiden algorithm find partition: partition type = RBConfigurationVertexPartition"
+            )
             partition = leidenalg.find_partition(
                 graph=graph,
                 partition_type=leidenalg.RBConfigurationVertexPartition, weights=weights,
@@ -406,8 +411,10 @@ class PARC:
             is_large_community = True
             large_community_indices = community_indices
             large_community_sizes.append(community_size)
-            print(f"""Community {community_id} is too big, community size = {community_size}.
-                It will be expanded.""")
+            logger.message(
+                f"Community {community_id} is too big, community size = {community_size}."
+                " It will be expanded."
+            )
         return is_large_community, large_community_indices, large_community_sizes
 
     def get_next_big_community(self, node_communities, large_community_sizes):
@@ -495,7 +502,7 @@ class PARC:
                 return_inverse=True
             )[1])
 
-            print(f"New set of labels: {set(node_communities)}")
+            logger.message(f"New set of labels: {set(node_communities)}")
 
             large_community_exists, large_community_indices, large_community_sizes = \
                 self.get_next_big_community(
@@ -612,7 +619,7 @@ class PARC:
         x_data = self.x_data
         small_community_size = self.small_community_size
 
-        print(
+        logger.message(
             f"Input data has shape {self.x_data.shape[0]} (samples) x"
             f"{self.x_data.shape[1]} (features)"
         )
@@ -627,7 +634,7 @@ class PARC:
 
         graph = self.prune_global(csr_array, self.jac_std_factor, self.jac_threshold_type)
 
-        print("Starting community detection...")
+        logger.message("Starting community detection...")
         partition = self.get_leiden_partition(graph, self.jac_weighted_edges)
         node_communities = np.reshape(np.asarray(partition.membership), (n_elements, 1))
 
@@ -651,7 +658,7 @@ class PARC:
         node_communities = list(node_communities.flatten())
 
         run_time = time.time() - time_start
-        print(f"time elapsed: {run_time} seconds")
+        logger.message(f"time elapsed: {run_time} seconds")
         self.y_data_pred = node_communities
 
         if should_compute_metrics:
