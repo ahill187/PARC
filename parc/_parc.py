@@ -303,7 +303,7 @@ class PARC:
 
                 for index in range(len(updated_neighbors)):
                     if sample_index != neighbors[index]:  # remove self-loops
-                        row_list.append(index)
+                        row_list.append(sample_index)
                         col_list.append(updated_neighbors[index])
                         dist = np.sqrt(updated_distances[index])
                         weight_list.append(1 / (dist + 0.1))
