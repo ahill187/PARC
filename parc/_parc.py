@@ -125,6 +125,7 @@ class PARC:
         self.hnsw_param_ef_construction = hnsw_param_ef_construction
         self.hnsw_param_m = hnsw_param_m
         self.hnsw_param_allow_override = hnsw_param_allow_override
+        self.n_communities = 0
 
     @property
     def x_data(self):
@@ -656,10 +657,11 @@ class PARC:
 
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
         node_communities = list(node_communities.flatten())
-
         run_time = time.time() - time_start
         logger.message(f"time elapsed: {run_time} seconds")
         self.y_data_pred = node_communities
+        self.n_communities = len(np.unique(node_communities))
+        logger.message(f"Found {self.n_communities} communities.")
 
         if should_compute_metrics:
             self.compute_performance_metrics(run_time)
