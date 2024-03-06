@@ -52,7 +52,8 @@ class PARC:
         small_community_timeout (int): the maximum number of seconds trying to check an outlying
             small community.
         jac_weighted_edges (bool): whether to partition using the weighted graph.
-        knn (int): the number of clusters k for the k-nearest neighbours algorithm.
+        knn (int): the number of nearest neighbors k for the k-nearest neighbours algorithm.
+            Larger k means more neighbors in a cluster and therefore less clusters.
         n_iter_leiden (int): the number of iterations for the Leiden algorithm.
         random_seed (int): the random seed to enable reproducible Leiden clustering.
         n_threads (int): the number of threads used in the KNN algorithm.
@@ -145,7 +146,11 @@ class PARC:
     def keep_all_local_dist(self, keep_all_local_dist):
         if keep_all_local_dist is None:
             if self.x_data.shape[0] > 300000:
-                keep_all_local_dist = True  # skips local pruning to increase speed
+                logger.message(
+                    f"Sample size is {self.x_data.shape[0]}, setting keep_all_local_dist "
+                    f"to True so that local pruning will be skipped and algorithm will be faster."
+                )
+                keep_all_local_dist = True
             else:
                 keep_all_local_dist = False
 
@@ -282,15 +287,16 @@ class PARC:
         n_neighbors = neighbor_array.shape[1]
         n_samples = neighbor_array.shape[0]
         discard_count = 0
-        if self.keep_all_local_dist:  # don't prune based on distance
+        if self.keep_all_local_dist:
+            logger.message("Skipping local pruning")
             row_list.extend(list(np.transpose(
                 np.ones((n_neighbors, n_samples)) * range(0, n_samples)).flatten()
             ))
             col_list = neighbor_array.flatten().tolist()
             weight_list = (1. / (distance_array.flatten() + 0.1)).tolist()
-        else:  # locally prune based on (squared) l2 distance
+        else:
             logger.message(
-                f"Starting local pruning based on Euclidean distance metric at "
+                f"Starting local pruning based on Euclidean (L2) distance metric at "
                 f"{self.l2_std_factor} standard deviations above mean"
             )
             distance_array = distance_array + 0.1
@@ -472,6 +478,7 @@ class PARC:
             self.check_if_large_community(
                 node_communities=node_communities, community_id=0
             )
+        logger.message(f"Large community exists? {large_community_exists}")
         while large_community_exists:
             if len(large_community_indices) <= self.knn:
                 k = int(max(5, 0.2 * x_data.shape[0]))
@@ -621,7 +628,7 @@ class PARC:
         small_community_size = self.small_community_size
 
         logger.message(
-            f"Input data has shape {self.x_data.shape[0]} (samples) x"
+            f"Input data has shape {self.x_data.shape[0]} (samples) x "
             f"{self.x_data.shape[1]} (features)"
         )
 
@@ -647,7 +654,8 @@ class PARC:
         node_communities, small_community_exists = self.reassign_small_communities(
             node_communities, small_community_size, neighbor_array, exclude_neighbors_small=True
         )
-
+        logger.message(f"Small community exists? {small_community_exists}")
+        logger.message(f"Number of communities: {len(np.unique(node_communities))}")
         time_start_sc = time.time()
         while (small_community_exists) & ((time.time() - time_start_sc) < self.small_community_timeout):
             node_communities, small_community_exists = self.reassign_small_communities(
