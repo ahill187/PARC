@@ -1,5 +1,6 @@
 import logging
 import sys
+import os
 
 MIN_LEVEL = logging.DEBUG
 MESSAGE = 25
@@ -27,13 +28,30 @@ class Logger(logging.Logger):
 
 class ColoredFormatter(logging.Formatter):
     def format(self, record):
+        use_color = self.supports_color()
         if record.levelno == logging.WARNING:
-            record.msg = '\033[93m%s\033[0m' % record.msg
+            if use_color:
+                record.msg = f"\033[93m{record.msg}\033[0m"
+            else:
+                record.msg = f"\033{record.msg}\033"
         elif record.levelno == logging.ERROR:
-            record.msg = '\033[91m%s\033[0m' % record.msg
+            if use_color:
+                record.msg = f"\033[91m{record.msg}\033[0m"
+            else:
+                record.msg = f"\033{record.msg}\033"
         elif record.levelno == 25 or record.levelno == logging.INFO:
-            record.msg = "\033[96m%s\033[0m" % record.msg
+            if use_color:
+                record.msg = f"\033[96m{record.msg}\033[0m"
+            else:
+                record.msg = f"\033{record.msg}\033"
         return super().format(record)
+
+    def supports_color(self):
+        """Check if the system supports ANSI color formatting.
+        """
+        supported_platform = 'ANSICON' in os.environ
+        is_a_tty = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
+        return supported_platform and is_a_tty
 
 
 def get_logger(module_name, level=LOGGING_LEVEL):
