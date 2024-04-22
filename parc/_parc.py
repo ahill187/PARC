@@ -13,7 +13,7 @@ logger = get_logger(__name__)
 
 #latest github upload 27-June-2020
 class PARC:
-    def __init__(self, x_data, y_data_true=None, dist_std_local=3, jac_std_global='median', keep_all_local_dist='auto',
+    def __init__(self, x_data, y_data_true=None, l2_std_factor=3, jac_std_global='median', keep_all_local_dist='auto',
                  too_big_factor=0.4, small_pop=10, jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
                  num_threads=-1, distance='l2', time_smallpop=15, partition_type = "ModularityVP", resolution_parameter = 1.0,
                  knn_struct=None, neighbor_graph=None, hnsw_param_ef_construction = 150):
@@ -24,8 +24,17 @@ class PARC:
                 (n_samples, n_features).
             y_data_true (np.array): a Numpy array of the true output y labels.
             y_data_pred (np.array): a Numpy array of the predicted output y labels.
+            l2_std_factor (float): The multiplier used in calculating the Euclidean distance threshold
+                for the distance between two nodes during local pruning:
+
+                .. code-block:: python
+
+                    max_distance = np.mean(distances) + l2_std_factor * np.std(distances)
+
+                Avoid setting both the ``jac_std_factor`` (global) and the ``l2_std_factor`` (local)
+                to < 0.5 as this is very aggressive pruning.
+                Higher ``l2_std_factor`` means more edges are kept.
         """
-        # higher dist_std_local means more edges are kept
         # highter jac_std_global means more edges are kept
         if keep_all_local_dist == 'auto':
             if x_data.shape[0] > 300000:
@@ -37,7 +46,7 @@ class PARC:
         self.y_data_true = y_data_true
         self.x_data = x_data
         self.y_data_pred = None
-        self.dist_std_local = dist_std_local   # similar to the jac_std_global parameter. avoid setting local and global pruning to both be below 0.5 as this is very aggresive pruning.
+        self.l2_std_factor = l2_std_factor   # similar to the jac_std_global parameter. avoid setting local and global pruning to both be below 0.5 as this is very aggresive pruning.
         self.jac_std_global = jac_std_global  #0.15 is also a recommended value performing empirically similar to 'median'. Generally values between 0-1.5 are reasonable.
         self.keep_all_local_dist = keep_all_local_dist #decides whether or not to do local pruning. default is 'auto' which omits LOCAL pruning for samples >300,000 cells.
         self.too_big_factor = too_big_factor  #if a cluster exceeds this share of the entire cell population, then the PARC will be run on the large cluster. at 0.4 it does not come into play
@@ -180,12 +189,12 @@ class PARC:
         else:
             logger.message(
                 f"Starting local pruning based on Euclidean (L2) distance metric at "
-                f"{self.dist_std_local} standard deviations above mean"
+                f"{self.l2_std_factor} standard deviations above mean"
             )
             distance_array = distance_array + 0.1
             for neighbors, sample_index in zip(neighbor_array, range(n_samples)):
                 distances = distance_array[sample_index, :]
-                max_distance = np.mean(distances) + self.dist_std_local * np.std(distances)
+                max_distance = np.mean(distances) + self.l2_std_factor * np.std(distances)
                 to_keep = np.where(distances < max_distance)[0]
                 updated_neighbors = neighbors[np.ix_(to_keep)]
                 updated_distances = distances[np.ix_(to_keep)]
@@ -520,7 +529,7 @@ class PARC:
         N = len(list(self.y_data_true))
         self.f1_accumulated = 0
         self.f1_mean = 0
-        self.stats_df = pd.DataFrame({'jac_std_global': [self.jac_std_global], 'dist_std_local': [self.dist_std_local],
+        self.stats_df = pd.DataFrame({'jac_std_global': [self.jac_std_global], 'l2_std_factor': [self.l2_std_factor],
                                       'runtime(s)': [run_time]})
         self.majority_truth_labels = []
         if len(targets) > 1:
@@ -536,7 +545,7 @@ class PARC:
                 f1_acc_noweighting = f1_acc_noweighting + f1_current
 
                 list_roc.append(
-                    [self.jac_std_global, self.dist_std_local, target] + vals_roc + [numclusters_targetval] + [
+                    [self.jac_std_global, self.l2_std_factor, target] + vals_roc + [numclusters_targetval] + [
                         run_time])
 
             f1_mean = f1_acc_noweighting / len(targets)
@@ -544,7 +553,7 @@ class PARC:
             logger.message(f"f1-score weighted (by population) {np.round(f1_accumulated * 100, 2)}")
 
             df_accuracy = pd.DataFrame(list_roc,
-                                       columns=['jac_std_global', 'dist_std_local', 'onevsall-target', 'error rate',
+                                       columns=['jac_std_global', 'l2_std_factor', 'onevsall-target', 'error rate',
                                                 'f1-score', 'tnr', 'fnr',
                                                 'tpr', 'fpr', 'precision', 'recall', 'num_groups',
                                                 'population of target', 'num clusters', 'clustering runtime'])
