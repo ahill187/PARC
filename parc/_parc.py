@@ -95,42 +95,45 @@ class PARC:
 
         return p
 
-    def knngraph_full(self):#, neighbor_array, distance_array):
+    def create_knn_graph(self):
+        """Create a full k-nearest neighbors graph using the HNSW algorithm.
+
+        Returns:
+            scipy.sparse.csr_matrix: A compressed sparse row matrix with dimensions
+            (n_samples, n_samples), containing the pruned distances.
+        """
+
         k_umap = 15
-        t0= time.time()
+
         # neighbors in array are not listed in in any order of proximity
-        self.knn_struct.set_ef(k_umap+1)
+        self.knn_struct.set_ef(k_umap + 1)
         neighbor_array, distance_array = self.knn_struct.knn_query(self.x_data, k=k_umap)
 
         row_list = []
+        col_list = neighbor_array.flatten().tolist()
         n_neighbors = neighbor_array.shape[1]
-        n_cells = neighbor_array.shape[0]
+        n_samples = neighbor_array.shape[0]
 
-        row_list.extend(list(np.transpose(np.ones((n_neighbors, n_cells)) * range(0, n_cells)).flatten()))
-
+        row_list.extend(list(np.transpose(
+            np.ones((n_neighbors, n_samples)) * range(0, n_samples)).flatten()
+        ))
 
         row_min = np.min(distance_array, axis=1)
         row_sigma = np.std(distance_array, axis=1)
 
-        distance_array = (distance_array - row_min[:,np.newaxis])/row_sigma[:,np.newaxis]
-
-        col_list = neighbor_array.flatten().tolist()
-        distance_array = distance_array.flatten()
-        distance_array = np.sqrt(distance_array)
-        distance_array = distance_array * -1
+        distance_array = (distance_array - row_min[:, np.newaxis]) / row_sigma[:, np.newaxis]
+        distance_array = np.sqrt(distance_array.flatten()) * -1
 
         weight_list = np.exp(distance_array)
 
-
-        threshold = np.mean(weight_list) + 2* np.std(weight_list)
+        threshold = np.mean(weight_list) + 2 * np.std(weight_list)
 
         weight_list[weight_list >= threshold] = threshold
 
         weight_list = weight_list.tolist()
 
-
         graph = csr_matrix((np.array(weight_list), (np.array(row_list), np.array(col_list))),
-                           shape=(n_cells, n_cells))
+                           shape=(n_samples, n_samples))
 
         graph_transpose = graph.T
         prod_matrix = graph.multiply(graph_transpose)
