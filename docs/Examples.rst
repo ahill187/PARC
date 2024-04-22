@@ -24,7 +24,7 @@ Examples
 	Parc1 = parc.PARC(x_data=x_data, y_data_true=y_data_true)
 	# Use 'Parc1 = parc.PARC(x_data) ' when no 'true labels' are available
 	# run the clustering
-	Parc1.run_PARC()
+	Parc1.run_parc()
 	y_data_pred = Parc1.y_data_pred
 	# View scatterplot colored by PARC labels
 	plt.scatter(x_data[:, 0], x_data[:, 1], c=y_data_pred, cmap='rainbow')
@@ -65,7 +65,7 @@ Examples
 
 	# setting small_pop to 50 cleans up some of the smaller clusters, but can also be left at the default 10
 	parc1 = parc.PARC(x_data=x_data, y_data_true=y_data_true, jac_std_global=0.15, random_seed =1, small_pop = 50) // instantiate PARC
-	parc1.run_PARC() // run the clustering
+	parc1.run_parc() // run the clustering
 	y_data_pred = parc1.y_data_pred
 
 **TSNE colored by PARC clusters and cell type annotations**
@@ -100,7 +100,7 @@ Examples
 	# setting small_pop to 50 cleans up some of the smaller clusters, but can also be left at the default 10
 	parc1 = parc.PARC(adata.obsm['X_pca'], y_data_true=annotations, jac_std_global=0.15, random_seed =1, small_pop = 50)
 	#run the clustering
-	parc1.run_PARC()
+	parc1.run_parc()
 	y_data_pred = parc1.y_data_pred
 	adata.obs["PARC"] = pd.Categorical(y_data_pred)
 
@@ -136,13 +136,13 @@ Large-scale (70K subset and 1.1M cells) Lung Cancer cells (multi-ATOM imaging cy
 	# jac_weighted_edges can be set to false which provides an unweighted graph to leiden and offers some speedup
 	parc1 = parc.PARC(x_data=x_data, y_data_true=y_data_true, jac_weighted_edges = False)
 	#run the clustering
-	parc1.run_PARC()
+	parc1.run_parc()
 	y_data_pred = parc1.y_data_pred
 
 	# run PARC on H1975 spiked cells
 	parc2 = parc.PARC(x_data=x_data, y_data_true=y_data_true, jac_std_global = 0.15, jac_weighted_edges = False) // 0.15 corresponds to pruning ~60% edges and can be effective for rarer populations than the default 'median'
 	# run the clustering
-	parc2.run_PARC()
+	parc2.run_parc()
 	y_data_pred_rare = parc2.y_data_pred
 
 **TSNE plot of annotations and PARC clustering and heatmap of features by cluster**

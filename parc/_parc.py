@@ -540,7 +540,7 @@ class PARC:
 
         return accuracy_val, predict_class_array, majority_truth_labels, number_clusters_for_target
 
-    def run_PARC(self):
+    def run_parc(self):
         logger.message(
             f"Input data has shape {self.x_data.shape[0]} (samples) x "
             f"{self.x_data.shape[1]} (features)"
