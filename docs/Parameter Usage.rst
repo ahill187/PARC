@@ -43,7 +43,7 @@ For a more detailed explanation of the impact of tuning key parameters please se
 
    * - Attributes
      - Description
-   * - labels
+   * - y_data_pred
      - (list) length n_samples of corresponding cluster labels
    * - f1_mean
      - (list) f1 score (not weighted by population). For details see supplementary section of `paper <https://doi.org/10.1101/765628>`_

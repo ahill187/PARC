@@ -25,16 +25,16 @@ Examples
 	# Use 'Parc1 = parc.PARC(x_data) ' when no 'true labels' are available
 	# run the clustering
 	Parc1.run_PARC()
-	parc_labels = Parc1.labels
+	y_data_pred = Parc1.y_data_pred
 	# View scatterplot colored by PARC labels
-	plt.scatter(x_data[:, 0], x_data[:, 1], c=parc_labels, cmap='rainbow')
+	plt.scatter(x_data[:, 0], x_data[:, 1], c=y_data_pred, cmap='rainbow')
 	plt.show()
 
 	# Run umap on the HNSW knngraph already built in PARC (more time and memory efficient for large datasets)
 	# If you choose to visualize before running PARC clustering. then you need to include this line: Parc1.knn_struct = p1.make_knn_struct()
 	graph = Parc1.knngraph_full()
 	x_umap = Parc1.run_umap_hnsw(x_data, graph)
-	plt.scatter(x_umap[:, 0], x_umap[:, 1], c=Parc1.labels)
+	plt.scatter(x_umap[:, 0], x_umap[:, 1], c=Parc1.y_data_pred)
 	plt.show()
 
 
@@ -66,7 +66,7 @@ Examples
 	# setting small_pop to 50 cleans up some of the smaller clusters, but can also be left at the default 10
 	parc1 = parc.PARC(x_data=x_data, y_data_true=y_data_true, jac_std_global=0.15, random_seed =1, small_pop = 50) // instantiate PARC
 	parc1.run_PARC() // run the clustering
-	parc_labels = parc1.labels
+	y_data_pred = parc1.y_data_pred
 
 **TSNE colored by PARC clusters and cell type annotations**
 
@@ -101,8 +101,8 @@ Examples
 	parc1 = parc.PARC(adata.obsm['X_pca'], y_data_true=annotations, jac_std_global=0.15, random_seed =1, small_pop = 50)
 	#run the clustering
 	parc1.run_PARC()
-	parc_labels = parc1.labels
-	adata.obs["PARC"] = pd.Categorical(parc_labels)
+	y_data_pred = parc1.y_data_pred
+	adata.obs["PARC"] = pd.Categorical(y_data_pred)
 
 	//visualize
 	sc.settings.n_jobs=4
@@ -137,13 +137,13 @@ Large-scale (70K subset and 1.1M cells) Lung Cancer cells (multi-ATOM imaging cy
 	parc1 = parc.PARC(x_data=x_data, y_data_true=y_data_true, jac_weighted_edges = False)
 	#run the clustering
 	parc1.run_PARC()
-	parc_labels = parc1.labels
+	y_data_pred = parc1.y_data_pred
 
 	# run PARC on H1975 spiked cells
 	parc2 = parc.PARC(x_data=x_data, y_data_true=y_data_true, jac_std_global = 0.15, jac_weighted_edges = False) // 0.15 corresponds to pruning ~60% edges and can be effective for rarer populations than the default 'median'
 	# run the clustering
 	parc2.run_PARC()
-	parc_labels_rare = parc2.labels
+	y_data_pred_rare = parc2.y_data_pred
 
 **TSNE plot of annotations and PARC clustering and heatmap of features by cluster**
 

@@ -19,7 +19,8 @@ class PARC:
     Attributes:
         x_data (np.array): a Numpy array of the input x data, with dimensions
             (n_samples, n_features).
-        y_data_true (np.array): a Numpy array of the output y labels.
+        y_data_true (np.array): a Numpy array of the true output y labels.
+        y_data_pred (np.array): a Numpy array of the predicted output y labels.
     """
         # higher dist_std_local means more edges are kept
         # highter jac_std_global means more edges are kept
@@ -32,6 +33,7 @@ class PARC:
             partition_type = "RBVP" # Reichardt and Bornholdt’s Potts model. Note that this is the same as ModularityVertexPartition when setting 𝛾 = 1 and normalising by 2m
         self.x_data = x_data
         self.y_data_true = y_data_true
+        self.y_data_pred = None
         self.dist_std_local = dist_std_local   # similar to the jac_std_global parameter. avoid setting local and global pruning to both be below 0.5 as this is very aggresive pruning.
         self.jac_std_global = jac_std_global  #0.15 is also a recommended value performing empirically similar to 'median'. Generally values between 0-1.5 are reasonable.
         self.keep_all_local_dist = keep_all_local_dist #decides whether or not to do local pruning. default is 'auto' which omits LOCAL pruning for samples >300,000 cells.
@@ -459,20 +461,20 @@ class PARC:
             pop_list.append((item, PARC_labels_leiden.count(item)))
         print('list of cluster labels and populations', len(pop_list), pop_list)
 
-        self.labels = PARC_labels_leiden  # list
+        self.y_data_pred = PARC_labels_leiden  # list
         return
 
     def accuracy(self, onevsall=1):
 
         y_data_true = self.y_data_true
         Index_dict = {}
-        PARC_labels = self.labels
-        N = len(PARC_labels)
+        y_data_pred = self.y_data_pred
+        N = len(y_data_pred)
         n_cancer = list(y_data_true).count(onevsall)
         n_pbmc = N - n_cancer
 
         for k in range(N):
-            Index_dict.setdefault(PARC_labels[k], []).append(y_data_true[k])
+            Index_dict.setdefault(y_data_pred[k], []).append(y_data_true[k])
         num_groups = len(Index_dict)
         sorted_keys = list(sorted(Index_dict.keys()))
         error_count = []
@@ -500,13 +502,13 @@ class PARC:
                 fn = fn + len([e for e in vals if e == onevsall])
                 error_count.append(len([e for e in vals if e != majority_val]))
 
-        predict_class_array = np.array(PARC_labels)
-        PARC_labels_array = np.array(PARC_labels)
+        predict_class_array = np.array(y_data_pred)
+        y_data_pred_array = np.array(y_data_pred)
         number_clusters_for_target = len(thp1_labels)
         for cancer_class in thp1_labels:
-            predict_class_array[PARC_labels_array == cancer_class] = 1
+            predict_class_array[y_data_pred_array == cancer_class] = 1
         for benign_class in pbmc_labels:
-            predict_class_array[PARC_labels_array == benign_class] = 0
+            predict_class_array[y_data_pred_array == benign_class] = 0
         predict_class_array.reshape((predict_class_array.shape[0], -1))
         error_rate = sum(error_count) / N
         n_target = tp + fn
@@ -521,8 +523,8 @@ class PARC:
             f1_score = precision * recall * 2 / (precision + recall)
         majority_truth_labels = np.empty((len(y_data_true), 1), dtype=object)
 
-        for cluster_i in set(PARC_labels):
-            cluster_i_loc = np.where(np.asarray(PARC_labels) == cluster_i)[0]
+        for cluster_i in set(y_data_pred):
+            cluster_i_loc = np.where(np.asarray(y_data_pred) == cluster_i)[0]
             y_data_true = np.asarray(y_data_true)
             majority_truth = self.func_mode(list(y_data_true[cluster_i_loc]))
             majority_truth_labels[cluster_i_loc] = majority_truth
