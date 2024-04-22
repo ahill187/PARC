@@ -94,7 +94,8 @@ plt.show()
 digits = datasets.load_digits()
 x_data = digits.data # (n_obs x k_dim, 1797x64)
 y_data_true = digits.target
-parc_model_digits = parc.PARC(x_data, y_data_true=y_data_true, jac_std_global='median') # 'median' is default pruning level
+# 'median' is default pruning level
+parc_model_digits = parc.PARC(x_data, y_data_true=y_data_true, jac_threshold_type="median")
 parc_model_digits.run_parc()
 y_data_pred = parc_model_digits.y_data_pred
 
@@ -132,7 +133,7 @@ with open(file_path_y, "rt") as file:
 # but can also be left at the default 10
 
 parc_model = parc.PARC(
-  x_data=x_data, y_data_true=y_data_true, jac_std_global=0.15, random_seed=1, small_pop=50
+  x_data=x_data, y_data_true=y_data_true, jac_std_factor=0.15, random_seed=1, small_pop=50
 )
 
 # Run the PARC algorithm
@@ -173,7 +174,7 @@ sc.tl.pca(adata, n_comps=50)
 # but can also be left at the default 10
 
 parc_model = parc.PARC(
-  x_data=adata.obsm['X_pca'], y_data_true=annotations, jac_std_global=0.15, random_seed=1,
+  x_data=adata.obsm['X_pca'], y_data_true=annotations, jac_std_factor=0.15, random_seed=1,
   small_pop=50
 )  
 parc_model.run_parc() # run the clustering
@@ -239,10 +240,10 @@ y_data_true = list(pd.read_csv(file_path_y, header=None)[0]) # list of cell-type
 # Run PARC on H1975 spiked cells
 # Note 1: jac_weighted_edges can be set to false which provides an unweighted graph to leiden and
 # offers some speedup
-# Note 2: jac_std_global=0.15 corresponds to pruning ~60% edges and can be effective for rarer
+# Note 2: jac_std_factor=0.15 corresponds to pruning ~60% edges and can be effective for rarer
 # populations than the default 'median'
 
-parc_model = parc.PARC(x_data, y_data_true=y_data_true, jac_std_global=0.15, jac_weighted_edges=False)
+parc_model = parc.PARC(x_data, y_data_true=y_data_true, jac_std_factor=0.15, jac_weighted_edges=False)
 parc_model.run_parc() # run the clustering
 y_data_pred = parc_model.y_data_pred
 
@@ -259,7 +260,7 @@ For a more detailed explanation of the impact of tuning key parameters please se
 | ---------- |----------|
 | `x_data` | (numpy.ndarray) n_samples x n_features |
 | `y_data_true` | (numpy.ndarray) (optional)|
-| `jac_std_global` |  (optional, default = 'median') global level  graph pruning. This threshold can also be set as the number of standard deviations below the network's mean-jaccard-weighted edges. 0.1-1 provide reasonable pruning. higher value means less pruning. e.g. a value of 0.15 means all edges that are above mean(edgeweight)-0.15*std(edge-weights) are retained. We find both 0.15 and 'median' to yield good results resulting in pruning away ~ 50-60% edges |
+| `jac_std_factor` |  (optional, default = 'median') global level  graph pruning. This threshold can also be set as the number of standard deviations below the network's mean-jaccard-weighted edges. 0.1-1 provide reasonable pruning. higher value means less pruning. e.g. a value of 0.15 means all edges that are above mean(edgeweight)-0.15*std(edge-weights) are retained. We find both 0.15 and 'median' to yield good results resulting in pruning away ~ 50-60% edges |
 | `l2_std_factor` |  (optional, default = 2) local pruning threshold: the number of standard deviations above the mean Minkowski distance between neighbors of a given node. higher value means less pruning / more edges retained.|
 | `random_seed` |  (optional, default = 42) The random seed to pass to Leiden|
 | `resolution_parameter` |  (optional, default = 1) Uses ModuliartyVP and RBConfigurationVertexPartition|

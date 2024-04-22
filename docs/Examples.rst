@@ -64,7 +64,7 @@ Examples
 	# OR with pandas as: y_data_true =  list(pd.read_csv('./data/zheng17_annotations.txt', header=None)[0])
 
 	# setting small_pop to 50 cleans up some of the smaller clusters, but can also be left at the default 10
-	parc1 = parc.PARC(x_data=x_data, y_data_true=y_data_true, jac_std_global=0.15, random_seed =1, small_pop = 50) // instantiate PARC
+	parc1 = parc.PARC(x_data=x_data, y_data_true=y_data_true, jac_std_factor=0.15, random_seed =1, small_pop = 50) // instantiate PARC
 	parc1.run_parc() // run the clustering
 	y_data_pred = parc1.y_data_pred
 
@@ -98,7 +98,7 @@ Examples
 	sc.pp.recipe_zheng17(adata)
 	sc.tl.pca(adata, n_comps=50)
 	# setting small_pop to 50 cleans up some of the smaller clusters, but can also be left at the default 10
-	parc1 = parc.PARC(adata.obsm['X_pca'], y_data_true=annotations, jac_std_global=0.15, random_seed =1, small_pop = 50)
+	parc1 = parc.PARC(adata.obsm['X_pca'], y_data_true=annotations, jac_std_factor=0.15, random_seed =1, small_pop = 50)
 	#run the clustering
 	parc1.run_parc()
 	y_data_pred = parc1.y_data_pred
@@ -140,7 +140,7 @@ Large-scale (70K subset and 1.1M cells) Lung Cancer cells (multi-ATOM imaging cy
 	y_data_pred = parc1.y_data_pred
 
 	# run PARC on H1975 spiked cells
-	parc2 = parc.PARC(x_data=x_data, y_data_true=y_data_true, jac_std_global = 0.15, jac_weighted_edges = False) // 0.15 corresponds to pruning ~60% edges and can be effective for rarer populations than the default 'median'
+	parc2 = parc.PARC(x_data=x_data, y_data_true=y_data_true, jac_std_factor=0.15, jac_weighted_edges = False) // 0.15 corresponds to pruning ~60% edges and can be effective for rarer populations than the default 'median'
 	# run the clustering
 	parc2.run_parc()
 	y_data_pred_rare = parc2.y_data_pred

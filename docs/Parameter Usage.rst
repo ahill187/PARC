@@ -22,7 +22,7 @@ For a more detailed explanation of the impact of tuning key parameters please se
    * - l2_std_factor
      - (optional, default = 2) local pruning threshold: the higher the parameter, the more edges are retained
 
-   * - jac_std_global
+   * - jac_std_factor
      - (optional, default = 'median') global level  graph pruning. This threshold can also be set as the number of standard deviations below the network's mean-jaccard-weighted edges. 0.1-1 provide reasonable pruning. higher value means less pruning. e.g. a value of 0.15 means all edges that are above mean(edgeweight)-0.15*std(edge-weights) are retained. We find both 0.15 and 'median' to yield good results resulting in pruning away ~ 50-60% edges
 
    * - random_seed

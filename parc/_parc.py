@@ -13,7 +13,8 @@ logger = get_logger(__name__)
 
 #latest github upload 27-June-2020
 class PARC:
-    def __init__(self, x_data, y_data_true=None, l2_std_factor=3, jac_std_global='median', keep_all_local_dist='auto',
+    def __init__(self, x_data, y_data_true=None, l2_std_factor=3, jac_std_factor=0.0,
+                 jac_threshold_type="median", keep_all_local_dist='auto',
                  too_big_factor=0.4, small_pop=10, jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
                  num_threads=-1, distance='l2', time_smallpop=15, partition_type = "ModularityVP", resolution_parameter = 1.0,
                  knn_struct=None, neighbor_graph=None, hnsw_param_ef_construction = 150):
@@ -34,8 +35,22 @@ class PARC:
                 Avoid setting both the ``jac_std_factor`` (global) and the ``l2_std_factor`` (local)
                 to < 0.5 as this is very aggressive pruning.
                 Higher ``l2_std_factor`` means more edges are kept.
+            jac_threshold_type (str): One of "median" or "mean". Determines how the Jaccard similarity
+                threshold is calculated during global pruning.
+            jac_std_factor (float): The multiplier used in calculating the Jaccard similarity threshold
+                for the similarity between two nodes during global pruning for
+                ``jac_threshold_type = "mean"``:
+
+                .. code-block:: python
+
+                    threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
+
+                Setting ``jac_std_factor = 0.15`` and ``jac_threshold_type="mean"``
+                performs empirically similar to ``jac_threshold_type="median"``, which does not use
+                the ``jac_std_factor``.
+                Generally values between 0-1.5 are reasonable.
+                Higher ``jac_std_factor`` means more edges are kept.
         """
-        # highter jac_std_global means more edges are kept
         if keep_all_local_dist == 'auto':
             if x_data.shape[0] > 300000:
                 keep_all_local_dist = True  # skips local pruning to increase speed
@@ -47,7 +62,8 @@ class PARC:
         self.x_data = x_data
         self.y_data_pred = None
         self.l2_std_factor = l2_std_factor
-        self.jac_std_global = jac_std_global  #0.15 is also a recommended value performing empirically similar to 'median'. Generally values between 0-1.5 are reasonable.
+        self.jac_std_factor = jac_std_factor
+        self.jac_threshold_type = jac_threshold_type
         self.keep_all_local_dist = keep_all_local_dist #decides whether or not to do local pruning. default is 'auto' which omits LOCAL pruning for samples >300,000 cells.
         self.too_big_factor = too_big_factor  #if a cluster exceeds this share of the entire cell population, then the PARC will be run on the large cluster. at 0.4 it does not come into play
         self.small_pop = small_pop  # smallest cluster population to be considered a community
@@ -211,7 +227,53 @@ class PARC:
                                shape=(n_samples, n_samples))
         return csr_graph
 
-    def run_toobig_subPARC(self, x_data, jac_std_toobig=0.3,
+    def prune_global(self, csr_array, jac_std_factor, jac_threshold_type, jac_weighted_edges=True):
+        """Prune the graph globally based on the Jaccard similarity measure.
+
+        The ``csr_array`` contains the locally-pruned pairwise distances. From this, we can
+        use the Jaccard similarity metric to compute the similarity score for each edge. We then
+        remove any edges from the graph that do not meet a minimum similarity threshold.
+
+        Args:
+            csr_array (Compressed Sparse Row Matrix): A sparse matrix with dimensions
+                (n_samples, n_samples), containing the locally-pruned pair-wise distances.
+
+        Returns:
+            igraph.Graph: a Graph object which has now been locally and globally pruned.
+        """
+
+        input_nodes, output_nodes = csr_array.nonzero()
+        edges = list(zip(input_nodes, output_nodes))
+        edges_copy = np.asarray(edges.copy())
+
+        graph = ig.Graph(edges, edge_attrs={'weight': csr_array.data.tolist()})
+
+        similarities = np.asarray(graph.similarity_jaccard(pairs=list(edges_copy)))
+
+        logger.message("Starting global pruning")
+
+        if jac_threshold_type == "median":
+            threshold = np.median(similarities)
+        else:
+            threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
+
+        indices_similar = np.where(similarities > threshold)[0]
+
+        if jac_weighted_edges:
+            graph_pruned = ig.Graph(
+                n=csr_array.shape[0],
+                edges=list(edges_copy[indices_similar]),
+                edge_attrs={"weight": list(similarities[indices_similar])}
+            )
+        else:
+            graph_pruned = ig.Graph(
+                n=csr_array.shape[0],
+                edges=list(edges_copy[indices_similar])
+            )
+        graph_pruned.simplify(combine_edges="sum")  # "first"
+        return graph_pruned
+
+    def run_toobig_subPARC(self, x_data, jac_std_factor=0.3, jac_threshold_type="mean",
                            jac_weighted_edges=True):
         n_elements = x_data.shape[0]
         hnsw = self.make_knn_struct(too_big=True, big_cluster=x_data)
@@ -223,59 +285,35 @@ class PARC:
 
         neighbor_array, distance_array = hnsw.knn_query(x_data, k=knnbig)
         csr_array = self.prune_local(neighbor_array, distance_array)
-        sources, targets = csr_array.nonzero()
-        #mask = np.zeros(len(sources), dtype=bool)
+        graph = self.prune_global(csr_array, jac_std_factor, jac_threshold_type)
 
-        #mask |= (csr_array.data < (np.mean(csr_array.data) - np.std(csr_array.data) * 5))  # weights are 1/dist so bigger weight means closer nodes
 
-        #csr_array.data[mask] = 0
-        #csr_array.eliminate_zeros()
-        #sources, targets = csr_array.nonzero()
-        edgelist = list(zip(sources.tolist(), targets.tolist()))
-        edgelist_copy = edgelist.copy()
-        G = ig.Graph(edgelist, edge_attrs={'weight': csr_array.data.tolist()})
-        sim_list = G.similarity_jaccard(pairs=edgelist_copy)  # list of jaccard weights
-        new_edgelist = []
-        sim_list_array = np.asarray(sim_list)
-        if jac_std_toobig == 'median':
-            threshold = np.median(sim_list)
-        else:
-            threshold = np.mean(sim_list) - jac_std_toobig * np.std(sim_list)
-        strong_locs = np.where(sim_list_array > threshold)[0]
-        for ii in strong_locs: new_edgelist.append(edgelist_copy[ii])
-        sim_list_new = list(sim_list_array[strong_locs])
-
-        if jac_weighted_edges == True:
-            G_sim = ig.Graph(n=n_elements, edges=list(new_edgelist), edge_attrs={'weight': sim_list_new})
-        else:
-            G_sim = ig.Graph(n=n_elements, edges=list(new_edgelist))
-        G_sim.simplify(combine_edges='sum')
         if jac_weighted_edges == True:
             if self.partition_type =='ModularityVP':
                 logger.message(
                     "Leiden algorithm find partition: partition type = ModularityVertexPartition"
                 )
-                partition = leidenalg.find_partition(G_sim, leidenalg.ModularityVertexPartition, weights='weight',
+                partition = leidenalg.find_partition(graph, leidenalg.ModularityVertexPartition, weights='weight',
                                                  n_iterations=self.n_iter_leiden, seed=self.random_seed)
 
             else:
                 logger.message(
                     "Leiden algorithm find partition: partition type = RBConfigurationVertexPartition"
                 )
-                partition = leidenalg.find_partition(G_sim, leidenalg.RBConfigurationVertexPartition, weights='weight',
+                partition = leidenalg.find_partition(graph, leidenalg.RBConfigurationVertexPartition, weights='weight',
                                                  n_iterations=self.n_iter_leiden, seed=self.random_seed, resolution_parameter=self.resolution_parameter)
         else:
             if self.partition_type == 'ModularityVP':
                 logger.message(
                     "Leiden algorithm find partition: partition type = ModularityVertexPartition"
                 )
-                partition = leidenalg.find_partition(G_sim, leidenalg.ModularityVertexPartition,
+                partition = leidenalg.find_partition(graph, leidenalg.ModularityVertexPartition,
                                                  n_iterations=self.n_iter_leiden, seed=self.random_seed)
             else:
                 logger.message(
                     "Leiden algorithm find partition: partition type = RBConfigurationVertexPartition"
                 )
-                partition = leidenalg.find_partition(G_sim, leidenalg.RBConfigurationVertexPartition,
+                partition = leidenalg.find_partition(graph, leidenalg.RBConfigurationVertexPartition,
                                                      n_iterations=self.n_iter_leiden, seed=self.random_seed,
                                                      resolution_parameter=self.resolution_parameter)
 
@@ -333,7 +371,7 @@ class PARC:
         x_data = self.x_data
         too_big_factor = self.too_big_factor
         small_pop = self.small_pop
-        jac_std_global = self.jac_std_global
+        jac_std_factor = self.jac_std_factor
         jac_weighted_edges = self.jac_weighted_edges
         knn = self.knn
         n_elements = x_data.shape[0]
@@ -351,30 +389,8 @@ class PARC:
             neighbor_array, distance_array = self.knn_struct.knn_query(x_data, k=knn)
             csr_array = self.prune_local(neighbor_array, distance_array)
 
-        sources, targets = csr_array.nonzero()
+        graph = self.prune_global(csr_array, self.jac_std_factor, self.jac_threshold_type)
 
-        edgelist = list(zip(sources, targets))
-
-        edgelist_copy = edgelist.copy()
-
-        G = ig.Graph(edgelist, edge_attrs={'weight': csr_array.data.tolist()})
-        sim_list = G.similarity_jaccard(pairs=edgelist_copy)
-
-        logger.message("Starting global pruning")
-
-        sim_list_array = np.asarray(sim_list)
-        edge_list_copy_array = np.asarray(edgelist_copy)
-
-        if jac_std_global == 'median':
-            threshold = np.median(sim_list)
-        else:
-            threshold = np.mean(sim_list) - jac_std_global * np.std(sim_list)
-        strong_locs = np.where(sim_list_array > threshold)[0]
-        new_edgelist = list(edge_list_copy_array[strong_locs])
-        sim_list_new = list(sim_list_array[strong_locs])
-
-        G_sim = ig.Graph(n=n_elements, edges=list(new_edgelist), edge_attrs={'weight': sim_list_new})
-        G_sim.simplify(combine_edges='sum')  # "first"
         logger.message('commencing community detection')
         if jac_weighted_edges == True:
             start_leiden = time.time()
@@ -382,13 +398,13 @@ class PARC:
                 logger.message(
                     "Leiden algorithm find partition: partition type = ModularityVertexPartition"
                 )
-                partition = leidenalg.find_partition(G_sim, leidenalg.ModularityVertexPartition, weights='weight',
+                partition = leidenalg.find_partition(graph, leidenalg.ModularityVertexPartition, weights='weight',
                                                  n_iterations=self.n_iter_leiden, seed=self.random_seed)
             else:
                 logger.message(
                     "Leiden algorithm find partition: partition type = RBConfigurationVertexPartition"
                 )
-                partition = leidenalg.find_partition(G_sim, leidenalg.RBConfigurationVertexPartition, weights='weight',
+                partition = leidenalg.find_partition(graph, leidenalg.RBConfigurationVertexPartition, weights='weight',
                                                      n_iterations=self.n_iter_leiden, seed=self.random_seed, resolution_parameter = self.resolution_parameter)
         else:
             start_leiden = time.time()
@@ -396,13 +412,13 @@ class PARC:
                 logger.message(
                     "Leiden algorithm find partition: partition type = ModularityVertexPartition"
                 )
-                partition = leidenalg.find_partition(G_sim, leidenalg.ModularityVertexPartition,
+                partition = leidenalg.find_partition(graph, leidenalg.ModularityVertexPartition,
                                                  n_iterations=self.n_iter_leiden, seed=self.random_seed)
             else:
                 logger.message(
                     "Leiden algorithm find partition: partition type = RBConfigurationVertexPartition"
                 )
-                partition = leidenalg.find_partition(G_sim, leidenalg.RBConfigurationVertexPartition,
+                partition = leidenalg.find_partition(graph, leidenalg.RBConfigurationVertexPartition,
                                                      n_iterations=self.n_iter_leiden, seed=self.random_seed, resolution_parameter = self.resolution_parameter)
 
         time_end_PARC = time.time()
@@ -529,7 +545,7 @@ class PARC:
         N = len(list(self.y_data_true))
         self.f1_accumulated = 0
         self.f1_mean = 0
-        self.stats_df = pd.DataFrame({'jac_std_global': [self.jac_std_global], 'l2_std_factor': [self.l2_std_factor],
+        self.stats_df = pd.DataFrame({'jac_std_factor': [self.jac_std_factor], 'l2_std_factor': [self.l2_std_factor],
                                       'runtime(s)': [run_time]})
         self.majority_truth_labels = []
         if len(targets) > 1:
@@ -545,7 +561,7 @@ class PARC:
                 f1_acc_noweighting = f1_acc_noweighting + f1_current
 
                 list_roc.append(
-                    [self.jac_std_global, self.l2_std_factor, target] + vals_roc + [numclusters_targetval] + [
+                    [self.jac_std_factor, self.l2_std_factor, target] + vals_roc + [numclusters_targetval] + [
                         run_time])
 
             f1_mean = f1_acc_noweighting / len(targets)
@@ -553,7 +569,7 @@ class PARC:
             logger.message(f"f1-score weighted (by population) {np.round(f1_accumulated * 100, 2)}")
 
             df_accuracy = pd.DataFrame(list_roc,
-                                       columns=['jac_std_global', 'l2_std_factor', 'onevsall-target', 'error rate',
+                                       columns=['jac_std_factor', 'l2_std_factor', 'onevsall-target', 'error rate',
                                                 'f1-score', 'tnr', 'fnr',
                                                 'tpr', 'fpr', 'precision', 'recall', 'num_groups',
                                                 'population of target', 'num clusters', 'clustering runtime'])
