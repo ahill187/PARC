@@ -179,10 +179,6 @@ class PARC:
                                shape=(n_cells, n_cells))
         return csr_graph
 
-    def func_mode(self, ll):  # return MODE of list
-        # If multiple items are maximal, the function returns the first one encountered.
-        return max(set(ll), key=ll.count)
-
     def run_toobig_subPARC(self, x_data, jac_std_toobig=0.3,
                            jac_weighted_edges=True):
         n_elements = x_data.shape[0]
