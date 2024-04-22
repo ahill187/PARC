@@ -33,7 +33,7 @@ Examples
 	# Run umap on the HNSW knngraph already built in PARC (more time and memory efficient for large datasets)
 	# If you choose to visualize before running PARC clustering. then you need to include this line: Parc1.knn_struct = p1.make_knn_struct()
 	graph = Parc1.knngraph_full()
-	x_umap = Parc1.run_umap_hnsw(x_data, graph)
+	x_umap = parc.run_umap_hnsw(x_data, graph)
 	plt.scatter(x_umap[:, 0], x_umap[:, 1], c=Parc1.y_data_pred)
 	plt.show()
 
