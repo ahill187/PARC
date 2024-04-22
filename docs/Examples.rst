@@ -14,27 +14,27 @@ Examples
 	# load sample IRIS data
 	# data dimensions (n_obs x k_dim, 150x4)
 	iris = datasets.load_iris()
-	X = iris.data
+	x_data = iris.data
 	y=iris.target
 
-	plt.scatter(X[:,0],X[:,1], c = y) // colored by 'ground truth'
+	plt.scatter(x_data[:,0], x_data[:,1], c = y) // colored by 'ground truth'
 	plt.show()
 
 	# instantiate PARC
-	Parc1 = parc.PARC(X,true_label=y) 
-	# Use 'Parc1 = parc.PARC(X) ' when no 'true labels' are available
+	Parc1 = parc.PARC(x_data=x_data, true_label=y)
+	# Use 'Parc1 = parc.PARC(x_data) ' when no 'true labels' are available
 	# run the clustering
-	Parc1.run_PARC() 
+	Parc1.run_PARC()
 	parc_labels = Parc1.labels
 	# View scatterplot colored by PARC labels
-	plt.scatter(X[:, 0], X[:, 1], c=parc_labels, cmap='rainbow')
+	plt.scatter(x_data[:, 0], x_data[:, 1], c=parc_labels, cmap='rainbow')
 	plt.show()
 
 	# Run umap on the HNSW knngraph already built in PARC (more time and memory efficient for large datasets)
-	# If you choose to visualize before running PARC clustering. then you need to include this line: Parc1.knn_struct = p1.make_knn_struct() 
+	# If you choose to visualize before running PARC clustering. then you need to include this line: Parc1.knn_struct = p1.make_knn_struct()
 	graph = Parc1.knngraph_full()
-	X_umap = Parc1.run_umap_hnsw(X, graph)
-	plt.scatter(X_umap[:, 0], X_umap[:, 1], c=Parc1.labels)
+	x_umap = Parc1.run_umap_hnsw(x_data, graph)
+	plt.scatter(x_umap[:, 0], x_umap[:, 1], c=Parc1.labels)
 	plt.show()
 
 
@@ -53,20 +53,20 @@ Examples
 
 	## load data (50 PCs of filtered gene matrix pre-processed as per Zheng et al. 2017)
 
-	X = csv.reader(open("./pca50_pbmc68k.txt", 'rt'),delimiter = ",")
-	X = np.array(list(X)) // (n_obs x k_dim, 68579 x 50)
-	X = X.astype("float")
-	# OR with pandas as: X = pd.read_csv("'./pca50_pbmc68k.txt", header=None).values.astype("float")
+	x_data = csv.reader(open("./pca50_pbmc68k.txt", 'rt'),delimiter = ",")
+	x_data = np.array(list(x_data)) // (n_obs x k_dim, 68579 x 50)
+	x_data = x_data.astype("float")
+	# OR with pandas as: x_data = pd.read_csv("'./pca50_pbmc68k.txt", header=None).values.astype("float")
 
 	y = [] # annotations
-	with open('./zheng17_annotations.txt', 'rt') as f: 
+	with open('./zheng17_annotations.txt', 'rt') as f:
 	    for line in f: y.append(line.strip().replace('\"', ''))
-	# OR with pandas as: y =  list(pd.read_csv('./data/zheng17_annotations.txt', header=None)[0])   
+	# OR with pandas as: y =  list(pd.read_csv('./data/zheng17_annotations.txt', header=None)[0])
 
 	# setting small_pop to 50 cleans up some of the smaller clusters, but can also be left at the default 10
-	parc1 = parc.PARC(X,true_label=y,jac_std_global=0.15, random_seed =1, small_pop = 50) // instantiate PARC
+	parc1 = parc.PARC(x_data=x_data, true_label=y,jac_std_global=0.15, random_seed =1, small_pop = 50) // instantiate PARC
 	parc1.run_PARC() // run the clustering
-	parc_labels = parc1.labels 
+	parc_labels = parc1.labels
 
 **TSNE colored by PARC clusters and cell type annotations**
 
@@ -98,9 +98,9 @@ Examples
 	sc.pp.recipe_zheng17(adata)
 	sc.tl.pca(adata, n_comps=50)
 	# setting small_pop to 50 cleans up some of the smaller clusters, but can also be left at the default 10
-	parc1 = parc.PARC(adata.obsm['X_pca'], true_label = annotations, jac_std_global=0.15, random_seed =1, small_pop = 50)  
+	parc1 = parc.PARC(adata.obsm['X_pca'], true_label = annotations, jac_std_global=0.15, random_seed =1, small_pop = 50)
 	#run the clustering
-	parc1.run_PARC() 
+	parc1.run_PARC()
 	parc_labels = parc1.labels
 	adata.obs["PARC"] = pd.Categorical(parc_labels)
 
@@ -110,7 +110,7 @@ Examples
 	sc.tl.umap(adata)
 	sc.pl.umap(adata, color='annotations')
 	sc.pl.umap(adata, color='PARC')
-	
+
 
 **Example Usage 4.**
 
@@ -129,20 +129,20 @@ Large-scale (70K subset and 1.1M cells) Lung Cancer cells (multi-ATOM imaging cy
 	import pandas as pd
 
 	# load data: digital mix of 7 cell lines from 7 sets of pure samples (1.1M cells)
-	X = pd.read_csv("'./LungData.txt", header=None).values.astype("float") 
+	x_data = pd.read_csv("'./LungData.txt", header=None).values.astype("float")
 	y = list(pd.read_csv('./LungData_annotations.txt', header=None)[0]) // list of cell-type annotations
 
 	# run PARC on 1.1M cells
 	# jac_weighted_edges can be set to false which provides an unweighted graph to leiden and offers some speedup
-	parc1 = parc.PARC(X, true_label=y,jac_weighted_edges = False)
+	parc1 = parc.PARC(x_data=x_data, true_label=y,jac_weighted_edges = False)
 	#run the clustering
-	parc1.run_PARC() 
+	parc1.run_PARC()
 	parc_labels = parc1.labels
 
 	# run PARC on H1975 spiked cells
-	parc2 = parc.PARC(X, true_label=y, jac_std_global = 0.15, jac_weighted_edges = False) // 0.15 corresponds to pruning ~60% edges and can be effective for rarer populations than the default 'median'
+	parc2 = parc.PARC(x_data=x_data, true_label=y, jac_std_global = 0.15, jac_weighted_edges = False) // 0.15 corresponds to pruning ~60% edges and can be effective for rarer populations than the default 'median'
 	# run the clustering
-	parc2.run_PARC() 
+	parc2.run_PARC()
 	parc_labels_rare = parc2.labels
 
 **TSNE plot of annotations and PARC clustering and heatmap of features by cluster**
@@ -150,7 +150,3 @@ Large-scale (70K subset and 1.1M cells) Lung Cancer cells (multi-ATOM imaging cy
 .. raw:: html
 
   <img src="https://github.com/ShobiStassen/PARC/blob/master/Images/70K_Lung_github_overview.png?raw=true" width="500px" align="center" </a>
-
-
-
-
