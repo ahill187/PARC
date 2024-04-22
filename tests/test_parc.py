@@ -1,16 +1,32 @@
+import pytest
 from sklearn import datasets
 from parc._parc import PARC
-from parc.umap_embedding import run_umap_hnsw
+from parc.logger import get_logger
+
+logger = get_logger(__name__)
 
 
-def test_parc_run_umap_hnsw():
+@pytest.fixture
+def iris_data():
     iris = datasets.load_iris()
     x_data = iris.data
     y_data = iris.target
+    return x_data, y_data
 
-    parc_model = PARC(x_data=x_data, y_data_true=y_data)
+
+@pytest.mark.parametrize(
+    "targets_exist",
+    [
+        (True),
+        (False)
+    ]
+)
+def test_parc_run_parc(iris_data, targets_exist):
+    x_data, y_data = iris_data
+    if targets_exist:
+        parc_model = PARC(x_data, y_data_true=y_data)
+    else:
+        parc_model = PARC(x_data)
     parc_model.run_parc()
-
-    graph = parc_model.knngraph_full()
-    x_umap = run_umap_hnsw(x_data, graph)
-    assert x_umap.shape == (150, 2)
+    logger.info(parc_model.y_data_pred)
+    assert len(parc_model.y_data_pred) == 150
