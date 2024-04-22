@@ -5,7 +5,7 @@ import os
 MIN_LEVEL = logging.DEBUG
 MESSAGE = 25
 logging.addLevelName(MESSAGE, "MESSAGE")
-LOGGING_LEVEL = 25
+LOGGING_LEVEL = 20
 
 
 class LogFilter(logging.Filter):
@@ -32,18 +32,12 @@ class ColoredFormatter(logging.Formatter):
         if record.levelno == logging.WARNING:
             if use_color:
                 record.msg = f"\033[93m{record.msg}\033[0m"
-            else:
-                record.msg = f"\033{record.msg}\033"
         elif record.levelno == logging.ERROR:
             if use_color:
                 record.msg = f"\033[91m{record.msg}\033[0m"
-            else:
-                record.msg = f"\033{record.msg}\033"
         elif record.levelno == 25 or record.levelno == logging.INFO:
             if use_color:
                 record.msg = f"\033[96m{record.msg}\033[0m"
-            else:
-                record.msg = f"\033{record.msg}\033"
         return super().format(record)
 
     def supports_color(self):
