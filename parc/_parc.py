@@ -34,8 +34,8 @@ class PARC:
                 keep_all_local_dist = False
         if resolution_parameter !=1:
             partition_type = "RBVP" # Reichardt and Bornholdt’s Potts model. Note that this is the same as ModularityVertexPartition when setting 𝛾 = 1 and normalising by 2m
-        self.x_data = x_data
         self.y_data_true = y_data_true
+        self.x_data = x_data
         self.y_data_pred = None
         self.dist_std_local = dist_std_local   # similar to the jac_std_global parameter. avoid setting local and global pruning to both be below 0.5 as this is very aggresive pruning.
         self.jac_std_global = jac_std_global  #0.15 is also a recommended value performing empirically similar to 'median'. Generally values between 0-1.5 are reasonable.
@@ -54,6 +54,16 @@ class PARC:
         self.knn_struct = knn_struct #the hnsw index of the KNN graph on which we perform queries
         self.neighbor_graph = neighbor_graph # CSR affinity matrix for pre-computed nearest neighbors
         self.hnsw_param_ef_construction = hnsw_param_ef_construction #set at 150. higher value increases accuracy of index construction. Even for several 100,000s of cells 150-200 is adequate
+
+    @property
+    def x_data(self):
+        return self._x_data
+
+    @x_data.setter
+    def x_data(self, x_data):
+        self._x_data = x_data
+        if self.y_data_true is None:
+            self.y_data_true = [1] * x_data.shape[0]
 
     def make_knn_struct(self, too_big=False, big_cluster=None):
         if self.knn > 190:
@@ -474,8 +484,7 @@ class PARC:
             f"Input data has shape {self.x_data.shape[0]} (samples) x "
             f"{self.x_data.shape[1]} (features)"
         )
-        if self.y_data_true is None:
-            self.y_data_true = [1] * self.x_data.shape[0]
+
         list_roc = []
 
         time_start_total = time.time()
