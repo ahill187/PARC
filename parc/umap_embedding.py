@@ -60,7 +60,7 @@ def run_umap_hnsw(x_data, graph, n_components=2, alpha: float = 1.0,
     logger.info(f"a: {a}, b: {b}, spread: {spread}, dist: {min_dist}")
 
     umap_embedding = simplicial_set_embedding(
-        data=X_input,
+        data=x_data,
         graph=graph,
         n_components=n_components,
         initial_alpha=alpha,

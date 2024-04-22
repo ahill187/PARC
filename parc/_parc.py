@@ -573,7 +573,7 @@ class PARC:
                 vals_roc, predict_class_array, majority_truth_labels, numclusters_targetval = self.accuracy(
                     onevsall=onevsall_val)
                 f1_current = vals_roc[1]
-                logger.message(f"target {target} has f1-score of {np.round(f1_current * 100, 2)}")
+                logger.message(f"target {onevsall_val} has f1-score of {np.round(f1_current * 100, 2)}")
                 f1_accumulated = f1_accumulated + f1_current * (list(self.y_data_true).count(onevsall_val)) / N
                 f1_acc_noweighting = f1_acc_noweighting + f1_current
 
