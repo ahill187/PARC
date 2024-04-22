@@ -5,6 +5,7 @@ from scipy.sparse import csr_matrix
 import igraph as ig
 import leidenalg
 import time
+from parc.metrics import accuracy
 from parc.logger import get_logger
 
 logger = get_logger(__name__)
@@ -468,78 +469,6 @@ class PARC:
         self.y_data_pred = PARC_labels_leiden
         return
 
-    def accuracy(self, onevsall=1):
-
-        y_data_true = self.y_data_true
-        Index_dict = {}
-        y_data_pred = self.y_data_pred
-        N = len(y_data_pred)
-        n_cancer = list(y_data_true).count(onevsall)
-        n_pbmc = N - n_cancer
-
-        for k in range(N):
-            Index_dict.setdefault(y_data_pred[k], []).append(y_data_true[k])
-        num_groups = len(Index_dict)
-        sorted_keys = list(sorted(Index_dict.keys()))
-        error_count = []
-        pbmc_labels = []
-        thp1_labels = []
-        fp, fn, tp, tn, precision, recall, f1_score = 0, 0, 0, 0, 0, 0, 0
-
-        for kk in sorted_keys:
-            vals = [t for t in Index_dict[kk]]
-            majority_val = self.func_mode(vals)
-            if majority_val == onevsall:
-                logger.message(f"cluster {kk} has majority {onevsall} with population {len(vals)}")
-            if kk == -1:
-                len_unknown = len(vals)
-                logger.message(f"len_unknown: {len_unknown}")
-            if (majority_val == onevsall) and (kk != -1):
-                thp1_labels.append(kk)
-                fp = fp + len([e for e in vals if e != onevsall])
-                tp = tp + len([e for e in vals if e == onevsall])
-                list_error = [e for e in vals if e != majority_val]
-                e_count = len(list_error)
-                error_count.append(e_count)
-            elif (majority_val != onevsall) and (kk != -1):
-                pbmc_labels.append(kk)
-                tn = tn + len([e for e in vals if e != onevsall])
-                fn = fn + len([e for e in vals if e == onevsall])
-                error_count.append(len([e for e in vals if e != majority_val]))
-
-        predict_class_array = np.array(y_data_pred)
-        y_data_pred_array = np.array(y_data_pred)
-        number_clusters_for_target = len(thp1_labels)
-        for cancer_class in thp1_labels:
-            predict_class_array[y_data_pred_array == cancer_class] = 1
-        for benign_class in pbmc_labels:
-            predict_class_array[y_data_pred_array == benign_class] = 0
-        predict_class_array.reshape((predict_class_array.shape[0], -1))
-        error_rate = sum(error_count) / N
-        n_target = tp + fn
-        tnr = tn / n_pbmc
-        fnr = fn / n_cancer
-        tpr = tp / n_cancer
-        fpr = fp / n_pbmc
-
-        if tp != 0 or fn != 0: recall = tp / (tp + fn)  # ability to find all positives
-        if tp != 0 or fp != 0: precision = tp / (tp + fp)  # ability to not misclassify negatives as positives
-        if precision != 0 or recall != 0:
-            f1_score = precision * recall * 2 / (precision + recall)
-        majority_truth_labels = np.empty((len(y_data_true), 1), dtype=object)
-
-        for cluster_i in set(y_data_pred):
-            cluster_i_loc = np.where(np.asarray(y_data_pred) == cluster_i)[0]
-            y_data_true = np.asarray(y_data_true)
-            majority_truth = self.func_mode(list(y_data_true[cluster_i_loc]))
-            majority_truth_labels[cluster_i_loc] = majority_truth
-
-        majority_truth_labels = list(majority_truth_labels.flatten())
-        accuracy_val = [error_rate, f1_score, tnr, fnr, tpr, fpr, precision,
-                        recall, num_groups, n_target]
-
-        return accuracy_val, predict_class_array, majority_truth_labels, number_clusters_for_target
-
     def run_parc(self):
         logger.message(
             f"Input data has shape {self.x_data.shape[0]} (samples) x "
@@ -569,16 +498,17 @@ class PARC:
         if len(targets) > 1:
             f1_accumulated = 0
             f1_acc_noweighting = 0
-            for onevsall_val in targets:
-                vals_roc, predict_class_array, majority_truth_labels, numclusters_targetval = self.accuracy(
-                    onevsall=onevsall_val)
+            for target in targets:
+                vals_roc, majority_truth_labels, numclusters_targetval = accuracy(
+                    self.y_data_true, self.y_data_pred, target
+                )
                 f1_current = vals_roc[1]
-                logger.message(f"target {onevsall_val} has f1-score of {np.round(f1_current * 100, 2)}")
-                f1_accumulated = f1_accumulated + f1_current * (list(self.y_data_true).count(onevsall_val)) / N
+                logger.message(f"target {target} has f1-score of {np.round(f1_current * 100, 2)}")
+                f1_accumulated = f1_accumulated + f1_current * (list(self.y_data_true).count(target)) / N
                 f1_acc_noweighting = f1_acc_noweighting + f1_current
 
                 list_roc.append(
-                    [self.jac_std_global, self.dist_std_local, onevsall_val] + vals_roc + [numclusters_targetval] + [
+                    [self.jac_std_global, self.dist_std_local, target] + vals_roc + [numclusters_targetval] + [
                         run_time])
 
             f1_mean = f1_acc_noweighting / len(targets)
