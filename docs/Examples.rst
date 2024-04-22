@@ -15,13 +15,13 @@ Examples
 	# data dimensions (n_obs x k_dim, 150x4)
 	iris = datasets.load_iris()
 	x_data = iris.data
-	y=iris.target
+	y_data_true = iris.target
 
-	plt.scatter(x_data[:,0], x_data[:,1], c = y) // colored by 'ground truth'
+	plt.scatter(x_data[:,0], x_data[:,1], c=y_data_true) // colored by 'ground truth'
 	plt.show()
 
 	# instantiate PARC
-	Parc1 = parc.PARC(x_data=x_data, true_label=y)
+	Parc1 = parc.PARC(x_data=x_data, y_data_true=y_data_true)
 	# Use 'Parc1 = parc.PARC(x_data) ' when no 'true labels' are available
 	# run the clustering
 	Parc1.run_PARC()
@@ -58,13 +58,13 @@ Examples
 	x_data = x_data.astype("float")
 	# OR with pandas as: x_data = pd.read_csv("'./pca50_pbmc68k.txt", header=None).values.astype("float")
 
-	y = [] # annotations
+	y_data_true = [] # annotations
 	with open('./zheng17_annotations.txt', 'rt') as f:
-	    for line in f: y.append(line.strip().replace('\"', ''))
-	# OR with pandas as: y =  list(pd.read_csv('./data/zheng17_annotations.txt', header=None)[0])
+	    for line in f: y_data_true.append(line.strip().replace('\"', ''))
+	# OR with pandas as: y_data_true =  list(pd.read_csv('./data/zheng17_annotations.txt', header=None)[0])
 
 	# setting small_pop to 50 cleans up some of the smaller clusters, but can also be left at the default 10
-	parc1 = parc.PARC(x_data=x_data, true_label=y,jac_std_global=0.15, random_seed =1, small_pop = 50) // instantiate PARC
+	parc1 = parc.PARC(x_data=x_data, y_data_true=y_data_true, jac_std_global=0.15, random_seed =1, small_pop = 50) // instantiate PARC
 	parc1.run_PARC() // run the clustering
 	parc_labels = parc1.labels
 
@@ -98,7 +98,7 @@ Examples
 	sc.pp.recipe_zheng17(adata)
 	sc.tl.pca(adata, n_comps=50)
 	# setting small_pop to 50 cleans up some of the smaller clusters, but can also be left at the default 10
-	parc1 = parc.PARC(adata.obsm['X_pca'], true_label = annotations, jac_std_global=0.15, random_seed =1, small_pop = 50)
+	parc1 = parc.PARC(adata.obsm['X_pca'], y_data_true=annotations, jac_std_global=0.15, random_seed =1, small_pop = 50)
 	#run the clustering
 	parc1.run_PARC()
 	parc_labels = parc1.labels
@@ -130,17 +130,17 @@ Large-scale (70K subset and 1.1M cells) Lung Cancer cells (multi-ATOM imaging cy
 
 	# load data: digital mix of 7 cell lines from 7 sets of pure samples (1.1M cells)
 	x_data = pd.read_csv("'./LungData.txt", header=None).values.astype("float")
-	y = list(pd.read_csv('./LungData_annotations.txt', header=None)[0]) // list of cell-type annotations
+	y_data_true = list(pd.read_csv('./LungData_annotations.txt', header=None)[0]) // list of cell-type annotations
 
 	# run PARC on 1.1M cells
 	# jac_weighted_edges can be set to false which provides an unweighted graph to leiden and offers some speedup
-	parc1 = parc.PARC(x_data=x_data, true_label=y,jac_weighted_edges = False)
+	parc1 = parc.PARC(x_data=x_data, y_data_true=y_data_true, jac_weighted_edges = False)
 	#run the clustering
 	parc1.run_PARC()
 	parc_labels = parc1.labels
 
 	# run PARC on H1975 spiked cells
-	parc2 = parc.PARC(x_data=x_data, true_label=y, jac_std_global = 0.15, jac_weighted_edges = False) // 0.15 corresponds to pruning ~60% edges and can be effective for rarer populations than the default 'median'
+	parc2 = parc.PARC(x_data=x_data, y_data_true=y_data_true, jac_std_global = 0.15, jac_weighted_edges = False) // 0.15 corresponds to pruning ~60% edges and can be effective for rarer populations than the default 'median'
 	# run the clustering
 	parc2.run_PARC()
 	parc_labels_rare = parc2.labels

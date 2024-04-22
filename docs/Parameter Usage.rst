@@ -16,7 +16,7 @@ For a more detailed explanation of the impact of tuning key parameters please se
    * - x_data
      - (numpy.ndarray) num samples x num features
 
-   * - true_label
+   * - y_data_true
      - (numpy.ndarray) (optional)
 
    * - dist_std_local
