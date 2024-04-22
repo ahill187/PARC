@@ -1,5 +1,8 @@
 from umap.umap_ import find_ab_params, simplicial_set_embedding
 import numpy as np
+from parc.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def run_umap_hnsw(x_data, graph, n_components=2, alpha: float = 1.0,
@@ -54,7 +57,7 @@ def run_umap_hnsw(x_data, graph, n_components=2, alpha: float = 1.0,
     """
 
     a, b = find_ab_params(spread, min_dist)
-    print(f"a: {a}, b: {b}, spread: {spread}, dist: {min_dist}")
+    logger.info(f"a: {a}, b: {b}, spread: {spread}, dist: {min_dist}")
 
     umap_embedding = simplicial_set_embedding(
         data=X_input,
