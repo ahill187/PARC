@@ -16,14 +16,14 @@ class PARC:
                  too_big_factor=0.4, small_pop=10, jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
                  num_threads=-1, distance='l2', time_smallpop=15, partition_type = "ModularityVP", resolution_parameter = 1.0,
                  knn_struct=None, neighbor_graph=None, hnsw_param_ef_construction = 150):
-    """Phenotyping by Accelerated Refined Community-partitioning.
+        """Phenotyping by Accelerated Refined Community-partitioning.
 
-    Attributes:
-        x_data (np.array): a Numpy array of the input x data, with dimensions
-            (n_samples, n_features).
-        y_data_true (np.array): a Numpy array of the true output y labels.
-        y_data_pred (np.array): a Numpy array of the predicted output y labels.
-    """
+        Attributes:
+            x_data (np.array): a Numpy array of the input x data, with dimensions
+                (n_samples, n_features).
+            y_data_true (np.array): a Numpy array of the true output y labels.
+            y_data_pred (np.array): a Numpy array of the predicted output y labels.
+        """
         # higher dist_std_local means more edges are kept
         # highter jac_std_global means more edges are kept
         if keep_all_local_dist == 'auto':
