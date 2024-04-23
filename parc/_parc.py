@@ -434,7 +434,6 @@ class PARC:
             is_large_community = True
             large_community_indices = community_indices
             large_community_sizes = [pop_i]
-            cluster_too_big = 0
 
         while is_large_community == True:
 
