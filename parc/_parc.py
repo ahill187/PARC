@@ -427,12 +427,12 @@ class PARC:
 
         is_large_community = False
 
-        cluster_i_loc = np.where(node_communities == 0)[
+        community_indices = np.where(node_communities == 0)[
             0]  # the 0th cluster is the largest one. so if cluster 0 is not too big, then the others wont be too big either
-        pop_i = len(cluster_i_loc)
+        pop_i = len(community_indices)
         if pop_i > large_community_factor * n_elements:  # 0.4
             is_large_community = True
-            cluster_big_loc = cluster_i_loc
+            cluster_big_loc = community_indices
             list_pop_too_bigs = [pop_i]
             cluster_too_big = 0
 
