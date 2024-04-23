@@ -90,11 +90,11 @@ class PARC:
         if self.y_data_true is None:
             self.y_data_true = [1] * x_data.shape[0]
 
-    def make_knn_struct(self, too_big=False, big_cluster=None):
+    def make_knn_struct(self, is_large_community=False, big_cluster=None):
         if self.knn > 190:
             logger.message('consider using a lower K_in for KNN graph construction')
         ef_query = max(100, self.knn + 1)  # ef always should be >K. higher ef, more accurate query
-        if too_big == False:
+        if is_large_community == False:
             num_dims = self.x_data.shape[1]
             n_elements = self.x_data.shape[0]
             p = hnswlib.Index(space=self.distance, dim=num_dims)  # default to Euclidean distance
@@ -110,7 +110,7 @@ class PARC:
             else:
                 p.init_index(max_elements=n_elements, ef_construction=ef_construction, M=24 ) #30
             p.add_items(self.x_data)
-        if too_big == True:
+        if is_large_community == True:
             num_dims = big_cluster.shape[1]
             n_elements = big_cluster.shape[0]
             p = hnswlib.Index(space='l2', dim=num_dims)
@@ -276,7 +276,7 @@ class PARC:
     def run_toobig_subPARC(self, x_data, jac_std_factor=0.3, jac_threshold_type="mean",
                            jac_weighted_edges=True):
         n_elements = x_data.shape[0]
-        hnsw = self.make_knn_struct(too_big=True, big_cluster=x_data)
+        hnsw = self.make_knn_struct(is_large_community=True, big_cluster=x_data)
         if n_elements <= 10: logger.message('consider increasing the too_big_factor')
         if n_elements > self.knn:
             knnbig = self.knn
@@ -425,18 +425,18 @@ class PARC:
         node_communities = np.asarray(partition.membership)
         node_communities = np.reshape(node_communities, (n_elements, 1))
 
-        too_big = False
+        is_large_community = False
 
         cluster_i_loc = np.where(node_communities == 0)[
             0]  # the 0th cluster is the largest one. so if cluster 0 is not too big, then the others wont be too big either
         pop_i = len(cluster_i_loc)
         if pop_i > too_big_factor * n_elements:  # 0.4
-            too_big = True
+            is_large_community = True
             cluster_big_loc = cluster_i_loc
             list_pop_too_bigs = [pop_i]
             cluster_too_big = 0
 
-        while too_big == True:
+        while is_large_community == True:
 
             x_data_big = x_data[cluster_big_loc, :]
             node_communities_big = self.run_toobig_subPARC(x_data_big)
@@ -453,7 +453,7 @@ class PARC:
                 jj = jj + 1
             node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
             logger.message(f"new set of labels: {set(node_communities)}")
-            too_big = False
+            is_large_community = False
             set_node_communities = set(node_communities)
 
             node_communities = np.asarray(node_communities)
@@ -462,12 +462,12 @@ class PARC:
                 pop_ii = len(cluster_ii_loc)
                 not_yet_expanded = pop_ii not in list_pop_too_bigs
                 if pop_ii > too_big_factor * n_elements and not_yet_expanded == True:
-                    too_big = True
+                    is_large_community = True
                     logger.message(f"Cluster {cluster_ii} is too big and has population {pop_ii}")
                     cluster_big_loc = cluster_ii_loc
                     cluster_big = cluster_ii
                     big_pop = pop_ii
-            if too_big == True:
+            if is_large_community == True:
                 list_pop_too_bigs.append(big_pop)
                 logger.message(f"cluster {cluster_big} is too big with population {big_pop}. It will be expanded.")
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
