@@ -428,14 +428,14 @@ class PARC:
             node_communities = np.asarray(node_communities)
             for community_id in set_node_communities:
                 cluster_ii_loc = np.where(node_communities == community_id)[0]
-                pop_ii = len(cluster_ii_loc)
-                not_yet_expanded = pop_ii not in large_community_sizes
-                if pop_ii > large_community_factor * n_elements and not_yet_expanded == True:
+                community_size = len(cluster_ii_loc)
+                not_yet_expanded = community_size not in large_community_sizes
+                if community_size > large_community_factor * n_elements and not_yet_expanded == True:
                     is_large_community = True
-                    logger.message(f"Cluster {community_id} is too big and has population {pop_ii}")
+                    logger.message(f"Cluster {community_id} is too big and has population {community_size}")
                     large_community_indices = cluster_ii_loc
                     cluster_big = community_id
-                    big_pop = pop_ii
+                    big_pop = community_size
             if is_large_community == True:
                 large_community_sizes.append(big_pop)
                 logger.message(f"cluster {cluster_big} is too big with population {big_pop}. It will be expanded.")
