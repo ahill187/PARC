@@ -300,6 +300,43 @@ class PARC:
             )
         return partition
 
+    def check_if_large_community(self, node_communities, community_id, large_community_sizes=[]):
+        """Check if the community size is greater than the max community size.
+
+        Args:
+            node_communities (np.array): an array containing the community assignments for each
+                node.
+            community_id (int): the integer id of the community.
+
+        Returns:
+            (bool, int, list): a 3-tuple consisting of:
+
+                - ``is_large_community``: whether or not the community is too large.
+                - ``community_size``: the size of the community.
+                - ``large_community_indices``: a list of node indices for the community,
+                  if it is too large, otherwise an empty array.
+
+        """
+        is_large_community = False
+        n_samples = node_communities.shape[0]
+        community_indices = np.where(node_communities == community_id)[0]
+        community_size = len(community_indices)
+        large_community_indices = []
+        not_yet_expanded = community_size not in large_community_sizes
+        logger.info(f"Community has already been expanded? {not not_yet_expanded}")
+        logger.info(
+            f"Community size: {community_size}, large_community_factor: {self.large_community_factor}, "
+            f"n_samples: {n_samples}, large_community_sizes: {large_community_sizes}"
+        )
+        if community_size > self.large_community_factor * n_samples and not_yet_expanded:
+            is_large_community = True
+            large_community_indices = community_indices
+            logger.message(
+                f"Community {community_id} is too big, community size = {community_size}, "
+                f"large_community_factor = {self.large_community_factor}. It will be expanded."
+            )
+        return is_large_community, community_size, large_community_indices
+
     def run_toobig_subPARC(self, x_data, jac_std_factor=0.3, jac_threshold_type="mean",
                            jac_weighted_edges=True):
         n_elements = x_data.shape[0]
@@ -396,16 +433,13 @@ class PARC:
         node_communities = np.reshape(node_communities, (n_elements, 1))
 
         is_large_community = False
-
-        community_indices = np.where(node_communities == 0)[
-            0]  # the 0th cluster is the largest one. so if cluster 0 is not too big, then the others wont be too big either
-        community_size = len(community_indices)
-        if community_size > large_community_factor * n_elements:  # 0.4
-            is_large_community = True
-            large_community_indices = community_indices
+        is_large_community, community_size, large_community_indices = self.check_if_large_community(
+            node_communities, community_id=0
+        )
+        if is_large_community:
             large_community_sizes = [community_size]
 
-        while is_large_community == True:
+        while is_large_community:
 
             x_data_big = x_data[large_community_indices, :]
             node_communities_large_community = self.run_toobig_subPARC(x_data_big)
@@ -422,16 +456,13 @@ class PARC:
             node_communities = np.asarray(node_communities)
 
             for community_id in set(node_communities):
-                community_indices = np.where(node_communities == community_id)[0]
-                community_size = len(community_indices)
-                not_yet_expanded = community_size not in large_community_sizes
-                if community_size > large_community_factor * n_elements and not_yet_expanded == True:
-                    is_large_community = True
-                    logger.message(f"Community {community_id} is too big and has population {community_size}")
-                    large_community_indices = community_indices
-                    cluster_big = community_id
+                is_large_community, community_size, large_community_indices = self.check_if_large_community(
+                    node_communities, community_id, large_community_sizes
+                )
+                if is_large_community:
                     big_pop = community_size
-            if is_large_community == True:
+                    cluster_big = community_id
+            if is_large_community:
                 large_community_sizes.append(big_pop)
                 logger.message(f"Community {cluster_big} is too big with population {big_pop}. It will be expanded.")
 
