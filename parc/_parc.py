@@ -408,17 +408,17 @@ class PARC:
         while is_large_community == True:
 
             x_data_big = x_data[large_community_indices, :]
-            node_communities_big = self.run_toobig_subPARC(x_data_big)
-            node_communities_big = node_communities_big + 100000
+            node_communities_large_community = self.run_toobig_subPARC(x_data_big)
+            node_communities_large_community = node_communities_large_community + 100000
             pop_list = []
 
-            for item in set(list(node_communities_big.flatten())):
-                pop_list.append([item, list(node_communities_big.flatten()).count(item)])
+            for item in set(list(node_communities_large_community.flatten())):
+                pop_list.append([item, list(node_communities_large_community.flatten()).count(item)])
             logger.message(f"pop of big clusters: {pop_list}")
             jj = 0
             logger.message(f"shape node_communities: {node_communities.shape}")
             for j in large_community_indices:
-                node_communities[j] = node_communities_big[jj]
+                node_communities[j] = node_communities_large_community[jj]
                 jj = jj + 1
             node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
             logger.message(f"new set of labels: {set(node_communities)}")
