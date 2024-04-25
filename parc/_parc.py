@@ -399,11 +399,11 @@ class PARC:
 
         community_indices = np.where(node_communities == 0)[
             0]  # the 0th cluster is the largest one. so if cluster 0 is not too big, then the others wont be too big either
-        pop_i = len(community_indices)
-        if pop_i > large_community_factor * n_elements:  # 0.4
+        community_size = len(community_indices)
+        if community_size > large_community_factor * n_elements:  # 0.4
             is_large_community = True
             large_community_indices = community_indices
-            large_community_sizes = [pop_i]
+            large_community_sizes = [community_size]
 
         while is_large_community == True:
 
