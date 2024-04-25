@@ -423,10 +423,9 @@ class PARC:
             node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
             logger.message(f"new set of labels: {set(node_communities)}")
             is_large_community = False
-            set_node_communities = set(node_communities)
-
             node_communities = np.asarray(node_communities)
-            for community_id in set_node_communities:
+
+            for community_id in set(node_communities):
                 community_indices = np.where(node_communities == community_id)[0]
                 community_size = len(community_indices)
                 not_yet_expanded = community_size not in large_community_sizes
