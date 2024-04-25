@@ -415,11 +415,11 @@ class PARC:
             for item in set(list(node_communities_large_community.flatten())):
                 pop_list.append([item, list(node_communities_large_community.flatten()).count(item)])
             logger.message(f"pop of big clusters: {pop_list}")
-            jj = 0
             logger.message(f"shape node_communities: {node_communities.shape}")
-            for j in large_community_indices:
-                node_communities[j] = node_communities_large_community[jj]
-                jj = jj + 1
+
+            for community_index, index in zip(large_community_indices, range(len(large_community_indices))):
+                node_communities[community_index] = node_communities_large_community[index]
+
             node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
             logger.message(f"new set of labels: {set(node_communities)}")
             is_large_community = False
