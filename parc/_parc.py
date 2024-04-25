@@ -410,11 +410,7 @@ class PARC:
             x_data_big = x_data[large_community_indices, :]
             node_communities_large_community = self.run_toobig_subPARC(x_data_big)
             node_communities_large_community = node_communities_large_community + 100000
-            pop_list = []
 
-            for item in set(list(node_communities_large_community.flatten())):
-                pop_list.append([item, list(node_communities_large_community.flatten()).count(item)])
-            logger.message(f"pop of big clusters: {pop_list}")
             logger.message(f"shape node_communities: {node_communities.shape}")
 
             for community_index, index in zip(large_community_indices, range(len(large_community_indices))):
@@ -431,13 +427,14 @@ class PARC:
                 not_yet_expanded = community_size not in large_community_sizes
                 if community_size > large_community_factor * n_elements and not_yet_expanded == True:
                     is_large_community = True
-                    logger.message(f"Cluster {community_id} is too big and has population {community_size}")
+                    logger.message(f"Community {community_id} is too big and has population {community_size}")
                     large_community_indices = community_indices
                     cluster_big = community_id
                     big_pop = community_size
             if is_large_community == True:
                 large_community_sizes.append(big_pop)
-                logger.message(f"cluster {cluster_big} is too big with population {big_pop}. It will be expanded.")
+                logger.message(f"Community {cluster_big} is too big with population {big_pop}. It will be expanded.")
+
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
         small_pop_list = []
         small_cluster_list = []
@@ -483,10 +480,6 @@ class PARC:
 
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
         node_communities = list(node_communities.flatten())
-        pop_list = []
-        for item in set(node_communities):
-            pop_list.append((item, node_communities.count(item)))
-        logger.message(f"list of cluster labels and populations: {len(pop_list)}, {pop_list}")
 
         self.y_data_pred = node_communities
         return
