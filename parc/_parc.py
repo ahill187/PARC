@@ -13,8 +13,8 @@ logger = get_logger(__name__)
 
 #latest github upload 27-June-2020
 class PARC:
-    def __init__(self, x_data, y_data_true=None, l2_std_factor=3, jac_std_factor=0.0,
-                 jac_threshold_type="median", keep_all_local_dist='auto',
+    def __init__(self, x_data, y_data_true=None, l2_std_factor=3, keep_all_local_dist=None,
+                 jac_std_factor=0.0, jac_threshold_type="median",
                  large_community_factor=0.4, small_community_size=10, small_community_timeout=15,
                  jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
                  num_threads=-1, distance_metric="l2", small_community_timeout=15, partition_type = "ModularityVP", resolution_parameter = 1.0,
@@ -36,6 +36,9 @@ class PARC:
                 Avoid setting both the ``jac_std_factor`` (global) and the ``l2_std_factor`` (local)
                 to < 0.5 as this is very aggressive pruning.
                 Higher ``l2_std_factor`` means more edges are kept.
+            keep_all_local_dist (bool): whether or not to do local pruning.
+                If None (default), set to ``True`` if the number of samples is > 300 000,
+                and set to ``False`` otherwise.
             jac_threshold_type (str): One of "median" or "mean". Determines how the Jaccard similarity
                 threshold is calculated during global pruning.
             jac_std_factor (float): The multiplier used in calculating the Jaccard similarity threshold
@@ -72,11 +75,6 @@ class PARC:
 
                     d = 1.0 - sum(x_i*y_i)
         """
-        if keep_all_local_dist == 'auto':
-            if x_data.shape[0] > 300000:
-                keep_all_local_dist = True  # skips local pruning to increase speed
-            else:
-                keep_all_local_dist = False
         if resolution_parameter !=1:
             partition_type = "RBVP" # Reichardt and Bornholdt’s Potts model. Note that this is the same as ModularityVertexPartition when setting 𝛾 = 1 and normalising by 2m
         self.y_data_true = y_data_true
@@ -85,7 +83,7 @@ class PARC:
         self.l2_std_factor = l2_std_factor
         self.jac_std_factor = jac_std_factor
         self.jac_threshold_type = jac_threshold_type
-        self.keep_all_local_dist = keep_all_local_dist #decides whether or not to do local pruning. default is 'auto' which omits LOCAL pruning for samples >300,000 cells.
+        self.keep_all_local_dist = keep_all_local_dist
         self.large_community_factor = large_community_factor  #if a cluster exceeds this share of the entire cell population, then the PARC will be run on the large cluster. at 0.4 it does not come into play
         self.small_community_size = small_community_size
         self.jac_weighted_edges = jac_weighted_edges #boolean. whether to partition using weighted graph
@@ -110,6 +108,24 @@ class PARC:
         self._x_data = x_data
         if self.y_data_true is None:
             self.y_data_true = [1] * x_data.shape[0]
+
+    @property
+    def keep_all_local_dist(self):
+        return self._keep_all_local_dist
+
+    @keep_all_local_dist.setter
+    def keep_all_local_dist(self, keep_all_local_dist):
+        if keep_all_local_dist is None:
+            if self.x_data.shape[0] > 300000:
+                logger.message(
+                    f"Sample size is {self.x_data.shape[0]}, setting keep_all_local_dist "
+                    f"to True so that local pruning will be skipped and algorithm will be faster."
+                )
+                keep_all_local_dist = True
+            else:
+                keep_all_local_dist = False
+
+        self._keep_all_local_dist = keep_all_local_dist
 
     def make_knn_struct(self, is_large_community=False, big_cluster=None):
         if self.knn > 190:
