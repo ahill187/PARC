@@ -495,12 +495,12 @@ class PARC:
         small_cluster_list = []
         small_community_exists = False
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
-        for cluster in set(node_communities):
-            population = len(np.where(node_communities == cluster)[0])
+        for community_id in set(node_communities):
+            population = len(np.where(node_communities == community_id)[0])
             if population < 10:
                 small_community_exists = True
-                small_pop_list.append(list(np.where(node_communities == cluster)[0]))
-                small_cluster_list.append(cluster)
+                small_pop_list.append(list(np.where(node_communities == community_id)[0]))
+                small_cluster_list.append(community_id)
 
         for small_cluster in small_pop_list:
             for single_cell in small_cluster:
@@ -519,12 +519,12 @@ class PARC:
         while small_community_exists & (time.time() - time_smallpop_start < self.small_community_timeout):
             small_pop_list = []
             small_community_exists = False
-            for cluster in set(list(node_communities.flatten())):
-                population = len(np.where(node_communities == cluster)[0])
+            for community_id in set(list(node_communities.flatten())):
+                population = len(np.where(node_communities == community_id)[0])
                 if population < 10:
                     small_community_exists = True
 
-                    small_pop_list.append(np.where(node_communities == cluster)[0])
+                    small_pop_list.append(np.where(node_communities == community_id)[0])
             for small_cluster in small_pop_list:
                 for single_cell in small_cluster:
                     old_neighbors = neighbor_array[single_cell, :]
@@ -574,14 +574,14 @@ class PARC:
         small_cluster_list = []
         small_community_exists = False
 
-        for cluster in set(node_communities):
-            population = len(np.where(node_communities == cluster)[0])
+        for community_id in set(node_communities):
+            population = len(np.where(node_communities == community_id)[0])
 
-            if population < small_community_size:  # 10
+            if population < small_community_size:
                 small_community_exists = True
 
-                small_pop_list.append(list(np.where(node_communities == cluster)[0]))
-                small_cluster_list.append(cluster)
+                small_pop_list.append(list(np.where(node_communities == community_id)[0]))
+                small_cluster_list.append(community_id)
 
         for small_cluster in small_pop_list:
 
@@ -599,11 +599,11 @@ class PARC:
         while small_community_exists & ((time.time() - time_smallpop_start) < self.small_community_timeout):
             small_pop_list = []
             small_community_exists = False
-            for cluster in set(list(node_communities.flatten())):
-                population = len(np.where(node_communities == cluster)[0])
+            for community_id in set(list(node_communities.flatten())):
+                population = len(np.where(node_communities == community_id)[0])
                 if population < small_community_size:
                     small_community_exists = True
-                    small_pop_list.append(np.where(node_communities == cluster)[0])
+                    small_pop_list.append(np.where(node_communities == community_id)[0])
             for small_cluster in small_pop_list:
                 for single_cell in small_cluster:
                     old_neighbors = neighbor_array[single_cell]
