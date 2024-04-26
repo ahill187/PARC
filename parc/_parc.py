@@ -90,6 +90,11 @@ class PARC:
                 - ``ModularityVP``: ModularityVertexPartition, ``resolution_parameter=1``
                 - ``RBVP``: RBConfigurationVP, Reichardt and Bornholdt’s Potts model. Note that this
                   is the same as ``ModularityVP`` when setting 𝛾 = 1 and normalising by 2m.
+            large_community_factor (float): A factor used to determine if a community is too large.
+                If the community size is greater than ``large_community_factor * n_samples``,
+                then the community is too large and the PARC algorithm will be run on the single
+                community to split it up. The default value of 0.4 ensures that all communities will
+                be less than the cutoff size.
             small_community_size (int): the smallest population size to be considered a community.
             small_community_timeout (int): the maximum number of seconds trying to check an outlying
                 small community.
