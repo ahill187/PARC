@@ -539,11 +539,11 @@ class PARC:
         for community in communities_small:
             for node in community.nodes:
                 neighbors = neighbor_array[node, :]
-                group_of_old_neighbors = node_communities[neighbors]
-                group_of_old_neighbors = list(group_of_old_neighbors.flatten())
-                available_neighbours = set(group_of_old_neighbors) - set(community_ids_small)
+                node_communities_neighbors = node_communities[neighbors]
+                node_communities_neighbors = list(node_communities_neighbors.flatten())
+                available_neighbours = set(node_communities_neighbors) - set(community_ids_small)
                 if len(available_neighbours) > 0:
-                    available_neighbours_list = [value for value in group_of_old_neighbors if
+                    available_neighbours_list = [value for value in node_communities_neighbors if
                                                  value in list(available_neighbours)]
                     best_group = max(available_neighbours_list, key=available_neighbours_list.count)
                     node_communities[node] = best_group
@@ -561,9 +561,9 @@ class PARC:
             for community in communities_small:
                 for node in community.nodes:
                     neighbors = neighbor_array[node, :]
-                    group_of_old_neighbors = node_communities[neighbors]
-                    group_of_old_neighbors = list(group_of_old_neighbors.flatten())
-                    best_group = max(set(group_of_old_neighbors), key=group_of_old_neighbors.count)
+                    node_communities_neighbors = node_communities[neighbors]
+                    node_communities_neighbors = list(node_communities_neighbors.flatten())
+                    best_group = max(set(node_communities_neighbors), key=node_communities_neighbors.count)
                     node_communities[node] = best_group
 
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
@@ -615,11 +615,11 @@ class PARC:
         for community in communities_small:
             for node in community.nodes:
                 neighbors = neighbor_array[node]
-                group_of_old_neighbors = node_communities[neighbors]
-                group_of_old_neighbors = list(group_of_old_neighbors.flatten())
-                available_neighbours = set(group_of_old_neighbors) - set(community_ids_small)
+                node_communities_neighbors = node_communities[neighbors]
+                node_communities_neighbors = list(node_communities_neighbors.flatten())
+                available_neighbours = set(node_communities_neighbors) - set(community_ids_small)
                 if len(available_neighbours) > 0:
-                    available_neighbours_list = [value for value in group_of_old_neighbors if
+                    available_neighbours_list = [value for value in node_communities_neighbors if
                                                  value in list(available_neighbours)]
                     best_group = max(available_neighbours_list, key=available_neighbours_list.count)
                     node_communities[node] = best_group
@@ -635,9 +635,9 @@ class PARC:
             for community in communities_small:
                 for node in community.nodes:
                     neighbors = neighbor_array[node]
-                    group_of_old_neighbors = node_communities[neighbors]
-                    group_of_old_neighbors = list(group_of_old_neighbors.flatten())
-                    best_group = max(set(group_of_old_neighbors), key=group_of_old_neighbors.count)
+                    node_communities_neighbors = node_communities[neighbors]
+                    node_communities_neighbors = list(node_communities_neighbors.flatten())
+                    best_group = max(set(node_communities_neighbors), key=node_communities_neighbors.count)
                     node_communities[node] = best_group
 
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
