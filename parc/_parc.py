@@ -596,7 +596,7 @@ class PARC:
             small_pop_exist = False
             for cluster in set(list(node_communities.flatten())):
                 population = len(np.where(node_communities == cluster)[0])
-                if population < small_pop:
+                if population < small_community_size:
                     small_pop_exist = True
                     small_pop_list.append(np.where(node_communities == cluster)[0])
             for small_cluster in small_pop_list:
