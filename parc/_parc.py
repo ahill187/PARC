@@ -491,7 +491,7 @@ class PARC:
 
         node_communities = np.asarray(partition.membership)
         node_communities = np.reshape(node_communities, (n_elements, 1))
-        small_pop_list = []
+        communities_small = []
         small_cluster_list = []
         small_community_exists = False
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
@@ -499,10 +499,10 @@ class PARC:
             population = len(np.where(node_communities == community_id)[0])
             if population < 10:
                 small_community_exists = True
-                small_pop_list.append(list(np.where(node_communities == community_id)[0]))
+                communities_small.append(list(np.where(node_communities == community_id)[0]))
                 small_cluster_list.append(community_id)
 
-        for small_cluster in small_pop_list:
+        for small_cluster in communities_small:
             for single_cell in small_cluster:
                 old_neighbors = neighbor_array[single_cell, :]
                 group_of_old_neighbors = node_communities[old_neighbors]
@@ -517,15 +517,15 @@ class PARC:
         time_smallpop_start = time.time()
         logger.message('handling fragments')
         while small_community_exists & (time.time() - time_smallpop_start < self.small_community_timeout):
-            small_pop_list = []
+            communities_small = []
             small_community_exists = False
             for community_id in set(list(node_communities.flatten())):
                 population = len(np.where(node_communities == community_id)[0])
                 if population < 10:
                     small_community_exists = True
 
-                    small_pop_list.append(np.where(node_communities == community_id)[0])
-            for small_cluster in small_pop_list:
+                    communities_small.append(np.where(node_communities == community_id)[0])
+            for small_cluster in communities_small:
                 for single_cell in small_cluster:
                     old_neighbors = neighbor_array[single_cell, :]
                     group_of_old_neighbors = node_communities[old_neighbors]
@@ -570,7 +570,7 @@ class PARC:
         node_communities = self.reassign_large_communities(x_data, node_communities)
 
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
-        small_pop_list = []
+        communities_small = []
         small_cluster_list = []
         small_community_exists = False
 
@@ -580,10 +580,10 @@ class PARC:
             if population < small_community_size:
                 small_community_exists = True
 
-                small_pop_list.append(list(np.where(node_communities == community_id)[0]))
+                communities_small.append(list(np.where(node_communities == community_id)[0]))
                 small_cluster_list.append(community_id)
 
-        for small_cluster in small_pop_list:
+        for small_cluster in communities_small:
 
             for single_cell in small_cluster:
                 old_neighbors = neighbor_array[single_cell]
@@ -597,14 +597,14 @@ class PARC:
                     node_communities[single_cell] = best_group
         time_smallpop_start = time.time()
         while small_community_exists & ((time.time() - time_smallpop_start) < self.small_community_timeout):
-            small_pop_list = []
+            communities_small = []
             small_community_exists = False
             for community_id in set(list(node_communities.flatten())):
                 population = len(np.where(node_communities == community_id)[0])
                 if population < small_community_size:
                     small_community_exists = True
-                    small_pop_list.append(np.where(node_communities == community_id)[0])
-            for small_cluster in small_pop_list:
+                    communities_small.append(np.where(node_communities == community_id)[0])
+            for small_cluster in communities_small:
                 for single_cell in small_cluster:
                     old_neighbors = neighbor_array[single_cell]
                     group_of_old_neighbors = node_communities[old_neighbors]
