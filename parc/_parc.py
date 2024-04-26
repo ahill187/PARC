@@ -11,15 +11,16 @@ from parc.logger import get_logger
 logger = get_logger(__name__)
 
 
-#latest github upload 27-June-2020
 class PARC:
-    def __init__(self, x_data, y_data_true=None, l2_std_factor=3, keep_all_local_dist=None,
-                 jac_threshold_type="median", jac_std_factor=0.0, resolution_parameter=1.0,
-                 partition_type="ModularityVP",
+    def __init__(self, x_data, y_data_true=None, knn=30, n_iter_leiden=5, random_seed=42,
+                 distance_metric="l2", n_threads=-1, knn_struct=None,
+                 neighbor_graph=None, hnsw_param_ef_construction=150,
+                 l2_std_factor=3, keep_all_local_dist=None,
+                 jac_threshold_type="median", jac_std_factor=0.0, jac_weighted_edges=True,
+                 resolution_parameter=1.0, partition_type="ModularityVP",
                  large_community_factor=0.4, small_community_size=10, small_community_timeout=15,
-                 jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
-                 n_threads=-1, distance_metric="l2", small_community_timeout=15,
-                 knn_struct=None, neighbor_graph=None, hnsw_param_ef_construction = 150):
+                 small_community_timeout=15,
+                 ):
         """Phenotyping by Accelerated Refined Community-partitioning.
 
         Attributes:
@@ -27,6 +28,33 @@ class PARC:
                 (n_samples, n_features).
             y_data_true (np.array): a Numpy array of the true output y labels.
             y_data_pred (np.array): a Numpy array of the predicted output y labels.
+            knn (int): the number of nearest neighbors k for the k-nearest neighbours algorithm.
+                Larger k means more neighbors in a cluster and therefore less clusters.
+            n_iter_leiden (int): the number of iterations for the Leiden algorithm.
+            random_seed (int): the random seed to enable reproducible Leiden clustering.
+            distance_metric (string): the distance metric to be used in the KNN algorithm:
+
+                - ``l2``: Euclidean distance L^2 norm:
+
+                  .. code-block:: python
+
+                    d = sum((x_i - y_i)^2)
+                - ``cosine``: cosine similarity
+
+                  .. code-block:: python
+
+                    d = 1.0 - sum(x_i*y_i) / sqrt(sum(x_i*x_i) * sum(y_i*y_i))
+                - ``ip``: inner product distance
+
+                  .. code-block:: python
+
+                    d = 1.0 - sum(x_i*y_i)
+            n_threads (int): the number of threads used in the KNN algorithm.
+            knn_struct (hnswlib.Index): the HNSW index of the KNN graph on which we perform queries.
+            neighbor_graph (Compressed Sparse Row Matrix): A sparse matrix with dimensions
+                (n_samples, n_samples), containing the distances between nodes.
+            hnsw_param_ef_construction (int): a higher value increases accuracy of index construction.
+                Even for O(100 000) cells, 150-200 is adequate.
             l2_std_factor (float): The multiplier used in calculating the Euclidean distance threshold
                 for the distance between two nodes during local pruning:
 
@@ -55,6 +83,7 @@ class PARC:
                 the ``jac_std_factor``.
                 Generally values between 0-1.5 are reasonable.
                 Higher ``jac_std_factor`` means more edges are kept.
+            jac_weighted_edges (bool): whether to partition using the weighted graph.
             resolution_parameter (float): the resolution parameter to be used in the Leiden algorithm.
                 In order to change ``resolution_parameter``, we switch to ``RBVP``.
             partition_type (str): the partition type to be used in the Leiden algorithm:
@@ -64,46 +93,28 @@ class PARC:
             small_community_size (int): the smallest population size to be considered a community.
             small_community_timeout (int): the maximum number of seconds trying to check an outlying
                 small community.
-            distance_metric (string): the distance metric to be used in the KNN algorithm:
-
-                - ``l2``: Euclidean distance L^2 norm:
-
-                  .. code-block:: python
-
-                    d = sum((x_i - y_i)^2)
-                - ``cosine``: cosine similarity
-
-                  .. code-block:: python
-
-                    d = 1.0 - sum(x_i*y_i) / sqrt(sum(x_i*x_i) * sum(y_i*y_i))
-                - ``ip``: inner product distance
-
-                  .. code-block:: python
-
-                    d = 1.0 - sum(x_i*y_i)
-            n_threads (int): the number of threads used in the KNN algorithm.
         """
         self.y_data_true = y_data_true
         self.x_data = x_data
         self.y_data_pred = None
+        self.knn = knn
+        self.n_iter_leiden = n_iter_leiden
+        self.random_seed = random_seed
+        self.distance_metric = distance_metric
+        self.n_threads = n_threads
         self.l2_std_factor = l2_std_factor
         self.jac_std_factor = jac_std_factor
         self.jac_threshold_type = jac_threshold_type
+        self.jac_weighted_edges = jac_weighted_edges
         self.keep_all_local_dist = keep_all_local_dist
-        self.large_community_factor = large_community_factor  #if a cluster exceeds this share of the entire cell population, then the PARC will be run on the large cluster. at 0.4 it does not come into play
+        self.large_community_factor = large_community_factor
         self.small_community_size = small_community_size
-        self.jac_weighted_edges = jac_weighted_edges #boolean. whether to partition using weighted graph
-        self.knn = knn
-        self.n_iter_leiden = n_iter_leiden #the default is 5 in PARC
-        self.random_seed = random_seed  # enable reproducible Leiden clustering
-        self.n_threads = n_threads
-        self.distance_metric = distance_metric
         self.small_community_timeout = small_community_timeout
         self.resolution_parameter = resolution_parameter
         self.partition_type = partition_type
-        self.knn_struct = knn_struct #the hnsw index of the KNN graph on which we perform queries
-        self.neighbor_graph = neighbor_graph # CSR affinity matrix for pre-computed nearest neighbors
-        self.hnsw_param_ef_construction = hnsw_param_ef_construction #set at 150. higher value increases accuracy of index construction. Even for several 100,000s of cells 150-200 is adequate
+        self.knn_struct = knn_struct
+        self.neighbor_graph = neighbor_graph
+        self.hnsw_param_ef_construction = hnsw_param_ef_construction
 
     @property
     def x_data(self):
