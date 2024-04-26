@@ -474,6 +474,37 @@ class PARC:
 
         return node_communities
 
+    def get_small_communities(self, node_communities, small_community_size):
+        """Find communities which are below the small_community_size cutoff.
+
+        Args:
+            node_communities (np.array): an array containing the community assignments for each
+                node.
+            small_community_size (int): the maximum number of nodes in a community. Communities
+                with less nodes than the small_community_size are considered to be
+                small communities.
+
+        Returns:
+            (np.array, np.array): a 2-tuple consisting of:
+
+                - ``communities``: an array where each element is a community object.
+                - ``community_ids_small``: an array of the community ids corresponding to the
+                  small communities.
+        """
+        communities = []
+        community_ids_small = []
+        community_ids = set(list(node_communities.flatten()))
+
+        for community_id in community_ids:
+            nodes = np.where(node_communities == community_id)[0]
+            community_size = len(nodes)
+
+            if community_size < small_community_size:
+                communities.append(nodes)
+                community_ids_small.append(community_id)
+
+        return communities, community_ids_small
+
     def run_toobig_subPARC(self, x_data, jac_std_factor=0.3, jac_threshold_type="mean",
                            jac_weighted_edges=True):
         n_elements = x_data.shape[0]
@@ -491,17 +522,14 @@ class PARC:
 
         node_communities = np.asarray(partition.membership)
         node_communities = np.reshape(node_communities, (n_elements, 1))
-        communities_small = []
-        community_ids_small = []
-        small_community_exists = False
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
-        for community_id in set(node_communities):
-            nodes = list(np.where(node_communities == community_id)[0])
-            community_size = len(nodes)
-            if community_size < 10:
-                small_community_exists = True
-                communities_small.append(nodes)
-                community_ids_small.append(community_id)
+        communities_small, community_ids_small = self.get_small_communities(
+            node_communities, small_community_size=10
+        )
+        if communities_small == []:
+            small_community_exists = False
+        else:
+            small_community_exists = True
 
         for small_cluster in communities_small:
             for single_cell in small_cluster:
@@ -518,14 +546,13 @@ class PARC:
         time_smallpop_start = time.time()
         logger.message('handling fragments')
         while small_community_exists & (time.time() - time_smallpop_start < self.small_community_timeout):
-            communities_small = []
-            small_community_exists = False
-            for community_id in set(list(node_communities.flatten())):
-                nodes = list(np.where(node_communities == community_id)[0])
-                community_size = len(nodes)
-                if community_size < 10:
-                    small_community_exists = True
-                    communities_small.append(nodes)
+            communities_small, community_ids_small = self.get_small_communities(
+                node_communities, small_community_size=10
+            )
+            if communities_small == []:
+                small_community_exists = False
+            else:
+                small_community_exists = True
             for small_cluster in communities_small:
                 for single_cell in small_cluster:
                     old_neighbors = neighbor_array[single_cell, :]
@@ -571,21 +598,15 @@ class PARC:
         node_communities = self.reassign_large_communities(x_data, node_communities)
 
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
-        communities_small = []
-        community_ids_small = []
-        small_community_exists = False
-
-        for community_id in set(node_communities):
-            nodes = list(np.where(node_communities == community_id)[0])
-            community_size = len(nodes)
-
-            if community_size < small_community_size:
-                small_community_exists = True
-                communities_small.append(nodes)
-                community_ids_small.append(community_id)
+        communities_small, community_ids_small = self.get_small_communities(
+            node_communities, small_community_size
+        )
+        if communities_small == []:
+            small_community_exists = False
+        else:
+            small_community_exists = True
 
         for small_cluster in communities_small:
-
             for single_cell in small_cluster:
                 old_neighbors = neighbor_array[single_cell]
                 group_of_old_neighbors = node_communities[old_neighbors]
@@ -598,14 +619,13 @@ class PARC:
                     node_communities[single_cell] = best_group
         time_smallpop_start = time.time()
         while small_community_exists & ((time.time() - time_smallpop_start) < self.small_community_timeout):
-            communities_small = []
-            small_community_exists = False
-            for community_id in set(list(node_communities.flatten())):
-                nodes = list(np.where(node_communities == community_id)[0])
-                community_size = len(nodes)
-                if community_size < small_community_size:
-                    small_community_exists = True
-                    communities_small.append(nodes)
+            communities_small, _ = self.get_small_communities(
+                node_communities, small_community_size
+            )
+            if communities_small == []:
+                small_community_exists = False
+            else:
+                small_community_exists = True
             for small_cluster in communities_small:
                 for single_cell in small_cluster:
                     old_neighbors = neighbor_array[single_cell]
