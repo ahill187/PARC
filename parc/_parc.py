@@ -6,6 +6,7 @@ import igraph as ig
 import leidenalg
 import time
 from parc.metrics import accuracy
+from parc.graph import Community
 from parc.logger import get_logger
 
 logger = get_logger(__name__)
@@ -492,7 +493,6 @@ class PARC:
                   small communities.
         """
         communities = []
-        community_ids_small = []
         community_ids = set(list(node_communities.flatten()))
 
         for community_id in community_ids:
@@ -500,10 +500,14 @@ class PARC:
             community_size = len(nodes)
 
             if community_size < small_community_size:
-                communities.append(nodes)
-                community_ids_small.append(community_id)
+                logger.info(f"Small community: size = {community_size}, id = {community_id}")
+                community = Community(
+                    id=community_id,
+                    nodes=list(nodes)
+                )
+                communities.append(community)
 
-        return communities, community_ids_small
+        return communities
 
     def run_toobig_subPARC(self, x_data, jac_std_factor=0.3, jac_threshold_type="mean",
                            jac_weighted_edges=True):
@@ -523,7 +527,7 @@ class PARC:
         node_communities = np.asarray(partition.membership)
         node_communities = np.reshape(node_communities, (n_elements, 1))
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
-        communities_small, community_ids_small = self.get_small_communities(
+        communities_small = self.get_small_communities(
             node_communities, small_community_size=10
         )
         if communities_small == []:
@@ -531,9 +535,10 @@ class PARC:
         else:
             small_community_exists = True
 
-        for small_cluster in communities_small:
-            for single_cell in small_cluster:
-                old_neighbors = neighbor_array[single_cell, :]
+        community_ids_small = [community.id for community in communities_small]
+        for community in communities_small:
+            for node in community.nodes:
+                old_neighbors = neighbor_array[node, :]
                 group_of_old_neighbors = node_communities[old_neighbors]
                 group_of_old_neighbors = list(group_of_old_neighbors.flatten())
                 available_neighbours = set(group_of_old_neighbors) - set(community_ids_small)
@@ -541,25 +546,25 @@ class PARC:
                     available_neighbours_list = [value for value in group_of_old_neighbors if
                                                  value in list(available_neighbours)]
                     best_group = max(available_neighbours_list, key=available_neighbours_list.count)
-                    node_communities[single_cell] = best_group
+                    node_communities[node] = best_group
 
         time_smallpop_start = time.time()
         logger.message('handling fragments')
         while small_community_exists & (time.time() - time_smallpop_start < self.small_community_timeout):
-            communities_small, community_ids_small = self.get_small_communities(
+            communities_small = self.get_small_communities(
                 node_communities, small_community_size=10
             )
             if communities_small == []:
                 small_community_exists = False
             else:
                 small_community_exists = True
-            for small_cluster in communities_small:
-                for single_cell in small_cluster:
-                    old_neighbors = neighbor_array[single_cell, :]
+            for community in communities_small:
+                for node in community.nodes:
+                    old_neighbors = neighbor_array[node, :]
                     group_of_old_neighbors = node_communities[old_neighbors]
                     group_of_old_neighbors = list(group_of_old_neighbors.flatten())
                     best_group = max(set(group_of_old_neighbors), key=group_of_old_neighbors.count)
-                    node_communities[single_cell] = best_group
+                    node_communities[node] = best_group
 
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
 
@@ -598,7 +603,7 @@ class PARC:
         node_communities = self.reassign_large_communities(x_data, node_communities)
 
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
-        communities_small, community_ids_small = self.get_small_communities(
+        communities_small = self.get_small_communities(
             node_communities, small_community_size
         )
         if communities_small == []:
@@ -606,9 +611,10 @@ class PARC:
         else:
             small_community_exists = True
 
-        for small_cluster in communities_small:
-            for single_cell in small_cluster:
-                old_neighbors = neighbor_array[single_cell]
+        community_ids_small = [community.id for community in communities_small]
+        for community in communities_small:
+            for node in community.nodes:
+                old_neighbors = neighbor_array[node]
                 group_of_old_neighbors = node_communities[old_neighbors]
                 group_of_old_neighbors = list(group_of_old_neighbors.flatten())
                 available_neighbours = set(group_of_old_neighbors) - set(community_ids_small)
@@ -616,23 +622,23 @@ class PARC:
                     available_neighbours_list = [value for value in group_of_old_neighbors if
                                                  value in list(available_neighbours)]
                     best_group = max(available_neighbours_list, key=available_neighbours_list.count)
-                    node_communities[single_cell] = best_group
+                    node_communities[node] = best_group
         time_smallpop_start = time.time()
         while small_community_exists & ((time.time() - time_smallpop_start) < self.small_community_timeout):
-            communities_small, _ = self.get_small_communities(
+            communities_small = self.get_small_communities(
                 node_communities, small_community_size
             )
             if communities_small == []:
                 small_community_exists = False
             else:
                 small_community_exists = True
-            for small_cluster in communities_small:
-                for single_cell in small_cluster:
-                    old_neighbors = neighbor_array[single_cell]
+            for community in communities_small:
+                for node in community.nodes:
+                    old_neighbors = neighbor_array[node]
                     group_of_old_neighbors = node_communities[old_neighbors]
                     group_of_old_neighbors = list(group_of_old_neighbors.flatten())
                     best_group = max(set(group_of_old_neighbors), key=group_of_old_neighbors.count)
-                    node_communities[single_cell] = best_group
+                    node_communities[node] = best_group
 
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
         node_communities = list(node_communities.flatten())
