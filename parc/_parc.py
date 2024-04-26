@@ -172,25 +172,25 @@ class PARC:
         ef_query = max(100, self.knn + 1)  # ef always should be >K. higher ef, more accurate query
         if is_large_community == False:
             num_dims = self.x_data.shape[1]
-            n_elements = self.x_data.shape[0]
+            n_samples = self.x_data.shape[0]
             p = hnswlib.Index(space=self.distance_metric, dim=num_dims)
             p.set_num_threads(self.n_threads)
-            if n_elements < 10000:
-                ef_query = min(n_elements - 10, 500)
+            if n_samples < 10000:
+                ef_query = min(n_samples - 10, 500)
                 ef_construction = ef_query
             else:
                 ef_construction = self.hnsw_param_ef_construction
-            if (num_dims > 30) & (n_elements<=50000) :
-                p.init_index(max_elements=n_elements, ef_construction=ef_construction,
+            if (num_dims > 30) & (n_samples<=50000) :
+                p.init_index(max_elements=n_samples, ef_construction=ef_construction,
                              M=48)  ## good for scRNA seq where dimensionality is high
             else:
-                p.init_index(max_elements=n_elements, ef_construction=ef_construction, M=24 ) #30
+                p.init_index(max_elements=n_samples, ef_construction=ef_construction, M=24 ) #30
             p.add_items(self.x_data)
         if is_large_community == True:
             num_dims = big_cluster.shape[1]
-            n_elements = big_cluster.shape[0]
+            n_samples = big_cluster.shape[0]
             p = hnswlib.Index(space='l2', dim=num_dims)
-            p.init_index(max_elements=n_elements, ef_construction=200, M=30)
+            p.init_index(max_elements=n_samples, ef_construction=200, M=30)
             p.add_items(big_cluster)
         p.set_ef(ef_query)  # ef should always be > k
 
@@ -573,13 +573,13 @@ class PARC:
 
     def run_toobig_subPARC(self, x_data, jac_std_factor=0.3, jac_threshold_type="mean",
                            jac_weighted_edges=True):
-        n_elements = x_data.shape[0]
+        n_samples = x_data.shape[0]
         hnsw = self.make_knn_struct(is_large_community=True, big_cluster=x_data)
-        if n_elements <= 10: logger.message('consider increasing the large_community_factor')
-        if n_elements > self.knn:
+        if n_samples <= 10: logger.message('consider increasing the large_community_factor')
+        if n_samples > self.knn:
             knn = self.knn
         else:
-            knn = int(max(5, 0.2 * n_elements))
+            knn = int(max(5, 0.2 * n_samples))
 
         neighbor_array, distance_array = hnsw.knn_query(x_data, k=knn)
         csr_array = self.prune_local(neighbor_array, distance_array)
@@ -587,7 +587,7 @@ class PARC:
         partition = self.get_leiden_partition(graph, jac_weighted_edges)
 
         node_communities = np.asarray(partition.membership)
-        node_communities = np.reshape(node_communities, (n_elements, 1))
+        node_communities = np.reshape(node_communities, (n_samples, 1))
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
         node_communities = self.reassign_small_communities(
             node_communities=node_communities,
@@ -610,7 +610,7 @@ class PARC:
         large_community_factor = self.large_community_factor
         jac_std_factor = self.jac_std_factor
         jac_weighted_edges = self.jac_weighted_edges
-        n_elements = x_data.shape[0]
+        n_samples = x_data.shape[0]
 
         if self.neighbor_graph is None:
             neighbor_array, distance_array = self.knn_struct.knn_query(x_data, k=self.knn)
@@ -625,7 +625,7 @@ class PARC:
         partition = self.get_leiden_partition(graph, self.jac_weighted_edges)
         time_end_PARC = time.time()
         node_communities = np.asarray(partition.membership)
-        node_communities = np.reshape(node_communities, (n_elements, 1))
+        node_communities = np.reshape(node_communities, (n_samples, 1))
         node_communities = self.reassign_large_communities(x_data, node_communities)
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
         node_communities = self.reassign_small_communities(
