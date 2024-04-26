@@ -496,10 +496,11 @@ class PARC:
         small_community_exists = False
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
         for community_id in set(node_communities):
-            community_size = len(np.where(node_communities == community_id)[0])
+            nodes = list(np.where(node_communities == community_id)[0])
+            community_size = len(nodes)
             if community_size < 10:
                 small_community_exists = True
-                communities_small.append(list(np.where(node_communities == community_id)[0]))
+                communities_small.append(nodes)
                 small_cluster_list.append(community_id)
 
         for small_cluster in communities_small:
@@ -520,11 +521,11 @@ class PARC:
             communities_small = []
             small_community_exists = False
             for community_id in set(list(node_communities.flatten())):
-                community_size = len(np.where(node_communities == community_id)[0])
+                nodes = list(np.where(node_communities == community_id)[0])
+                community_size = len(nodes)
                 if community_size < 10:
                     small_community_exists = True
-
-                    communities_small.append(np.where(node_communities == community_id)[0])
+                    communities_small.append(nodes)
             for small_cluster in communities_small:
                 for single_cell in small_cluster:
                     old_neighbors = neighbor_array[single_cell, :]
@@ -575,11 +576,12 @@ class PARC:
         small_community_exists = False
 
         for community_id in set(node_communities):
-            community_size = len(np.where(node_communities == community_id)[0])
+            nodes = list(np.where(node_communities == community_id)[0])
+            community_size = len(nodes)
 
             if community_size < small_community_size:
                 small_community_exists = True
-                communities_small.append(list(np.where(node_communities == community_id)[0]))
+                communities_small.append(nodes)
                 small_cluster_list.append(community_id)
 
         for small_cluster in communities_small:
@@ -599,10 +601,11 @@ class PARC:
             communities_small = []
             small_community_exists = False
             for community_id in set(list(node_communities.flatten())):
-                community_size = len(np.where(node_communities == community_id)[0])
+                nodes = list(np.where(node_communities == community_id)[0])
+                community_size = len(nodes)
                 if community_size < small_community_size:
                     small_community_exists = True
-                    communities_small.append(np.where(node_communities == community_id)[0])
+                    communities_small.append(nodes)
             for small_cluster in communities_small:
                 for single_cell in small_cluster:
                     old_neighbors = neighbor_array[single_cell]
