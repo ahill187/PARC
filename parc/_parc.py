@@ -15,10 +15,10 @@ logger = get_logger(__name__)
 class PARC:
     def __init__(self, x_data, y_data_true=None, l2_std_factor=3, keep_all_local_dist=None,
                  jac_threshold_type="median", jac_std_factor=0.0, resolution_parameter=1.0,
-                 partition_type="ModularityVP", 
+                 partition_type="ModularityVP",
                  large_community_factor=0.4, small_community_size=10, small_community_timeout=15,
                  jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
-                 num_threads=-1, distance_metric="l2", small_community_timeout=15,
+                 n_threads=-1, distance_metric="l2", small_community_timeout=15,
                  knn_struct=None, neighbor_graph=None, hnsw_param_ef_construction = 150):
         """Phenotyping by Accelerated Refined Community-partitioning.
 
@@ -81,6 +81,7 @@ class PARC:
                   .. code-block:: python
 
                     d = 1.0 - sum(x_i*y_i)
+            n_threads (int): the number of threads used in the KNN algorithm.
         """
         self.y_data_true = y_data_true
         self.x_data = x_data
@@ -95,7 +96,7 @@ class PARC:
         self.knn = knn
         self.n_iter_leiden = n_iter_leiden #the default is 5 in PARC
         self.random_seed = random_seed  # enable reproducible Leiden clustering
-        self.num_threads = num_threads  # number of threads used in KNN search/construction
+        self.n_threads = n_threads
         self.distance_metric = distance_metric
         self.small_community_timeout = small_community_timeout
         self.resolution_parameter = resolution_parameter
@@ -151,7 +152,7 @@ class PARC:
             num_dims = self.x_data.shape[1]
             n_elements = self.x_data.shape[0]
             p = hnswlib.Index(space=self.distance_metric, dim=num_dims)
-            p.set_num_threads(self.num_threads)  # allow user to set threads used in KNN construction
+            p.set_num_threads(self.n_threads)
             if n_elements < 10000:
                 ef_query = min(n_elements - 10, 500)
                 ef_construction = ef_query
