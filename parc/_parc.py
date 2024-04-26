@@ -14,10 +14,11 @@ logger = get_logger(__name__)
 #latest github upload 27-June-2020
 class PARC:
     def __init__(self, x_data, y_data_true=None, l2_std_factor=3, keep_all_local_dist=None,
-                 jac_std_factor=0.0, jac_threshold_type="median",
+                 jac_threshold_type="median", jac_std_factor=0.0, resolution_parameter=1.0,
+                 partition_type="ModularityVP", 
                  large_community_factor=0.4, small_community_size=10, small_community_timeout=15,
                  jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
-                 num_threads=-1, distance_metric="l2", small_community_timeout=15, partition_type = "ModularityVP", resolution_parameter = 1.0,
+                 num_threads=-1, distance_metric="l2", small_community_timeout=15,
                  knn_struct=None, neighbor_graph=None, hnsw_param_ef_construction = 150):
         """Phenotyping by Accelerated Refined Community-partitioning.
 
@@ -54,6 +55,12 @@ class PARC:
                 the ``jac_std_factor``.
                 Generally values between 0-1.5 are reasonable.
                 Higher ``jac_std_factor`` means more edges are kept.
+            resolution_parameter (float): the resolution parameter to be used in the Leiden algorithm.
+                In order to change ``resolution_parameter``, we switch to ``RBVP``.
+            partition_type (str): the partition type to be used in the Leiden algorithm:
+                - ``ModularityVP``: ModularityVertexPartition, ``resolution_parameter=1``
+                - ``RBVP``: RBConfigurationVP, Reichardt and Bornholdt’s Potts model. Note that this
+                  is the same as ``ModularityVP`` when setting 𝛾 = 1 and normalising by 2m.
             small_community_size (int): the smallest population size to be considered a community.
             small_community_timeout (int): the maximum number of seconds trying to check an outlying
                 small community.
@@ -75,8 +82,6 @@ class PARC:
 
                     d = 1.0 - sum(x_i*y_i)
         """
-        if resolution_parameter !=1:
-            partition_type = "RBVP" # Reichardt and Bornholdt’s Potts model. Note that this is the same as ModularityVertexPartition when setting 𝛾 = 1 and normalising by 2m
         self.y_data_true = y_data_true
         self.x_data = x_data
         self.y_data_pred = None
@@ -93,8 +98,8 @@ class PARC:
         self.num_threads = num_threads  # number of threads used in KNN search/construction
         self.distance_metric = distance_metric
         self.small_community_timeout = small_community_timeout
-        self.partition_type = partition_type #default is the simple ModularityVertexPartition where resolution_parameter =1. In order to change resolution_parameter, we switch to RBConfigurationVP
-        self.resolution_parameter = resolution_parameter # defaults to 1. expose this parameter in leidenalg
+        self.resolution_parameter = resolution_parameter
+        self.partition_type = partition_type
         self.knn_struct = knn_struct #the hnsw index of the KNN graph on which we perform queries
         self.neighbor_graph = neighbor_graph # CSR affinity matrix for pre-computed nearest neighbors
         self.hnsw_param_ef_construction = hnsw_param_ef_construction #set at 150. higher value increases accuracy of index construction. Even for several 100,000s of cells 150-200 is adequate
@@ -126,6 +131,17 @@ class PARC:
                 keep_all_local_dist = False
 
         self._keep_all_local_dist = keep_all_local_dist
+
+    @property
+    def partition_type(self):
+        return self._partition_type
+
+    @partition_type.setter
+    def partition_type(self, partition_type):
+        if self.resolution_parameter != 1:
+            self._partition_type = "RBVP"
+        else:
+            self._partition_type = partition_type
 
     def make_knn_struct(self, is_large_community=False, big_cluster=None):
         if self.knn > 190:
