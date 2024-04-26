@@ -541,11 +541,17 @@ class PARC:
                 neighbors = neighbor_array[node, :]
                 node_communities_neighbors = node_communities[neighbors]
                 node_communities_neighbors = list(node_communities_neighbors.flatten())
-                available_neighbours = set(node_communities_neighbors) - set(community_ids_small)
-                if len(available_neighbours) > 0:
-                    available_neighbours_list = [value for value in node_communities_neighbors if
-                                                 value in list(available_neighbours)]
-                    best_group = max(available_neighbours_list, key=available_neighbours_list.count)
+                community_ids_neighbors_available = \
+                    set(node_communities_neighbors) - set(community_ids_small)
+                if len(community_ids_neighbors_available) > 0:
+                    node_communities_neighbors_available = [
+                        community_id for community_id in node_communities_neighbors if
+                        community_id in list(community_ids_neighbors_available)
+                    ]
+                    best_group = max(
+                        node_communities_neighbors_available,
+                        key=node_communities_neighbors_available.count
+                    )
                     node_communities[node] = best_group
 
         time_smallpop_start = time.time()
@@ -617,11 +623,17 @@ class PARC:
                 neighbors = neighbor_array[node]
                 node_communities_neighbors = node_communities[neighbors]
                 node_communities_neighbors = list(node_communities_neighbors.flatten())
-                available_neighbours = set(node_communities_neighbors) - set(community_ids_small)
-                if len(available_neighbours) > 0:
-                    available_neighbours_list = [value for value in node_communities_neighbors if
-                                                 value in list(available_neighbours)]
-                    best_group = max(available_neighbours_list, key=available_neighbours_list.count)
+                community_ids_neighbors_available = \
+                    set(node_communities_neighbors) - set(community_ids_small)
+                if len(community_ids_neighbors_available) > 0:
+                    node_communities_neighbors_available = [
+                        community_id for community_id in node_communities_neighbors if
+                        community_id in list(community_ids_neighbors_available)
+                    ]
+                    best_group = max(
+                        node_communities_neighbors_available,
+                        key=node_communities_neighbors_available.count
+                    )
                     node_communities[node] = best_group
         time_smallpop_start = time.time()
         while small_community_exists & ((time.time() - time_smallpop_start) < self.small_community_timeout):
@@ -637,7 +649,10 @@ class PARC:
                     neighbors = neighbor_array[node]
                     node_communities_neighbors = node_communities[neighbors]
                     node_communities_neighbors = list(node_communities_neighbors.flatten())
-                    best_group = max(set(node_communities_neighbors), key=node_communities_neighbors.count)
+                    best_group = max(
+                        set(node_communities_neighbors),
+                        key=node_communities_neighbors.count
+                    )
                     node_communities[node] = best_group
 
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
