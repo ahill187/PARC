@@ -481,11 +481,11 @@ class PARC:
         hnsw = self.make_knn_struct(is_large_community=True, big_cluster=x_data)
         if n_elements <= 10: logger.message('consider increasing the large_community_factor')
         if n_elements > self.knn:
-            knnbig = self.knn
+            knn = self.knn
         else:
-            knnbig = int(max(5, 0.2 * n_elements))
+            knn = int(max(5, 0.2 * n_elements))
 
-        neighbor_array, distance_array = hnsw.knn_query(x_data, k=knnbig)
+        neighbor_array, distance_array = hnsw.knn_query(x_data, k=knn)
         csr_array = self.prune_local(neighbor_array, distance_array)
         graph = self.prune_global(csr_array, jac_std_factor, jac_threshold_type)
         partition = self.get_leiden_partition(graph, jac_weighted_edges)
@@ -546,11 +546,10 @@ class PARC:
         small_community_size = self.small_community_size
         jac_std_factor = self.jac_std_factor
         jac_weighted_edges = self.jac_weighted_edges
-        knn = self.knn
         n_elements = x_data.shape[0]
 
         if self.neighbor_graph is None:
-            neighbor_array, distance_array = self.knn_struct.knn_query(x_data, k=knn)
+            neighbor_array, distance_array = self.knn_struct.knn_query(x_data, k=self.knn)
             csr_array = self.prune_local(neighbor_array, distance_array)
         else:
             csr_array = self.neighbor_graph
