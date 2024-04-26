@@ -13,13 +13,12 @@ logger = get_logger(__name__)
 
 class PARC:
     def __init__(self, x_data, y_data_true=None, knn=30, n_iter_leiden=5, random_seed=42,
-                 distance_metric="l2", n_threads=-1, neighbor_graph=None, knn_struct=None,
-                 hnsw_param_ef_construction=150,
+                 distance_metric="l2", n_threads=-1, hnsw_param_ef_construction=150,
+                 neighbor_graph=None, knn_struct=None,
                  l2_std_factor=3, keep_all_local_dist=None,
                  jac_threshold_type="median", jac_std_factor=0.0, jac_weighted_edges=True,
                  resolution_parameter=1.0, partition_type="ModularityVP",
-                 large_community_factor=0.4, small_community_size=10, small_community_timeout=15,
-                 small_community_timeout=15,
+                 large_community_factor=0.4, small_community_size=10, small_community_timeout=15
                  ):
         """Phenotyping by Accelerated Refined Community-partitioning.
 
@@ -50,11 +49,11 @@ class PARC:
 
                     d = 1.0 - sum(x_i*y_i)
             n_threads (int): the number of threads used in the KNN algorithm.
+            hnsw_param_ef_construction (int): a higher value increases accuracy of index construction.
+                Even for O(100 000) cells, 150-200 is adequate.
             neighbor_graph (Compressed Sparse Row Matrix): A sparse matrix with dimensions
                 (n_samples, n_samples), containing the distances between nodes.
             knn_struct (hnswlib.Index): the HNSW index of the KNN graph on which we perform queries.
-            hnsw_param_ef_construction (int): a higher value increases accuracy of index construction.
-                Even for O(100 000) cells, 150-200 is adequate.
             l2_std_factor (float): The multiplier used in calculating the Euclidean distance threshold
                 for the distance between two nodes during local pruning:
 
@@ -102,9 +101,9 @@ class PARC:
         self.random_seed = random_seed
         self.distance_metric = distance_metric
         self.n_threads = n_threads
+        self.hnsw_param_ef_construction = hnsw_param_ef_construction
         self.neighbor_graph = neighbor_graph
         self.knn_struct = knn_struct
-        self.hnsw_param_ef_construction = hnsw_param_ef_construction
         self.l2_std_factor = l2_std_factor
         self.jac_std_factor = jac_std_factor
         self.jac_threshold_type = jac_threshold_type
