@@ -167,8 +167,16 @@ class PARC:
             self._partition_type = partition_type
 
     def make_knn_struct(self, is_large_community=False, big_cluster=None):
+        """Create a Hierarchical Navigable Small Worlds (HNSW) graph.
+
+        See `hnswlib.Index
+        <https://github.com/nmslib/hnswlib/blob/master/python_bindings/LazyIndex.py>`__.
+
+        Returns:
+            (hnswlib.Index): TODO.
+        """
         if self.knn > 190:
-            logger.message('consider using a lower K_in for KNN graph construction')
+            logger.message(f"knn = {self.knn}; consider using a lower k for KNN graph construction")
         ef_query = max(100, self.knn + 1)  # ef always should be >K. higher ef, more accurate query
         if is_large_community == False:
             num_dims = self.x_data.shape[1]
@@ -573,15 +581,19 @@ class PARC:
 
     def run_toobig_subPARC(self, x_data, jac_std_factor=0.3, jac_threshold_type="mean",
                            jac_weighted_edges=True):
+
         n_samples = x_data.shape[0]
-        hnsw = self.make_knn_struct(is_large_community=True, big_cluster=x_data)
-        if n_samples <= 10: logger.message('consider increasing the large_community_factor')
+        knn_struct = self.make_knn_struct(is_large_community=True, big_cluster=x_data)
+        if n_samples <= 10:
+            logger.message(
+                f"Number of samples = {n_samples}, consider increasing the large_community_factor"
+            )
         if n_samples > self.knn:
             knn = self.knn
         else:
             knn = int(max(5, 0.2 * n_samples))
 
-        neighbor_array, distance_array = hnsw.knn_query(x_data, k=knn)
+        neighbor_array, distance_array = knn_struct.knn_query(x_data, k=knn)
         csr_array = self.prune_local(neighbor_array, distance_array)
         graph = self.prune_global(csr_array, jac_std_factor, jac_threshold_type)
         partition = self.get_leiden_partition(graph, jac_weighted_edges)
@@ -605,11 +617,7 @@ class PARC:
         )
 
         start_time = time.time()
-
         x_data = self.x_data
-        large_community_factor = self.large_community_factor
-        jac_std_factor = self.jac_std_factor
-        jac_weighted_edges = self.jac_weighted_edges
         n_samples = x_data.shape[0]
 
         if self.neighbor_graph is None:
@@ -623,7 +631,6 @@ class PARC:
 
         logger.message("Starting community detection")
         partition = self.get_leiden_partition(graph, self.jac_weighted_edges)
-        time_end_PARC = time.time()
         node_communities = np.asarray(partition.membership)
         node_communities = np.reshape(node_communities, (n_samples, 1))
         node_communities = self.reassign_large_communities(x_data, node_communities)
