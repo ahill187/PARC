@@ -133,7 +133,7 @@ with open(file_path_y, "rt") as file:
 # but can also be left at the default 10
 
 parc_model = parc.PARC(
-  x_data=x_data, y_data_true=y_data_true, jac_std_factor=0.15, random_seed=1, small_pop=50
+  x_data=x_data, y_data_true=y_data_true, jac_std_factor=0.15, random_seed=1, small_community_size=50
 )
 
 # Run the PARC algorithm
@@ -175,7 +175,7 @@ sc.tl.pca(adata, n_comps=50)
 
 parc_model = parc.PARC(
   x_data=adata.obsm['X_pca'], y_data_true=annotations, jac_std_factor=0.15, random_seed=1,
-  small_pop=50
+  small_community_size=50
 )  
 parc_model.run_parc() # run the clustering
 y_data_pred = parc_model.y_data_pred

@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 class PARC:
     def __init__(self, x_data, y_data_true=None, l2_std_factor=3, jac_std_factor=0.0,
                  jac_threshold_type="median", keep_all_local_dist='auto',
-                 large_community_factor=0.4, small_pop=10, jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
+                 large_community_factor=0.4, small_community_size=10, jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
                  num_threads=-1, distance='l2', time_smallpop=15, partition_type = "ModularityVP", resolution_parameter = 1.0,
                  knn_struct=None, neighbor_graph=None, hnsw_param_ef_construction = 150):
         """Phenotyping by Accelerated Refined Community-partitioning.
@@ -50,6 +50,7 @@ class PARC:
                 the ``jac_std_factor``.
                 Generally values between 0-1.5 are reasonable.
                 Higher ``jac_std_factor`` means more edges are kept.
+            small_community_size (int): the smallest population size to be considered a community.
         """
         if keep_all_local_dist == 'auto':
             if x_data.shape[0] > 300000:
@@ -66,7 +67,7 @@ class PARC:
         self.jac_threshold_type = jac_threshold_type
         self.keep_all_local_dist = keep_all_local_dist #decides whether or not to do local pruning. default is 'auto' which omits LOCAL pruning for samples >300,000 cells.
         self.large_community_factor = large_community_factor  #if a cluster exceeds this share of the entire cell population, then the PARC will be run on the large cluster. at 0.4 it does not come into play
-        self.small_pop = small_pop  # smallest cluster population to be considered a community
+        self.small_community_size = small_community_size
         self.jac_weighted_edges = jac_weighted_edges #boolean. whether to partition using weighted graph
         self.knn = knn
         self.n_iter_leiden = n_iter_leiden #the default is 5 in PARC
@@ -467,7 +468,7 @@ class PARC:
 
         x_data = self.x_data
         large_community_factor = self.large_community_factor
-        small_pop = self.small_pop
+        small_community_size = self.small_community_size
         jac_std_factor = self.jac_std_factor
         jac_weighted_edges = self.jac_weighted_edges
         knn = self.knn
@@ -504,7 +505,7 @@ class PARC:
         for cluster in set(node_communities):
             population = len(np.where(node_communities == cluster)[0])
 
-            if population < small_pop:  # 10
+            if population < small_community_size:  # 10
                 small_pop_exist = True
 
                 small_pop_list.append(list(np.where(node_communities == cluster)[0]))
