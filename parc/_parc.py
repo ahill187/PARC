@@ -16,7 +16,7 @@ class PARC:
     def __init__(self, x_data, y_data_true=None, l2_std_factor=3, jac_std_factor=0.0,
                  jac_threshold_type="median", keep_all_local_dist='auto',
                  large_community_factor=0.4, small_community_size=10, jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
-                 num_threads=-1, distance='l2', time_smallpop=15, partition_type = "ModularityVP", resolution_parameter = 1.0,
+                 num_threads=-1, distance_metric="l2", time_smallpop=15, partition_type = "ModularityVP", resolution_parameter = 1.0,
                  knn_struct=None, neighbor_graph=None, hnsw_param_ef_construction = 150):
         """Phenotyping by Accelerated Refined Community-partitioning.
 
@@ -51,6 +51,23 @@ class PARC:
                 Generally values between 0-1.5 are reasonable.
                 Higher ``jac_std_factor`` means more edges are kept.
             small_community_size (int): the smallest population size to be considered a community.
+            distance_metric (string): the distance metric to be used in the KNN algorithm:
+
+                - ``l2``: Euclidean distance L^2 norm:
+
+                  .. code-block:: python
+
+                    d = sum((x_i - y_i)^2)
+                - ``cosine``: cosine similarity
+
+                  .. code-block:: python
+
+                    d = 1.0 - sum(x_i*y_i) / sqrt(sum(x_i*x_i) * sum(y_i*y_i))
+                - ``ip``: inner product distance
+
+                  .. code-block:: python
+
+                    d = 1.0 - sum(x_i*y_i)
         """
         if keep_all_local_dist == 'auto':
             if x_data.shape[0] > 300000:
@@ -73,7 +90,7 @@ class PARC:
         self.n_iter_leiden = n_iter_leiden #the default is 5 in PARC
         self.random_seed = random_seed  # enable reproducible Leiden clustering
         self.num_threads = num_threads  # number of threads used in KNN search/construction
-        self.distance = distance  # Euclidean distance 'l2' by default; other options 'ip' and 'cosine'
+        self.distance_metric = distance_metric
         self.time_smallpop = time_smallpop #number of seconds trying to check an outlier
         self.partition_type = partition_type #default is the simple ModularityVertexPartition where resolution_parameter =1. In order to change resolution_parameter, we switch to RBConfigurationVP
         self.resolution_parameter = resolution_parameter # defaults to 1. expose this parameter in leidenalg
@@ -98,7 +115,7 @@ class PARC:
         if is_large_community == False:
             num_dims = self.x_data.shape[1]
             n_elements = self.x_data.shape[0]
-            p = hnswlib.Index(space=self.distance, dim=num_dims)  # default to Euclidean distance
+            p = hnswlib.Index(space=self.distance_metric, dim=num_dims)
             p.set_num_threads(self.num_threads)  # allow user to set threads used in KNN construction
             if n_elements < 10000:
                 ef_query = min(n_elements - 10, 500)
