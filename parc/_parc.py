@@ -13,8 +13,8 @@ logger = get_logger(__name__)
 
 class PARC:
     def __init__(self, x_data, y_data_true=None, knn=30, n_iter_leiden=5, random_seed=42,
-                 distance_metric="l2", n_threads=-1, knn_struct=None,
-                 neighbor_graph=None, hnsw_param_ef_construction=150,
+                 distance_metric="l2", n_threads=-1, neighbor_graph=None, knn_struct=None,
+                 hnsw_param_ef_construction=150,
                  l2_std_factor=3, keep_all_local_dist=None,
                  jac_threshold_type="median", jac_std_factor=0.0, jac_weighted_edges=True,
                  resolution_parameter=1.0, partition_type="ModularityVP",
@@ -50,9 +50,9 @@ class PARC:
 
                     d = 1.0 - sum(x_i*y_i)
             n_threads (int): the number of threads used in the KNN algorithm.
-            knn_struct (hnswlib.Index): the HNSW index of the KNN graph on which we perform queries.
             neighbor_graph (Compressed Sparse Row Matrix): A sparse matrix with dimensions
                 (n_samples, n_samples), containing the distances between nodes.
+            knn_struct (hnswlib.Index): the HNSW index of the KNN graph on which we perform queries.
             hnsw_param_ef_construction (int): a higher value increases accuracy of index construction.
                 Even for O(100 000) cells, 150-200 is adequate.
             l2_std_factor (float): The multiplier used in calculating the Euclidean distance threshold
@@ -102,6 +102,9 @@ class PARC:
         self.random_seed = random_seed
         self.distance_metric = distance_metric
         self.n_threads = n_threads
+        self.neighbor_graph = neighbor_graph
+        self.knn_struct = knn_struct
+        self.hnsw_param_ef_construction = hnsw_param_ef_construction
         self.l2_std_factor = l2_std_factor
         self.jac_std_factor = jac_std_factor
         self.jac_threshold_type = jac_threshold_type
@@ -112,9 +115,6 @@ class PARC:
         self.small_community_timeout = small_community_timeout
         self.resolution_parameter = resolution_parameter
         self.partition_type = partition_type
-        self.knn_struct = knn_struct
-        self.neighbor_graph = neighbor_graph
-        self.hnsw_param_ef_construction = hnsw_param_ef_construction
 
     @property
     def x_data(self):
@@ -125,6 +125,17 @@ class PARC:
         self._x_data = x_data
         if self.y_data_true is None:
             self.y_data_true = [1] * x_data.shape[0]
+
+    @property
+    def knn_struct(self):
+        return self._knn_struct
+
+    @knn_struct.setter
+    def knn_struct(self, knn_struct):
+        if knn_struct is None and self.neighbor_graph is None:
+            logger.message(f"knn_struct and neighbor_graph not provided, creating knn_struct.")
+            knn_struct = self.make_knn_struct()
+        self._knn_struct = knn_struct
 
     @property
     def keep_all_local_dist(self):
@@ -538,18 +549,12 @@ class PARC:
         knn = self.knn
         n_elements = x_data.shape[0]
 
-
-        if self.neighbor_graph is not None:
-            csr_array = self.neighbor_graph
-            neighbor_array = np.split(csr_array.indices, csr_array.indptr)[1:-1]
-        else:
-            if self.knn_struct is None:
-                logger.message('knn struct was not available, so making one')
-                self.knn_struct = self.make_knn_struct()
-            else:
-                logger.message('knn struct already exists')
+        if self.neighbor_graph is None:
             neighbor_array, distance_array = self.knn_struct.knn_query(x_data, k=knn)
             csr_array = self.prune_local(neighbor_array, distance_array)
+        else:
+            csr_array = self.neighbor_graph
+            neighbor_array = np.split(csr_array.indices, csr_array.indptr)[1:-1]
 
         graph = self.prune_global(csr_array, self.jac_std_factor, self.jac_threshold_type)
 
