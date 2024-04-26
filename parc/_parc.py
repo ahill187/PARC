@@ -509,106 +509,21 @@ class PARC:
 
         return communities
 
-    def run_toobig_subPARC(self, x_data, jac_std_factor=0.3, jac_threshold_type="mean",
-                           jac_weighted_edges=True):
-        n_elements = x_data.shape[0]
-        hnsw = self.make_knn_struct(is_large_community=True, big_cluster=x_data)
-        if n_elements <= 10: logger.message('consider increasing the large_community_factor')
-        if n_elements > self.knn:
-            knn = self.knn
-        else:
-            knn = int(max(5, 0.2 * n_elements))
+    def reassign_small_communities(self, node_communities, small_community_size, neighbor_array):
+        """Move small communities into neighboring communities.
 
-        neighbor_array, distance_array = hnsw.knn_query(x_data, k=knn)
-        csr_array = self.prune_local(neighbor_array, distance_array)
-        graph = self.prune_global(csr_array, jac_std_factor, jac_threshold_type)
-        partition = self.get_leiden_partition(graph, jac_weighted_edges)
+        Args:
+            node_communities (np.array): an array containing the community assignments for each
+                node.
+            small_community_size (int): the maximum number of nodes in a community. Communities
+                with less nodes than the small_community_size are considered to be
+                small communities.
+            neighbor_array: TODO.
 
-        node_communities = np.asarray(partition.membership)
-        node_communities = np.reshape(node_communities, (n_elements, 1))
-        node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
-        communities_small = self.get_small_communities(
-            node_communities, small_community_size=10
-        )
-        if communities_small == []:
-            small_community_exists = False
-        else:
-            small_community_exists = True
-
-        community_ids_small = [community.id for community in communities_small]
-        for community in communities_small:
-            for node in community.nodes:
-                neighbors = neighbor_array[node, :]
-                node_communities_neighbors = node_communities[neighbors]
-                node_communities_neighbors = list(node_communities_neighbors.flatten())
-                community_ids_neighbors_available = \
-                    set(node_communities_neighbors) - set(community_ids_small)
-                if len(community_ids_neighbors_available) > 0:
-                    node_communities_neighbors_available = [
-                        community_id for community_id in node_communities_neighbors if
-                        community_id in list(community_ids_neighbors_available)
-                    ]
-                    best_group = max(
-                        node_communities_neighbors_available,
-                        key=node_communities_neighbors_available.count
-                    )
-                    node_communities[node] = best_group
-
-        time_smallpop_start = time.time()
-        logger.message('handling fragments')
-        while small_community_exists & (time.time() - time_smallpop_start < self.small_community_timeout):
-            communities_small = self.get_small_communities(
-                node_communities, small_community_size=10
-            )
-            if communities_small == []:
-                small_community_exists = False
-            else:
-                small_community_exists = True
-            for community in communities_small:
-                for node in community.nodes:
-                    neighbors = neighbor_array[node, :]
-                    node_communities_neighbors = node_communities[neighbors]
-                    node_communities_neighbors = list(node_communities_neighbors.flatten())
-                    best_group = max(set(node_communities_neighbors), key=node_communities_neighbors.count)
-                    node_communities[node] = best_group
-
-        node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
-
-        return node_communities
-
-    def run_parc(self):
-        logger.message(
-            f"Input data has shape {self.x_data.shape[0]} (samples) x "
-            f"{self.x_data.shape[1]} (features)"
-        )
-
-        start_time = time.time()
-
-        x_data = self.x_data
-        large_community_factor = self.large_community_factor
-        small_community_size = self.small_community_size
-        jac_std_factor = self.jac_std_factor
-        jac_weighted_edges = self.jac_weighted_edges
-        n_elements = x_data.shape[0]
-
-        if self.neighbor_graph is None:
-            neighbor_array, distance_array = self.knn_struct.knn_query(x_data, k=self.knn)
-            csr_array = self.prune_local(neighbor_array, distance_array)
-        else:
-            csr_array = self.neighbor_graph
-            neighbor_array = np.split(csr_array.indices, csr_array.indptr)[1:-1]
-
-        graph = self.prune_global(csr_array, self.jac_std_factor, self.jac_threshold_type)
-
-        logger.message("Starting community detection")
-        partition = self.get_leiden_partition(graph, self.jac_weighted_edges)
-        time_end_PARC = time.time()
-        node_communities = np.asarray(partition.membership)
-        node_communities = np.reshape(node_communities, (n_elements, 1))
-
-        node_communities = self.reassign_large_communities(x_data, node_communities)
-
-        node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
+        Returns:
+            (np.array): an array containing the community assignments for each node.
+        """
+        node_communities = np.copy(node_communities)
         communities_small = self.get_small_communities(
             node_communities, small_community_size
         )
@@ -654,7 +569,70 @@ class PARC:
                         key=node_communities_neighbors.count
                     )
                     node_communities[node] = best_group
+        return node_communities
 
+    def run_toobig_subPARC(self, x_data, jac_std_factor=0.3, jac_threshold_type="mean",
+                           jac_weighted_edges=True):
+        n_elements = x_data.shape[0]
+        hnsw = self.make_knn_struct(is_large_community=True, big_cluster=x_data)
+        if n_elements <= 10: logger.message('consider increasing the large_community_factor')
+        if n_elements > self.knn:
+            knn = self.knn
+        else:
+            knn = int(max(5, 0.2 * n_elements))
+
+        neighbor_array, distance_array = hnsw.knn_query(x_data, k=knn)
+        csr_array = self.prune_local(neighbor_array, distance_array)
+        graph = self.prune_global(csr_array, jac_std_factor, jac_threshold_type)
+        partition = self.get_leiden_partition(graph, jac_weighted_edges)
+
+        node_communities = np.asarray(partition.membership)
+        node_communities = np.reshape(node_communities, (n_elements, 1))
+        node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
+        node_communities = self.reassign_small_communities(
+            node_communities=node_communities,
+            small_community_size=10,
+            neighbor_array=neighbor_array
+        )
+        node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
+
+        return node_communities
+
+    def run_parc(self):
+        logger.message(
+            f"Input data has shape {self.x_data.shape[0]} (samples) x "
+            f"{self.x_data.shape[1]} (features)"
+        )
+
+        start_time = time.time()
+
+        x_data = self.x_data
+        large_community_factor = self.large_community_factor
+        jac_std_factor = self.jac_std_factor
+        jac_weighted_edges = self.jac_weighted_edges
+        n_elements = x_data.shape[0]
+
+        if self.neighbor_graph is None:
+            neighbor_array, distance_array = self.knn_struct.knn_query(x_data, k=self.knn)
+            csr_array = self.prune_local(neighbor_array, distance_array)
+        else:
+            csr_array = self.neighbor_graph
+            neighbor_array = np.split(csr_array.indices, csr_array.indptr)[1:-1]
+
+        graph = self.prune_global(csr_array, self.jac_std_factor, self.jac_threshold_type)
+
+        logger.message("Starting community detection")
+        partition = self.get_leiden_partition(graph, self.jac_weighted_edges)
+        time_end_PARC = time.time()
+        node_communities = np.asarray(partition.membership)
+        node_communities = np.reshape(node_communities, (n_elements, 1))
+        node_communities = self.reassign_large_communities(x_data, node_communities)
+        node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
+        node_communities = self.reassign_small_communities(
+            node_communities=node_communities,
+            small_community_size=self.small_community_size,
+            neighbor_array=neighbor_array
+        )
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
         node_communities = list(node_communities.flatten())
 
