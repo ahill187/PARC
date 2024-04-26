@@ -5,6 +5,7 @@ from scipy.sparse import csr_matrix
 import igraph as ig
 import leidenalg
 import time
+from progress.bar import Bar
 from parc.metrics import accuracy
 from parc.graph import Community
 from parc.logger import get_logger
@@ -297,6 +298,7 @@ class PARC:
                 f"{self.l2_std_factor} standard deviations above mean"
             )
             distance_array = distance_array + 0.1
+            bar = Bar("Local pruning...", max=n_samples)
             for neighbors, sample_index in zip(neighbor_array, range(n_samples)):
                 distances = distance_array[sample_index, :]
                 max_distance = np.mean(distances) + self.l2_std_factor * np.std(distances)
@@ -311,6 +313,8 @@ class PARC:
                         col_list.append(updated_neighbors[index])
                         dist = np.sqrt(updated_distances[index])
                         weight_list.append(1 / (dist + 0.1))
+                bar.next()
+            bar.finish()
 
         csr_graph = csr_matrix((np.array(weight_list), (np.array(row_list), np.array(col_list))),
                                shape=(n_samples, n_samples))
@@ -331,6 +335,7 @@ class PARC:
             igraph.Graph: a Graph object which has now been locally and globally pruned.
         """
 
+        logger.message("Starting global pruning...")
         input_nodes, output_nodes = csr_array.nonzero()
         edges = list(zip(input_nodes, output_nodes))
         edges_copy = np.asarray(edges.copy())
@@ -339,7 +344,7 @@ class PARC:
 
         similarities = np.asarray(graph.similarity_jaccard(pairs=list(edges_copy)))
 
-        logger.message("Starting global pruning")
+
 
         if jac_threshold_type == "median":
             threshold = np.median(similarities)
