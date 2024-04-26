@@ -537,8 +537,13 @@ class PARC:
 
         return node_communities
 
-    def run_subPARC(self):
+    def run_parc(self):
+        logger.message(
+            f"Input data has shape {self.x_data.shape[0]} (samples) x "
+            f"{self.x_data.shape[1]} (features)"
+        )
 
+        start_time = time.time()
 
         x_data = self.x_data
         large_community_factor = self.large_community_factor
@@ -556,7 +561,7 @@ class PARC:
 
         graph = self.prune_global(csr_array, self.jac_std_factor, self.jac_threshold_type)
 
-        logger.message('commencing community detection')
+        logger.message("Starting community detection")
         partition = self.get_leiden_partition(graph, self.jac_weighted_edges)
         time_end_PARC = time.time()
         node_communities = np.asarray(partition.membership)
@@ -611,25 +616,12 @@ class PARC:
         node_communities = list(node_communities.flatten())
 
         self.y_data_pred = node_communities
-        return
+        end_time = time.time()
+        run_time = end_time - start_time
+        logger.message(f"Time elapsed: {run_time} seconds")
+        self.compute_performance_metrics(run_time)
 
-    def run_parc(self):
-        logger.message(
-            f"Input data has shape {self.x_data.shape[0]} (samples) x "
-            f"{self.x_data.shape[1]} (features)"
-        )
-
-        list_roc = []
-
-        time_start_total = time.time()
-
-        time_start_knn = time.time()
-
-        time_end_knn_struct = time.time() - time_start_knn
-        # Query dataset, k - number of closest elements (returns 2 numpy arrays)
-        self.run_subPARC()
-        run_time = time.time() - time_start_total
-        logger.message(f"time elapsed: {run_time} seconds")
+    def compute_performance_metrics(self, run_time):
 
         targets = list(set(self.y_data_true))
         N = len(list(self.y_data_true))
@@ -638,6 +630,7 @@ class PARC:
         self.stats_df = pd.DataFrame({'jac_std_factor': [self.jac_std_factor], 'l2_std_factor': [self.l2_std_factor],
                                       'runtime(s)': [run_time]})
         self.majority_truth_labels = []
+        list_roc = []
         if len(targets) > 1:
             f1_accumulated = 0
             f1_acc_noweighting = 0
@@ -658,11 +651,13 @@ class PARC:
             logger.message(f"f1-score (unweighted) mean {np.round(f1_mean * 100, 2)}")
             logger.message(f"f1-score weighted (by population) {np.round(f1_accumulated * 100, 2)}")
 
-            df_accuracy = pd.DataFrame(list_roc,
-                                       columns=['jac_std_factor', 'l2_std_factor', 'onevsall-target', 'error rate',
-                                                'f1-score', 'tnr', 'fnr',
-                                                'tpr', 'fpr', 'precision', 'recall', 'num_groups',
-                                                'population of target', 'num clusters', 'clustering runtime'])
+            df_accuracy = pd.DataFrame(
+                list_roc,
+                columns=['jac_std_factor', 'l2_std_factor', 'onevsall-target', 'error rate',
+                        'f1-score', 'tnr', 'fnr',
+                        'tpr', 'fpr', 'precision', 'recall', 'num_groups',
+                        'population of target', 'num clusters', 'clustering runtime']
+            )
 
             self.f1_accumulated = f1_accumulated
             self.f1_mean = f1_mean
