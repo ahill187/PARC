@@ -337,6 +337,68 @@ class PARC:
             )
         return is_large_community, community_size, large_community_indices
 
+    def reassign_large_communities(self, x_data, node_communities):
+        """Find communities which are above the large_community_factor cutoff and split them.
+
+        1. Check if the 0th community is too large. Since this is always the largest community,
+           if it does not meet the threshold for a large community then all the other
+           communities will also not be too large.
+        2. If the 0th community is too large, then iterate through the rest of the communities. For
+           each large community, run the PARC algorithm (but don't check for large communities).
+           Reassign communities to split communities.
+
+        Args:
+            x_data (np.array): an array containing the input data, with shape
+                (n_samples x n_features).
+            node_communities (np.array): an array containing the community assignments for each
+                node.
+
+        Returns:
+            np.array: an array containing the new community assignments for each node.
+        """
+        # the 0th community is the largest community, so we check this first
+        logger.message(
+            f"Checking size of Community 0, large_community_factor={self.large_community_factor}"
+        )
+        node_communities = np.copy(node_communities)
+        large_community_exists, community_size, large_community_indices = self.check_if_large_community(
+            node_communities=node_communities, community_id=0
+        )
+        if large_community_exists:
+            large_community_sizes = [community_size]
+        logger.message(f"Community 0 is too large? {large_community_exists}")
+
+        while large_community_exists:
+
+            node_communities_large_community = self.run_toobig_subPARC(
+                x_data[large_community_indices, :]
+            )
+            node_communities_large_community = node_communities_large_community + 100000
+
+            logger.message(f"shape node_communities: {node_communities.shape}")
+
+            for community_index, index in zip(large_community_indices, range(len(large_community_indices))):
+                node_communities[community_index] = node_communities_large_community[index]
+
+            node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
+            logger.message(f"new set of labels: {set(node_communities)}")
+            large_community_exists = False
+            node_communities = np.asarray(node_communities)
+
+            for community_id in set(node_communities):
+                large_community_exists, community_size, large_community_indices = self.check_if_large_community(
+                    node_communities, community_id, large_community_sizes
+                )
+                if large_community_exists:
+                    large_community_sizes.append(community_size)
+                    logger.message(
+                        f"Community {community_id} is too big with population {community_size}. "
+                        f"It will be expanded."
+                    )
+                    break
+
+        return node_communities
+
     def run_toobig_subPARC(self, x_data, jac_std_factor=0.3, jac_threshold_type="mean",
                            jac_weighted_edges=True):
         n_elements = x_data.shape[0]
@@ -432,39 +494,7 @@ class PARC:
         node_communities = np.asarray(partition.membership)
         node_communities = np.reshape(node_communities, (n_elements, 1))
 
-        is_large_community = False
-        is_large_community, community_size, large_community_indices = self.check_if_large_community(
-            node_communities, community_id=0
-        )
-        if is_large_community:
-            large_community_sizes = [community_size]
-
-        while is_large_community:
-
-            x_data_big = x_data[large_community_indices, :]
-            node_communities_large_community = self.run_toobig_subPARC(x_data_big)
-            node_communities_large_community = node_communities_large_community + 100000
-
-            logger.message(f"shape node_communities: {node_communities.shape}")
-
-            for community_index, index in zip(large_community_indices, range(len(large_community_indices))):
-                node_communities[community_index] = node_communities_large_community[index]
-
-            node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
-            logger.message(f"new set of labels: {set(node_communities)}")
-            is_large_community = False
-            node_communities = np.asarray(node_communities)
-
-            for community_id in set(node_communities):
-                is_large_community, community_size, large_community_indices = self.check_if_large_community(
-                    node_communities, community_id, large_community_sizes
-                )
-                if is_large_community:
-                    big_pop = community_size
-                    cluster_big = community_id
-            if is_large_community:
-                large_community_sizes.append(big_pop)
-                logger.message(f"Community {cluster_big} is too big with population {big_pop}. It will be expanded.")
+        node_communities = self.reassign_large_communities(x_data, node_communities)
 
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
         small_pop_list = []
