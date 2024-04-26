@@ -627,8 +627,11 @@ class PARC:
         n_samples = len(list(self.y_data_true))
         self.f1_accumulated = 0
         self.f1_mean = 0
-        self.stats_df = pd.DataFrame({'jac_std_factor': [self.jac_std_factor], 'l2_std_factor': [self.l2_std_factor],
-                                      'runtime(s)': [run_time]})
+        self.stats_df = pd.DataFrame({
+            'jac_std_factor': [self.jac_std_factor],
+            'l2_std_factor': [self.l2_std_factor],
+            'runtime(s)': [run_time]
+        })
         self.majority_truth_labels = []
         list_roc = []
         if len(targets) > 1:
@@ -640,12 +643,15 @@ class PARC:
                 )
                 f1_current = vals_roc[1]
                 logger.message(f"target {target} has f1-score of {np.round(f1_current * 100, 2)}")
-                f1_accumulated = f1_accumulated + f1_current * (list(self.y_data_true).count(target)) / n_samples
+                f1_accumulated += f1_current * (list(self.y_data_true).count(target)) / n_samples
                 f1_acc_noweighting = f1_acc_noweighting + f1_current
 
                 list_roc.append(
-                    [self.jac_std_factor, self.l2_std_factor, target] + vals_roc + [numclusters_targetval] + [
-                        run_time])
+                    [self.jac_std_factor, self.l2_std_factor, target] +
+                    vals_roc +
+                    [numclusters_targetval] +
+                    [run_time]
+                )
 
             f1_mean = f1_acc_noweighting / len(targets)
             logger.message(f"f1-score (unweighted) mean {np.round(f1_mean * 100, 2)}")
