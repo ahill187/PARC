@@ -538,8 +538,8 @@ class PARC:
         community_ids_small = [community.id for community in communities_small]
         for community in communities_small:
             for node in community.nodes:
-                old_neighbors = neighbor_array[node, :]
-                group_of_old_neighbors = node_communities[old_neighbors]
+                neighbors = neighbor_array[node, :]
+                group_of_old_neighbors = node_communities[neighbors]
                 group_of_old_neighbors = list(group_of_old_neighbors.flatten())
                 available_neighbours = set(group_of_old_neighbors) - set(community_ids_small)
                 if len(available_neighbours) > 0:
@@ -560,8 +560,8 @@ class PARC:
                 small_community_exists = True
             for community in communities_small:
                 for node in community.nodes:
-                    old_neighbors = neighbor_array[node, :]
-                    group_of_old_neighbors = node_communities[old_neighbors]
+                    neighbors = neighbor_array[node, :]
+                    group_of_old_neighbors = node_communities[neighbors]
                     group_of_old_neighbors = list(group_of_old_neighbors.flatten())
                     best_group = max(set(group_of_old_neighbors), key=group_of_old_neighbors.count)
                     node_communities[node] = best_group
@@ -614,8 +614,8 @@ class PARC:
         community_ids_small = [community.id for community in communities_small]
         for community in communities_small:
             for node in community.nodes:
-                old_neighbors = neighbor_array[node]
-                group_of_old_neighbors = node_communities[old_neighbors]
+                neighbors = neighbor_array[node]
+                group_of_old_neighbors = node_communities[neighbors]
                 group_of_old_neighbors = list(group_of_old_neighbors.flatten())
                 available_neighbours = set(group_of_old_neighbors) - set(community_ids_small)
                 if len(available_neighbours) > 0:
@@ -634,8 +634,8 @@ class PARC:
                 small_community_exists = True
             for community in communities_small:
                 for node in community.nodes:
-                    old_neighbors = neighbor_array[node]
-                    group_of_old_neighbors = node_communities[old_neighbors]
+                    neighbors = neighbor_array[node]
+                    group_of_old_neighbors = node_communities[neighbors]
                     group_of_old_neighbors = list(group_of_old_neighbors.flatten())
                     best_group = max(set(group_of_old_neighbors), key=group_of_old_neighbors.count)
                     node_communities[node] = best_group
