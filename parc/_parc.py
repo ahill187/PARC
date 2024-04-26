@@ -496,8 +496,8 @@ class PARC:
         small_community_exists = False
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
         for community_id in set(node_communities):
-            population = len(np.where(node_communities == community_id)[0])
-            if population < 10:
+            community_size = len(np.where(node_communities == community_id)[0])
+            if community_size < 10:
                 small_community_exists = True
                 communities_small.append(list(np.where(node_communities == community_id)[0]))
                 small_cluster_list.append(community_id)
@@ -520,8 +520,8 @@ class PARC:
             communities_small = []
             small_community_exists = False
             for community_id in set(list(node_communities.flatten())):
-                population = len(np.where(node_communities == community_id)[0])
-                if population < 10:
+                community_size = len(np.where(node_communities == community_id)[0])
+                if community_size < 10:
                     small_community_exists = True
 
                     communities_small.append(np.where(node_communities == community_id)[0])
@@ -575,11 +575,10 @@ class PARC:
         small_community_exists = False
 
         for community_id in set(node_communities):
-            population = len(np.where(node_communities == community_id)[0])
+            community_size = len(np.where(node_communities == community_id)[0])
 
-            if population < small_community_size:
+            if community_size < small_community_size:
                 small_community_exists = True
-
                 communities_small.append(list(np.where(node_communities == community_id)[0]))
                 small_cluster_list.append(community_id)
 
@@ -600,8 +599,8 @@ class PARC:
             communities_small = []
             small_community_exists = False
             for community_id in set(list(node_communities.flatten())):
-                population = len(np.where(node_communities == community_id)[0])
-                if population < small_community_size:
+                community_size = len(np.where(node_communities == community_id)[0])
+                if community_size < small_community_size:
                     small_community_exists = True
                     communities_small.append(np.where(node_communities == community_id)[0])
             for small_cluster in communities_small:
