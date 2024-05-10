@@ -549,10 +549,6 @@ class PARC:
             x_data_big = x_data[cluster_big_loc, :]
             node_communities_big = self.run_toobig_subPARC(x_data_big)
             node_communities_big = node_communities_big + 100000
-            pop_list = []
-
-            for item in set(list(node_communities_big.flatten())):
-                pop_list.append([item, list(node_communities_big.flatten()).count(item)])
 
             jj = 0
             logger.info(f"shape node_communities: {node_communities.shape}")
@@ -626,10 +622,6 @@ class PARC:
 
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
         node_communities = list(node_communities.flatten())
-
-        pop_list = []
-        for item in set(node_communities):
-            pop_list.append((item, node_communities.count(item)))
 
         self.y_data_pred = node_communities
         return
