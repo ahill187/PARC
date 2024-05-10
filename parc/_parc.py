@@ -11,7 +11,7 @@ from umap.umap_ import find_ab_params, simplicial_set_embedding
 #latest github upload 27-June-2020
 class PARC:
     def __init__(self, x_data, y_data_true=None, dist_std_local=3, jac_std_global='median', keep_all_local_dist='auto',
-                 large_community_factor=0.4, small_pop=10, jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
+                 large_community_factor=0.4, small_community_size=10, jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
                  num_threads=-1, distance='l2', time_smallpop=15, partition_type = "ModularityVP", resolution_parameter = 1.0,
                  knn_struct=None, neighbor_graph=None, hnsw_param_ef_construction = 150):
         # higher dist_std_local means more edges are kept
@@ -30,7 +30,7 @@ class PARC:
         self.jac_std_global = jac_std_global  #0.15 is also a recommended value performing empirically similar to 'median'. Generally values between 0-1.5 are reasonable.
         self.keep_all_local_dist = keep_all_local_dist #decides whether or not to do local pruning. default is 'auto' which omits LOCAL pruning for samples >300,000 cells.
         self.large_community_factor = large_community_factor  #if a cluster exceeds this share of the entire cell population, then the PARC will be run on the large cluster. at 0.4 it does not come into play
-        self.small_pop = small_pop  # smallest cluster population to be considered a community
+        self.small_community_size = small_community_size  # smallest cluster population to be considered a community
         self.jac_weighted_edges = jac_weighted_edges #boolean. whether to partition using weighted graph
         self.knn = knn
         self.n_iter_leiden = n_iter_leiden #the default is 5 in PARC
@@ -276,7 +276,7 @@ class PARC:
 
         x_data = self.x_data
         large_community_factor = self.large_community_factor
-        small_pop = self.small_pop
+        small_community_size = self.small_community_size
         jac_std_global = self.jac_std_global
         jac_weighted_edges = self.jac_weighted_edges
         knn = self.knn
@@ -409,7 +409,7 @@ class PARC:
         for cluster in set(PARC_labels_leiden):
             population = len(np.where(PARC_labels_leiden == cluster)[0])
 
-            if population < small_pop:  # 10
+            if population < small_community_size:  # 10
                 small_pop_exist = True
 
                 small_pop_list.append(list(np.where(PARC_labels_leiden == cluster)[0]))
@@ -433,7 +433,7 @@ class PARC:
             small_pop_exist = False
             for cluster in set(list(PARC_labels_leiden.flatten())):
                 population = len(np.where(PARC_labels_leiden == cluster)[0])
-                if population < small_pop:
+                if population < small_community_size:
                     small_pop_exist = True
                     print(cluster, ' has small population of', population, )
                     small_pop_list.append(np.where(PARC_labels_leiden == cluster)[0])
