@@ -738,17 +738,17 @@ class PARC:
         if len(targets) > 1:
             f1_accumulated = 0
             f1_acc_noweighting = 0
-            for onevsall_val in targets:
-                vals_roc, predict_class_array, majority_truth_labels, numclusters_targetval = self.accuracy(onevsall=onevsall_val)
+            for target in targets:
+                vals_roc, predict_class_array, majority_truth_labels, numclusters_targetval = self.accuracy(onevsall=target)
                 f1_current = vals_roc[1]
                 logger.message(
-                    f"target {onevsall_val} has f1-score of {np.round(f1_current * 100, 2)}"
+                    f"target {target} has f1-score of {np.round(f1_current * 100, 2)}"
                 )
-                f1_accumulated += f1_current * (list(self.y_data_true).count(onevsall_val)) / n_samples
+                f1_accumulated += f1_current * (list(self.y_data_true).count(target)) / n_samples
                 f1_acc_noweighting = f1_acc_noweighting + f1_current
 
                 list_roc.append(
-                    [self.jac_std_factor, self.l2_std_factor, onevsall_val] +
+                    [self.jac_std_factor, self.l2_std_factor, target] +
                     vals_roc +
                     [numclusters_targetval] +
                     [run_time]
