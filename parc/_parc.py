@@ -634,13 +634,13 @@ class PARC:
         self.y_data_pred = node_communities
         return
 
-    def accuracy(self, onevsall=1):
+    def accuracy(self, target=1):
 
         y_data_true = self.y_data_true
         Index_dict = {}
         y_data_pred = self.y_data_pred
         n_samples = len(y_data_pred)
-        n_cancer = list(y_data_true).count(onevsall)
+        n_cancer = list(y_data_true).count(target)
         n_pbmc = n_samples - n_cancer
 
         for k in range(n_samples):
@@ -655,22 +655,22 @@ class PARC:
         for kk in sorted_keys:
             vals = [t for t in Index_dict[kk]]
             majority_val = get_mode(vals)
-            if majority_val == onevsall:
-                logger.info(f"Cluster {kk} has majority {onevsall} with population {len(vals)}")
+            if majority_val == target:
+                logger.info(f"Cluster {kk} has majority {target} with population {len(vals)}")
             if kk == -1:
                 len_unknown = len(vals)
                 logger.info(f"Number of unknown: {len_unknown}")
-            if (majority_val == onevsall) and (kk != -1):
+            if (majority_val == target) and (kk != -1):
                 thp1_labels.append(kk)
-                fp = fp + len([e for e in vals if e != onevsall])
-                tp = tp + len([e for e in vals if e == onevsall])
+                fp = fp + len([e for e in vals if e != target])
+                tp = tp + len([e for e in vals if e == target])
                 list_error = [e for e in vals if e != majority_val]
                 e_count = len(list_error)
                 error_count.append(e_count)
-            elif (majority_val != onevsall) and (kk != -1):
+            elif (majority_val != target) and (kk != -1):
                 pbmc_labels.append(kk)
-                tn = tn + len([e for e in vals if e != onevsall])
-                fn = fn + len([e for e in vals if e == onevsall])
+                tn = tn + len([e for e in vals if e != target])
+                fn = fn + len([e for e in vals if e == target])
                 error_count.append(len([e for e in vals if e != majority_val]))
 
         predict_class_array = np.array(y_data_pred)
@@ -739,7 +739,7 @@ class PARC:
             f1_accumulated = 0
             f1_acc_noweighting = 0
             for target in targets:
-                vals_roc, predict_class_array, majority_truth_labels, numclusters_targetval = self.accuracy(onevsall=target)
+                vals_roc, predict_class_array, majority_truth_labels, numclusters_targetval = self.accuracy(target=target)
                 f1_current = vals_roc[1]
                 logger.message(
                     f"target {target} has f1-score of {np.round(f1_current * 100, 2)}"
