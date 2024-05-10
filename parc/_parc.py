@@ -10,20 +10,20 @@ from umap.umap_ import find_ab_params, simplicial_set_embedding
 
 #latest github upload 27-June-2020
 class PARC:
-    def __init__(self, data, true_label=None, dist_std_local=3, jac_std_global='median', keep_all_local_dist='auto',
+    def __init__(self, x_data, true_label=None, dist_std_local=3, jac_std_global='median', keep_all_local_dist='auto',
                  too_big_factor=0.4, small_pop=10, jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
                  num_threads=-1, distance='l2', time_smallpop=15, partition_type = "ModularityVP", resolution_parameter = 1.0,
                  knn_struct=None, neighbor_graph=None, hnsw_param_ef_construction = 150):
         # higher dist_std_local means more edges are kept
         # highter jac_std_global means more edges are kept
         if keep_all_local_dist == 'auto':
-            if data.shape[0] > 300000:
+            if x_data.shape[0] > 300000:
                 keep_all_local_dist = True  # skips local pruning to increase speed
             else:
                 keep_all_local_dist = False
         if resolution_parameter !=1:
             partition_type = "RBVP" # Reichardt and Bornholdt’s Potts model. Note that this is the same as ModularityVertexPartition when setting 𝛾 = 1 and normalising by 2m
-        self.data = data
+        self.x_data = x_data
         self.true_label = true_label
         self.dist_std_local = dist_std_local   # similar to the jac_std_global parameter. avoid setting local and global pruning to both be below 0.5 as this is very aggresive pruning.
         self.jac_std_global = jac_std_global  #0.15 is also a recommended value performing empirically similar to 'median'. Generally values between 0-1.5 are reasonable.
@@ -47,8 +47,8 @@ class PARC:
         if self.knn > 190: print('consider using a lower K_in for KNN graph construction')
         ef_query = max(100, self.knn + 1)  # ef always should be >K. higher ef, more accurate query
         if too_big == False:
-            num_dims = self.data.shape[1]
-            n_elements = self.data.shape[0]
+            num_dims = self.x_data.shape[1]
+            n_elements = self.x_data.shape[0]
             p = hnswlib.Index(space=self.distance, dim=num_dims)  # default to Euclidean distance
             p.set_num_threads(self.num_threads)  # allow user to set threads used in KNN construction
             if n_elements < 10000:
@@ -61,7 +61,7 @@ class PARC:
                              M=48)  ## good for scRNA seq where dimensionality is high
             else:
                 p.init_index(max_elements=n_elements, ef_construction=ef_construction, M=24 ) #30
-            p.add_items(self.data)
+            p.add_items(self.x_data)
         if too_big == True:
             num_dims = big_cluster.shape[1]
             n_elements = big_cluster.shape[0]
@@ -77,7 +77,7 @@ class PARC:
         t0= time.time()
         # neighbors in array are not listed in in any order of proximity
         self.knn_struct.set_ef(k_umap+1)
-        neighbor_array, distance_array = self.knn_struct.knn_query(self.data, k=k_umap)
+        neighbor_array, distance_array = self.knn_struct.knn_query(self.x_data, k=k_umap)
 
         row_list = []
         n_neighbors = neighbor_array.shape[1]
@@ -159,17 +159,17 @@ class PARC:
         # If multiple items are maximal, the function returns the first one encountered.
         return max(set(ll), key=ll.count)
 
-    def run_toobig_subPARC(self, X_data, jac_std_toobig=0.3,
+    def run_toobig_subPARC(self, x_data, jac_std_toobig=0.3,
                            jac_weighted_edges=True):
-        n_elements = X_data.shape[0]
-        hnsw = self.make_knn_struct(too_big=True, big_cluster=X_data)
+        n_elements = x_data.shape[0]
+        hnsw = self.make_knn_struct(too_big=True, big_cluster=x_data)
         if n_elements <= 10: print('consider increasing the too_big_factor')
         if n_elements > self.knn:
             knnbig = self.knn
         else:
             knnbig = int(max(5, 0.2 * n_elements))
 
-        neighbor_array, distance_array = hnsw.knn_query(X_data, k=knnbig)
+        neighbor_array, distance_array = hnsw.knn_query(x_data, k=knnbig)
         # print('shapes of neigh and dist array', neighbor_array.shape, distance_array.shape)
         csr_array = self.make_csrmatrix_noselfloop(neighbor_array, distance_array)
         sources, targets = csr_array.nonzero()
@@ -273,13 +273,13 @@ class PARC:
     def run_subPARC(self):
 
 
-        X_data = self.data
+        x_data = self.x_data
         too_big_factor = self.too_big_factor
         small_pop = self.small_pop
         jac_std_global = self.jac_std_global
         jac_weighted_edges = self.jac_weighted_edges
         knn = self.knn
-        n_elements = X_data.shape[0]
+        n_elements = x_data.shape[0]
 
 
         if self.neighbor_graph is not None:
@@ -291,7 +291,7 @@ class PARC:
                 self.knn_struct = self.make_knn_struct()
             else:
                 print('knn struct already exists')
-            neighbor_array, distance_array = self.knn_struct.knn_query(X_data, k=knn)
+            neighbor_array, distance_array = self.knn_struct.knn_query(x_data, k=knn)
             csr_array = self.make_csrmatrix_noselfloop(neighbor_array, distance_array)
 
         sources, targets = csr_array.nonzero()
@@ -366,8 +366,8 @@ class PARC:
 
         while too_big == True:
 
-            X_data_big = X_data[cluster_big_loc, :]
-            PARC_labels_leiden_big = self.run_toobig_subPARC(X_data_big)
+            x_data_big = x_data[cluster_big_loc, :]
+            PARC_labels_leiden_big = self.run_toobig_subPARC(x_data_big)
             # print('set of new big labels ', set(PARC_labels_leiden_big.flatten()))
             PARC_labels_leiden_big = PARC_labels_leiden_big + 100000
             # print('set of new big labels +100000 ', set(list(PARC_labels_leiden_big.flatten())))
@@ -527,9 +527,9 @@ class PARC:
         return accuracy_val, predict_class_array, majority_truth_labels, number_clusters_for_target
 
     def run_PARC(self):
-        print('input data has shape', self.data.shape[0], '(samples) x', self.data.shape[1], '(features)')
+        print('input data has shape', self.x_data.shape[0], '(samples) x', self.x_data.shape[1], '(features)')
         if self.true_label is None:
-            self.true_label = [1] * self.data.shape[0]
+            self.true_label = [1] * self.x_data.shape[0]
         list_roc = []
 
         time_start_total = time.time()
@@ -581,7 +581,7 @@ class PARC:
             self.majority_truth_labels = majority_truth_labels
         return
 
-    def run_umap_hnsw(self, X_input, graph, n_components=2, alpha: float = 1.0,
+    def run_umap_hnsw(self, x_data, graph, n_components=2, alpha: float = 1.0,
                       negative_sample_rate: int = 5, gamma: float = 1.0, spread=1.0, min_dist=0.1,
                       n_epochs=0, init_pos="spectral", random_state_seed=1, densmap=False,
                       densmap_kwds={}, output_dens=False):
@@ -593,7 +593,7 @@ class PARC:
         <https://github.com/lmcinnes/umap/blob/master/umap/umap_.py>`__.
 
         Args:
-            X_input: (array) an array containing the input data, with shape n_samples x n_features.
+            x_data: (array) an array containing the input data, with shape n_samples x n_features.
             graph: (array) the 1-skeleton of the high dimensional fuzzy simplicial set as
                 represented by a graph for which we require a sparse matrix for the
                 (weighted) adjacency matrix.
