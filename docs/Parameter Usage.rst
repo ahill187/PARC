@@ -19,7 +19,7 @@ For a more detailed explanation of the impact of tuning key parameters please se
    * - y_data_true
      - (numpy.ndarray) (optional)
 
-   * - dist_std_local
+   * - l2_std_factor
      - (optional, default = 2) local pruning threshold: the higher the parameter, the more edges are retained
 
    * - jac_std_global
