@@ -5,7 +5,7 @@ import os
 MIN_LEVEL = logging.DEBUG
 MESSAGE = 25
 logging.addLevelName(MESSAGE, "MESSAGE")
-LOGGING_LEVEL = 20
+LOGGING_LEVEL = 25
 
 
 class LogFilter(logging.Filter):
