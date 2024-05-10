@@ -315,10 +315,10 @@ class PARC:
         csr_array = self.prune_local(neighbor_array, distance_array)
         input_nodes, output_nodes = csr_array.nonzero()
 
-        edgelist = list(zip(input_nodes.tolist(), output_nodes.tolist()))
-        edgelist_copy = edgelist.copy()
-        G = ig.Graph(edgelist, edge_attrs={'weight': csr_array.data.tolist()})
-        similarities = G.similarity_jaccard(pairs=edgelist_copy)  # list of jaccard weights
+        edges = list(zip(input_nodes.tolist(), output_nodes.tolist()))
+        edges_copy = edges.copy()
+        G = ig.Graph(edges, edge_attrs={'weight': csr_array.data.tolist()})
+        similarities = G.similarity_jaccard(pairs=edges_copy)  # list of jaccard weights
         new_edgelist = []
         sim_list_array = np.asarray(similarities)
         if jac_threshold_type == "median":
@@ -327,7 +327,7 @@ class PARC:
             threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
 
         indices_similar = np.where(sim_list_array > threshold)[0]
-        for ii in indices_similar: new_edgelist.append(edgelist_copy[ii])
+        for ii in indices_similar: new_edgelist.append(edges_copy[ii])
         sim_list_new = list(sim_list_array[indices_similar])
 
         if jac_weighted_edges:
@@ -449,17 +449,17 @@ class PARC:
 
         input_nodes, output_nodes = csr_array.nonzero()
 
-        edgelist = list(zip(input_nodes, output_nodes))
+        edges = list(zip(input_nodes, output_nodes))
 
-        edgelist_copy = edgelist.copy()
+        edges_copy = edges.copy()
 
-        graph = ig.Graph(edgelist, edge_attrs={'weight': csr_array.data.tolist()})
-        similarities = graph.similarity_jaccard(pairs=edgelist_copy)
+        graph = ig.Graph(edges, edge_attrs={'weight': csr_array.data.tolist()})
+        similarities = graph.similarity_jaccard(pairs=edges_copy)
 
         logger.message("Starting global pruning...")
 
         sim_list_array = np.asarray(similarities)
-        edge_list_copy_array = np.asarray(edgelist_copy)
+        edge_list_copy_array = np.asarray(edges_copy)
 
         if jac_threshold_type == "median":
             threshold = np.median(similarities)
