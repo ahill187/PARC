@@ -160,7 +160,7 @@ class PARC:
         # If multiple items are maximal, the function returns the first one encountered.
         return max(set(ll), key=ll.count)
 
-    def run_toobig_subPARC(self, x_data, jac_std_toobig=0.3,
+    def run_toobig_subPARC(self, x_data, jac_std_factor=0.3,
                            jac_weighted_edges=True):
         n_elements = x_data.shape[0]
         hnsw = self.make_knn_struct(too_big=True, big_cluster=x_data)
@@ -187,10 +187,10 @@ class PARC:
         sim_list = G.similarity_jaccard(pairs=edgelist_copy)  # list of jaccard weights
         new_edgelist = []
         sim_list_array = np.asarray(sim_list)
-        if jac_std_toobig == 'median':
+        if jac_std_factor == "median":
             threshold = np.median(sim_list)
         else:
-            threshold = np.mean(sim_list) - jac_std_toobig * np.std(sim_list)
+            threshold = np.mean(sim_list) - jac_std_factor * np.std(sim_list)
         print('jac threshold %.3f' % threshold)
         print('jac std %.3f' % np.std(sim_list))
         print('jac mean %.3f' % np.mean(sim_list))
