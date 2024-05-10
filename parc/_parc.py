@@ -10,12 +10,12 @@ from umap.umap_ import find_ab_params, simplicial_set_embedding
 
 #latest github upload 27-June-2020
 class PARC:
-    def __init__(self, x_data, y_data_true=None, l2_std_factor=3, jac_std_global='median', keep_all_local_dist='auto',
+    def __init__(self, x_data, y_data_true=None, l2_std_factor=3, jac_std_factor='median', keep_all_local_dist='auto',
                  large_community_factor=0.4, small_community_size=10, jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
                  n_threads=-1, distance_metric='l2', small_community_timeout=15, partition_type = "ModularityVP", resolution_parameter = 1.0,
                  knn_struct=None, neighbor_graph=None, hnsw_param_ef_construction = 150):
         # higher l2_std_factor means more edges are kept
-        # highter jac_std_global means more edges are kept
+        # highter jac_std_factor means more edges are kept
         if keep_all_local_dist == 'auto':
             if x_data.shape[0] > 300000:
                 keep_all_local_dist = True  # skips local pruning to increase speed
@@ -26,8 +26,8 @@ class PARC:
         self.x_data = x_data
         self.y_data_true = y_data_true
         self.y_data_pred = None
-        self.l2_std_factor = l2_std_factor   # similar to the jac_std_global parameter. avoid setting local and global pruning to both be below 0.5 as this is very aggresive pruning.
-        self.jac_std_global = jac_std_global  #0.15 is also a recommended value performing empirically similar to 'median'. Generally values between 0-1.5 are reasonable.
+        self.l2_std_factor = l2_std_factor   # similar to the jac_std_factor parameter. avoid setting local and global pruning to both be below 0.5 as this is very aggresive pruning.
+        self.jac_std_factor = jac_std_factor  #0.15 is also a recommended value performing empirically similar to 'median'. Generally values between 0-1.5 are reasonable.
         self.keep_all_local_dist = keep_all_local_dist #decides whether or not to do local pruning. default is 'auto' which omits LOCAL pruning for samples >300,000 cells.
         self.large_community_factor = large_community_factor  #if a cluster exceeds this share of the entire cell population, then the PARC will be run on the large cluster. at 0.4 it does not come into play
         self.small_community_size = small_community_size  # smallest cluster population to be considered a community
@@ -277,7 +277,7 @@ class PARC:
         x_data = self.x_data
         large_community_factor = self.large_community_factor
         small_community_size = self.small_community_size
-        jac_std_global = self.jac_std_global
+        jac_std_factor = self.jac_std_factor
         jac_weighted_edges = self.jac_weighted_edges
         knn = self.knn
         n_elements = x_data.shape[0]
@@ -311,10 +311,10 @@ class PARC:
         sim_list_array = np.asarray(sim_list)
         edge_list_copy_array = np.asarray(edgelist_copy)
 
-        if jac_std_global == 'median':
+        if jac_std_factor == 'median':
             threshold = np.median(sim_list)
         else:
-            threshold = np.mean(sim_list) - jac_std_global * np.std(sim_list)
+            threshold = np.mean(sim_list) - jac_std_factor * np.std(sim_list)
         strong_locs = np.where(sim_list_array > threshold)[0]
         # print('Share of edges kept after Global Pruning %.2f' % (len(strong_locs) / len(sim_list)), '%')
         new_edgelist = list(edge_list_copy_array[strong_locs])
@@ -547,7 +547,7 @@ class PARC:
         N = len(list(self.y_data_true))
         self.f1_accumulated = 0
         self.f1_mean = 0
-        self.stats_df = pd.DataFrame({'jac_std_global': [self.jac_std_global], 'l2_std_factor': [self.l2_std_factor],
+        self.stats_df = pd.DataFrame({'jac_std_factor': [self.jac_std_factor], 'l2_std_factor': [self.l2_std_factor],
                                       'runtime(s)': [run_time]})
         self.majority_truth_labels = []
         if len(targets) > 1:
@@ -563,7 +563,7 @@ class PARC:
                 f1_acc_noweighting = f1_acc_noweighting + f1_current
 
                 list_roc.append(
-                    [self.jac_std_global, self.l2_std_factor, onevsall_val] + vals_roc + [numclusters_targetval] + [
+                    [self.jac_std_factor, self.l2_std_factor, onevsall_val] + vals_roc + [numclusters_targetval] + [
                         run_time])
 
             f1_mean = f1_acc_noweighting / len(targets)
@@ -571,7 +571,7 @@ class PARC:
             print('f1-score weighted (by population) %.2f' % (f1_accumulated * 100), '%')
 
             df_accuracy = pd.DataFrame(list_roc,
-                                       columns=['jac_std_global', 'l2_std_factor', 'onevsall-target', 'error rate',
+                                       columns=['jac_std_factor', 'l2_std_factor', 'onevsall-target', 'error rate',
                                                 'f1-score', 'tnr', 'fnr',
                                                 'tpr', 'fpr', 'precision', 'recall', 'num_groups',
                                                 'population of target', 'num clusters', 'clustering runtime'])
