@@ -28,7 +28,7 @@ def test_parc_run_umap_hnsw():
     parc_model = PARC(x_data=x_data, y_data_true=y_data)
     parc_model.run_parc()
 
-    graph = parc_model.knngraph_full()
+    graph = parc_model.create_knn_graph()
     x_umap = parc_model.run_umap_hnsw(x_data, graph)
     assert x_umap.shape == (150, 2)
 
