@@ -326,12 +326,6 @@ class PARC:
         else:
             threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
 
-        graph_pruned = ig.Graph(
-            n=n_samples,
-            edges=list(np.asarray(edges_copy)[indices_similar]),
-            edge_attrs={'weight': sim_list_new}
-        )
-
         indices_similar = np.where(sim_list_array > threshold)[0]
         new_edgelist = [edges_copy[i] for i in indices_similar]
         sim_list_new = list(sim_list_array[indices_similar])
