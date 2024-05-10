@@ -11,7 +11,7 @@ from umap.umap_ import find_ab_params, simplicial_set_embedding
 #latest github upload 27-June-2020
 class PARC:
     def __init__(self, x_data, y_data_true=None, dist_std_local=3, jac_std_global='median', keep_all_local_dist='auto',
-                 too_big_factor=0.4, small_pop=10, jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
+                 large_community_factor=0.4, small_pop=10, jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
                  num_threads=-1, distance='l2', time_smallpop=15, partition_type = "ModularityVP", resolution_parameter = 1.0,
                  knn_struct=None, neighbor_graph=None, hnsw_param_ef_construction = 150):
         # higher dist_std_local means more edges are kept
@@ -29,7 +29,7 @@ class PARC:
         self.dist_std_local = dist_std_local   # similar to the jac_std_global parameter. avoid setting local and global pruning to both be below 0.5 as this is very aggresive pruning.
         self.jac_std_global = jac_std_global  #0.15 is also a recommended value performing empirically similar to 'median'. Generally values between 0-1.5 are reasonable.
         self.keep_all_local_dist = keep_all_local_dist #decides whether or not to do local pruning. default is 'auto' which omits LOCAL pruning for samples >300,000 cells.
-        self.too_big_factor = too_big_factor  #if a cluster exceeds this share of the entire cell population, then the PARC will be run on the large cluster. at 0.4 it does not come into play
+        self.large_community_factor = large_community_factor  #if a cluster exceeds this share of the entire cell population, then the PARC will be run on the large cluster. at 0.4 it does not come into play
         self.small_pop = small_pop  # smallest cluster population to be considered a community
         self.jac_weighted_edges = jac_weighted_edges #boolean. whether to partition using weighted graph
         self.knn = knn
@@ -164,7 +164,7 @@ class PARC:
                            jac_weighted_edges=True):
         n_elements = x_data.shape[0]
         hnsw = self.make_knn_struct(too_big=True, big_cluster=x_data)
-        if n_elements <= 10: print('consider increasing the too_big_factor')
+        if n_elements <= 10: print('consider increasing the large_community_factor')
         if n_elements > self.knn:
             knnbig = self.knn
         else:
@@ -275,7 +275,7 @@ class PARC:
 
 
         x_data = self.x_data
-        too_big_factor = self.too_big_factor
+        large_community_factor = self.large_community_factor
         small_pop = self.small_pop
         jac_std_global = self.jac_std_global
         jac_weighted_edges = self.jac_weighted_edges
@@ -359,7 +359,7 @@ class PARC:
         cluster_i_loc = np.where(PARC_labels_leiden == 0)[
             0]  # the 0th cluster is the largest one. so if cluster 0 is not too big, then the others wont be too big either
         pop_i = len(cluster_i_loc)
-        if pop_i > too_big_factor * n_elements:  # 0.4
+        if pop_i > large_community_factor * n_elements:  # 0.4
             too_big = True
             cluster_big_loc = cluster_i_loc
             list_pop_too_bigs = [pop_i]
@@ -392,7 +392,7 @@ class PARC:
                 cluster_ii_loc = np.where(PARC_labels_leiden == cluster_ii)[0]
                 pop_ii = len(cluster_ii_loc)
                 not_yet_expanded = pop_ii not in list_pop_too_bigs
-                if pop_ii > too_big_factor * n_elements and not_yet_expanded == True:
+                if pop_ii > large_community_factor * n_elements and not_yet_expanded == True:
                     too_big = True
                     print('cluster', cluster_ii, 'is too big and has population', pop_ii)
                     cluster_big_loc = cluster_ii_loc
