@@ -191,7 +191,7 @@ class PARC:
 
         return p
 
-    def knngraph_full(self):
+    def create_knn_graph(self):
         """Create a full k-nearest neighbors graph using the HNSW algorithm.
 
         Returns:
