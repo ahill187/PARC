@@ -185,7 +185,6 @@ class PARC:
 
     def knngraph_full(self):
         k_umap = 15
-        t0= time.time()
         # neighbors in array are not listed in in any order of proximity
         self.knn_struct.set_ef(k_umap+1)
         neighbor_array, distance_array = self.knn_struct.knn_query(self.x_data, k=k_umap)
@@ -479,7 +478,6 @@ class PARC:
 
         logger.message("Starting community detection")
         if jac_weighted_edges:
-            start_leiden = time.time()
             if self.partition_type =='ModularityVP':
                 logger.message(
                     "Leiden algorithm find partition: partition type = ModularityVertexPartition"
@@ -499,7 +497,6 @@ class PARC:
                 )
 
         else:
-            start_leiden = time.time()
             if self.partition_type == 'ModularityVP':
                 logger.message(
                     "Leiden algorithm find partition: partition type = ModularityVertexPartition"
@@ -517,8 +514,6 @@ class PARC:
                     n_iterations=self.n_iter_leiden, seed=self.random_seed,
                     resolution_parameter = self.resolution_parameter
                 )
-
-        time_end_PARC = time.time()
 
         PARC_labels_leiden = np.asarray(partition.membership)
         PARC_labels_leiden = np.reshape(PARC_labels_leiden, (n_elements, 1))
@@ -711,9 +706,6 @@ class PARC:
 
         time_start_total = time.time()
 
-        time_start_knn = time.time()
-
-        time_end_knn_struct = time.time() - time_start_knn
         # Query dataset, k - number of closest elements (returns 2 numpy arrays)
         self.run_subPARC()
         run_time = time.time() - time_start_total
