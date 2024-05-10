@@ -168,7 +168,7 @@ class PARC:
                 ef_construction = self.hnsw_param_ef_construction
             if (num_dims > 30) & (n_elements<=50000) :
                 p.init_index(max_elements=n_elements, ef_construction=ef_construction,
-                             M=48)  ## good for scRNA seq where dimensionality is high
+                             M=48)  # good for scRNA seq where dimensionality is high
             else:
                 p.init_index(max_elements=n_elements, ef_construction=ef_construction, M=24 ) #30
             p.add_items(self.x_data)
@@ -182,7 +182,7 @@ class PARC:
 
         return p
 
-    def knngraph_full(self):#, neighbor_array, distance_array):
+    def knngraph_full(self):
         k_umap = 15
         t0= time.time()
         # neighbors in array are not listed in in any order of proximity
@@ -308,13 +308,7 @@ class PARC:
         neighbor_array, distance_array = hnsw.knn_query(x_data, k=knnbig)
         csr_array = self.prune_local(neighbor_array, distance_array)
         sources, targets = csr_array.nonzero()
-        #mask = np.zeros(len(sources), dtype=bool)
 
-        #mask |= (csr_array.data < (np.mean(csr_array.data) - np.std(csr_array.data) * 5))  # weights are 1/dist so bigger weight means closer nodes
-
-        #csr_array.data[mask] = 0
-        #csr_array.eliminate_zeros()
-        #sources, targets = csr_array.nonzero()
         edgelist = list(zip(sources.tolist(), targets.tolist()))
         edgelist_copy = edgelist.copy()
         G = ig.Graph(edgelist, edge_attrs={'weight': csr_array.data.tolist()})
@@ -501,8 +495,8 @@ class PARC:
 
         too_big = False
 
-        cluster_i_loc = np.where(PARC_labels_leiden == 0)[
-            0]  # the 0th cluster is the largest one. so if cluster 0 is not too big, then the others wont be too big either
+        # the 0th cluster is the largest one. so if cluster 0 is not too big, then the others wont be too big either
+        cluster_i_loc = np.where(PARC_labels_leiden == 0)[0]
         pop_i = len(cluster_i_loc)
         if pop_i > large_community_factor * n_elements:  # 0.4
             too_big = True
@@ -555,7 +549,7 @@ class PARC:
         for cluster in set(PARC_labels_leiden):
             population = len(np.where(PARC_labels_leiden == cluster)[0])
 
-            if population < small_community_size:  # 10
+            if population < small_community_size:
                 small_pop_exist = True
 
                 small_pop_list.append(list(np.where(PARC_labels_leiden == cluster)[0]))
@@ -597,7 +591,7 @@ class PARC:
         for item in set(PARC_labels_leiden):
             pop_list.append((item, PARC_labels_leiden.count(item)))
 
-        self.y_data_pred = PARC_labels_leiden  # list
+        self.y_data_pred = PARC_labels_leiden
         return
 
     def accuracy(self, onevsall=1):
