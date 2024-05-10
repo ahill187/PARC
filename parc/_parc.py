@@ -156,7 +156,7 @@ class PARC:
         if self.knn > 190:
             logger.message(f"knn = {self.knn}; consider using a lower k for KNN graph construction")
         ef_query = max(100, self.knn + 1)  # ef always should be >K. higher ef, more accurate query
-        if too_big == False:
+        if not too_big:
             num_dims = self.x_data.shape[1]
             n_elements = self.x_data.shape[0]
             p = hnswlib.Index(space=self.distance_metric, dim=num_dims)  # default to Euclidean distance
@@ -172,7 +172,7 @@ class PARC:
             else:
                 p.init_index(max_elements=n_elements, ef_construction=ef_construction, M=24 ) #30
             p.add_items(self.x_data)
-        if too_big == True:
+        if too_big:
             num_dims = big_cluster.shape[1]
             n_elements = big_cluster.shape[0]
             p = hnswlib.Index(space='l2', dim=num_dims)
@@ -253,7 +253,7 @@ class PARC:
         n_cells = neighbor_array.shape[0]
         rowi = 0
         discard_count = 0
-        if self.keep_all_local_dist == False:  # locally prune based on (squared) l2 distance
+        if not self.keep_all_local_dist:  # locally prune based on (squared) l2 distance
 
             logger.message(
                 f"Starting local pruning based on Euclidean (L2) distance metric at "
@@ -279,7 +279,7 @@ class PARC:
                 bar.next()
             bar.finish()
 
-        if self.keep_all_local_dist == True:  # dont prune based on distance
+        if self.keep_all_local_dist:  # dont prune based on distance
             row_list.extend(list(np.transpose(np.ones((n_neighbors, n_cells)) * range(0, n_cells)).flatten()))
             col_list = neighbor_array.flatten().tolist()
             weight_list = (1. / (distance_array.flatten() + 0.1)).tolist()
@@ -324,12 +324,12 @@ class PARC:
         for ii in strong_locs: new_edgelist.append(edgelist_copy[ii])
         sim_list_new = list(sim_list_array[strong_locs])
 
-        if jac_weighted_edges == True:
+        if jac_weighted_edges:
             G_sim = ig.Graph(n=n_elements, edges=list(new_edgelist), edge_attrs={'weight': sim_list_new})
         else:
             G_sim = ig.Graph(n=n_elements, edges=list(new_edgelist))
         G_sim.simplify(combine_edges='sum')
-        if jac_weighted_edges == True:
+        if jac_weighted_edges:
             if self.partition_type =='ModularityVP':
                 logger.message(
                     "Leiden algorithm find partition: partition type = ModularityVertexPartition"
@@ -384,7 +384,7 @@ class PARC:
 
         time_smallpop_start = time.time()
 
-        while (small_pop_exist) == True & (time.time() - time_smallpop_start < self.small_community_timeout):
+        while (small_pop_exist) & (time.time() - time_smallpop_start < self.small_community_timeout):
             small_pop_list = []
             small_pop_exist = False
             for cluster in set(list(PARC_labels_leiden.flatten())):
@@ -458,7 +458,7 @@ class PARC:
         G_sim.simplify(combine_edges='sum')  # "first"
 
         logger.message("Starting community detection")
-        if jac_weighted_edges == True:
+        if jac_weighted_edges:
             start_leiden = time.time()
             if self.partition_type =='ModularityVP':
                 logger.message(
@@ -504,7 +504,7 @@ class PARC:
             list_pop_too_bigs = [pop_i]
             cluster_too_big = 0
 
-        while too_big == True:
+        while too_big:
 
             x_data_big = x_data[cluster_big_loc, :]
             PARC_labels_leiden_big = self.run_toobig_subPARC(x_data_big)
@@ -529,13 +529,13 @@ class PARC:
                 cluster_ii_loc = np.where(PARC_labels_leiden == cluster_ii)[0]
                 pop_ii = len(cluster_ii_loc)
                 not_yet_expanded = pop_ii not in list_pop_too_bigs
-                if pop_ii > large_community_factor * n_elements and not_yet_expanded == True:
+                if pop_ii > large_community_factor * n_elements and not_yet_expanded:
                     too_big = True
                     logger.info(f"Cluster {cluster_ii} is too big and has population {pop_ii}.")
                     cluster_big_loc = cluster_ii_loc
                     cluster_big = cluster_ii
                     big_pop = pop_ii
-            if too_big == True:
+            if too_big:
                 list_pop_too_bigs.append(big_pop)
                 logger.info(
                         f"Community {cluster_big} is too big with population {big_pop}. "
@@ -568,7 +568,7 @@ class PARC:
                     best_group = max(available_neighbours_list, key=available_neighbours_list.count)
                     PARC_labels_leiden[single_cell] = best_group
         time_smallpop_start = time.time()
-        while (small_pop_exist == True) & ((time.time() - time_smallpop_start) < self.small_community_timeout):
+        while (small_pop_exist) & ((time.time() - time_smallpop_start) < self.small_community_timeout):
             small_pop_list = []
             small_pop_exist = False
             for cluster in set(list(PARC_labels_leiden.flatten())):
