@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import hnswlib
 from scipy.sparse import csr_matrix
+from progress.bar import Bar
 import igraph as ig
 import leidenalg
 import time
@@ -241,6 +242,7 @@ class PARC:
                 f"{self.l2_std_factor} standard deviations above mean"
             )
             distance_array = distance_array + 0.1
+            bar = Bar("Local pruning...", max=n_cells)
             for row in neighbor_array:
                 distlist = distance_array[rowi, :]
                 to_keep = np.where(distlist < np.mean(distlist) + self.l2_std_factor * np.std(distlist))[0]  # 0*std
@@ -256,6 +258,8 @@ class PARC:
                         weight_list.append(1/(dist+0.1))
 
                 rowi = rowi + 1
+                bar.next()
+            bar.finish()
 
         if self.keep_all_local_dist == True:  # dont prune based on distance
             row_list.extend(list(np.transpose(np.ones((n_neighbors, n_cells)) * range(0, n_cells)).flatten()))
