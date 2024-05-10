@@ -319,23 +319,31 @@ class PARC:
         edges_copy = edges.copy()
         G = ig.Graph(edges, edge_attrs={'weight': csr_array.data.tolist()})
         similarities = G.similarity_jaccard(pairs=edges_copy)  # list of jaccard weights
-        new_edgelist = []
+
         sim_list_array = np.asarray(similarities)
         if jac_threshold_type == "median":
             threshold = np.median(similarities)
         else:
             threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
 
+        graph_pruned = ig.Graph(
+            n=n_elements,
+            edges=list(np.asarray(edges_copy)[indices_similar]),
+            edge_attrs={'weight': sim_list_new}
+        )
+
         indices_similar = np.where(sim_list_array > threshold)[0]
-        for ii in indices_similar: new_edgelist.append(edges_copy[ii])
+        new_edgelist = [edges_copy[i] for i in indices_similar]
         sim_list_new = list(sim_list_array[indices_similar])
 
         if jac_weighted_edges:
             graph_pruned = ig.Graph(
-                n=n_elements, edges=list(new_edgelist), edge_attrs={'weight': sim_list_new}
+                n=n_elements,
+                edges=new_edgelist,
+                edge_attrs={'weight': sim_list_new}
             )
         else:
-            graph_pruned = ig.Graph(n=n_elements, edges=list(new_edgelist))
+            graph_pruned = ig.Graph(n=n_elements, edges=new_edgelist)
         graph_pruned.simplify(combine_edges='sum')
         if jac_weighted_edges:
             if self.partition_type =='ModularityVP':
@@ -459,7 +467,6 @@ class PARC:
         logger.message("Starting global pruning...")
 
         sim_list_array = np.asarray(similarities)
-        edge_list_copy_array = np.asarray(edges_copy)
 
         if jac_threshold_type == "median":
             threshold = np.median(similarities)
@@ -467,11 +474,12 @@ class PARC:
             threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
         indices_similar = np.where(sim_list_array > threshold)[0]
 
-        new_edgelist = list(edge_list_copy_array[indices_similar])
         sim_list_new = list(sim_list_array[indices_similar])
 
         graph_pruned = ig.Graph(
-            n=n_elements, edges=list(new_edgelist), edge_attrs={'weight': sim_list_new}
+            n=n_elements,
+            edges=list(np.asarray(edges_copy)[indices_similar]),
+            edge_attrs={'weight': sim_list_new}
         )
 
         graph_pruned.simplify(combine_edges='sum')  # "first"
