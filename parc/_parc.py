@@ -648,8 +648,8 @@ class PARC:
         num_groups = len(Index_dict)
         sorted_keys = list(sorted(Index_dict.keys()))
         error_count = []
-        pbmc_labels = []
-        thp1_labels = []
+        negative_labels = []
+        positive_labels = []
         fp, fn, tp, tn, precision, recall, f1_score = 0, 0, 0, 0, 0, 0, 0
 
         for kk in sorted_keys:
@@ -661,24 +661,24 @@ class PARC:
                 len_unknown = len(vals)
                 logger.info(f"Number of unknown: {len_unknown}")
             if (majority_val == target) and (kk != -1):
-                thp1_labels.append(kk)
+                positive_labels.append(kk)
                 fp = fp + len([e for e in vals if e != target])
                 tp = tp + len([e for e in vals if e == target])
                 list_error = [e for e in vals if e != majority_val]
                 e_count = len(list_error)
                 error_count.append(e_count)
             elif (majority_val != target) and (kk != -1):
-                pbmc_labels.append(kk)
+                negative_labels.append(kk)
                 tn = tn + len([e for e in vals if e != target])
                 fn = fn + len([e for e in vals if e == target])
                 error_count.append(len([e for e in vals if e != majority_val]))
 
         predict_class_array = np.array(y_data_pred)
         y_data_pred_array = np.array(y_data_pred)
-        number_clusters_for_target = len(thp1_labels)
-        for cancer_class in thp1_labels:
+        number_clusters_for_target = len(positive_labels)
+        for cancer_class in positive_labels:
             predict_class_array[y_data_pred_array == cancer_class] = 1
-        for benign_class in pbmc_labels:
+        for benign_class in negative_labels:
             predict_class_array[y_data_pred_array == benign_class] = 0
         predict_class_array.reshape((predict_class_array.shape[0], -1))
         error_rate = sum(error_count) / n_samples
