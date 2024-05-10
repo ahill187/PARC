@@ -639,7 +639,7 @@ class PARC:
         print(f"a: {a}, b: {b}, spread: {spread}, dist: {min_dist}")
 
         X_umap = simplicial_set_embedding(
-            data=X_input,
+            data=x_data,
             graph=graph,
             n_components=n_components,
             initial_alpha=alpha,
