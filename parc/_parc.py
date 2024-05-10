@@ -269,7 +269,15 @@ class PARC:
         n_samples = neighbor_array.shape[0]
         rowi = 0
         discard_count = 0
-        if not self.keep_all_local_dist:  # locally prune based on (squared) l2 distance
+
+        if self.keep_all_local_dist:  # dont prune based on distance
+            row_list.extend(
+                list(np.transpose(np.ones((n_neighbors, n_samples)) * range(0, n_samples)).flatten())
+            )
+            col_list = neighbor_array.flatten().tolist()
+            weight_list = (1. / (distance_array.flatten() + 0.1)).tolist()
+
+        else self.keep_all_local_dist:  # locally prune based on (squared) l2 distance
 
             logger.message(
                 f"Starting local pruning based on Euclidean (L2) distance metric at "
@@ -296,13 +304,6 @@ class PARC:
                 rowi = rowi + 1
                 bar.next()
             bar.finish()
-
-        if self.keep_all_local_dist:  # dont prune based on distance
-            row_list.extend(
-                list(np.transpose(np.ones((n_neighbors, n_samples)) * range(0, n_samples)).flatten())
-            )
-            col_list = neighbor_array.flatten().tolist()
-            weight_list = (1. / (distance_array.flatten() + 0.1)).tolist()
 
         csr_graph = csr_matrix((np.array(weight_list), (np.array(row_list), np.array(col_list))),
                                shape=(n_samples, n_samples))
