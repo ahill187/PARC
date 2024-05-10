@@ -331,24 +331,24 @@ class PARC:
         sim_list_new = list(sim_list_array[strong_locs])
 
         if jac_weighted_edges:
-            G_sim = ig.Graph(
+            graph_pruned = ig.Graph(
                 n=n_elements, edges=list(new_edgelist), edge_attrs={'weight': sim_list_new}
             )
         else:
-            G_sim = ig.Graph(n=n_elements, edges=list(new_edgelist))
-        G_sim.simplify(combine_edges='sum')
+            graph_pruned = ig.Graph(n=n_elements, edges=list(new_edgelist))
+        graph_pruned.simplify(combine_edges='sum')
         if jac_weighted_edges:
             if self.partition_type =='ModularityVP':
                 logger.message(
                     "Leiden algorithm find partition: partition type = ModularityVertexPartition"
                 )
                 partition = leidenalg.find_partition(
-                    G_sim, leidenalg.ModularityVertexPartition, weights='weight',
+                    graph_pruned, leidenalg.ModularityVertexPartition, weights='weight',
                     n_iterations=self.n_iter_leiden, seed=self.random_seed
                 )
             else:
                 partition = leidenalg.find_partition(
-                    G_sim, leidenalg.RBConfigurationVertexPartition, weights='weight',
+                    graph_pruned, leidenalg.RBConfigurationVertexPartition, weights='weight',
                     n_iterations=self.n_iter_leiden, seed=self.random_seed,
                     resolution_parameter=self.resolution_parameter
                 )
@@ -361,7 +361,7 @@ class PARC:
                     "Leiden algorithm find partition: partition type = ModularityVertexPartition"
                 )
                 partition = leidenalg.find_partition(
-                    G_sim, leidenalg.ModularityVertexPartition,
+                    graph_pruned, leidenalg.ModularityVertexPartition,
                     n_iterations=self.n_iter_leiden, seed=self.random_seed
                 )
             else:
@@ -369,7 +369,7 @@ class PARC:
                     "Leiden algorithm find partition: partition type = RBConfigurationVertexPartition"
                 )
                 partition = leidenalg.find_partition(
-                    G_sim, leidenalg.RBConfigurationVertexPartition,
+                    graph_pruned, leidenalg.RBConfigurationVertexPartition,
                     n_iterations=self.n_iter_leiden, seed=self.random_seed,
                     resolution_parameter=self.resolution_parameter
                 )
@@ -453,8 +453,8 @@ class PARC:
 
         edgelist_copy = edgelist.copy()
 
-        G = ig.Graph(edgelist, edge_attrs={'weight': csr_array.data.tolist()})
-        sim_list = G.similarity_jaccard(pairs=edgelist_copy)
+        graph = ig.Graph(edgelist, edge_attrs={'weight': csr_array.data.tolist()})
+        sim_list = graph.similarity_jaccard(pairs=edgelist_copy)
 
         logger.message("Starting global pruning...")
 
@@ -470,11 +470,11 @@ class PARC:
         new_edgelist = list(edge_list_copy_array[strong_locs])
         sim_list_new = list(sim_list_array[strong_locs])
 
-        G_sim = ig.Graph(
+        graph_pruned = ig.Graph(
             n=n_elements, edges=list(new_edgelist), edge_attrs={'weight': sim_list_new}
         )
 
-        G_sim.simplify(combine_edges='sum')  # "first"
+        graph_pruned.simplify(combine_edges='sum')  # "first"
 
         logger.message("Starting community detection")
         if jac_weighted_edges:
@@ -483,7 +483,7 @@ class PARC:
                     "Leiden algorithm find partition: partition type = ModularityVertexPartition"
                 )
                 partition = leidenalg.find_partition(
-                    G_sim, leidenalg.ModularityVertexPartition, weights='weight',
+                    graph_pruned, leidenalg.ModularityVertexPartition, weights='weight',
                     n_iterations=self.n_iter_leiden, seed=self.random_seed
                 )
             else:
@@ -491,7 +491,7 @@ class PARC:
                     "Leiden algorithm find partition: partition type = RBConfigurationVertexPartition"
                 )
                 partition = leidenalg.find_partition(
-                    G_sim, leidenalg.RBConfigurationVertexPartition, weights='weight',
+                    graph_pruned, leidenalg.RBConfigurationVertexPartition, weights='weight',
                     n_iterations=self.n_iter_leiden, seed=self.random_seed,
                     resolution_parameter = self.resolution_parameter
                 )
@@ -502,7 +502,7 @@ class PARC:
                     "Leiden algorithm find partition: partition type = ModularityVertexPartition"
                 )
                 partition = leidenalg.find_partition(
-                    G_sim, leidenalg.ModularityVertexPartition,
+                    graph_pruned, leidenalg.ModularityVertexPartition,
                     n_iterations=self.n_iter_leiden, seed=self.random_seed
                 )
             else:
@@ -510,7 +510,7 @@ class PARC:
                     "Leiden algorithm find partition: partition type = RBConfigurationVertexPartition"
                 )
                 partition = leidenalg.find_partition(
-                    G_sim, leidenalg.RBConfigurationVertexPartition,
+                    graph_pruned, leidenalg.RBConfigurationVertexPartition,
                     n_iterations=self.n_iter_leiden, seed=self.random_seed,
                     resolution_parameter = self.resolution_parameter
                 )
