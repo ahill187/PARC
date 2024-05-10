@@ -7,6 +7,7 @@ import igraph as ig
 import leidenalg
 import time
 from umap.umap_ import find_ab_params, simplicial_set_embedding
+from parc.utils import get_mode
 from parc.logger import get_logger
 
 logger = get_logger(__name__)
@@ -308,10 +309,6 @@ class PARC:
         csr_graph = csr_matrix((np.array(weight_list), (np.array(row_list), np.array(col_list))),
                                shape=(n_samples, n_samples))
         return csr_graph
-
-    def func_mode(self, ll):  # return MODE of list
-        # If multiple items are maximal, the function returns the first one encountered.
-        return max(set(ll), key=ll.count)
 
     def run_toobig_subPARC(self, x_data, jac_std_factor=0.3, jac_threshold_type="mean",
                            jac_weighted_edges=True):
@@ -657,7 +654,7 @@ class PARC:
 
         for kk in sorted_keys:
             vals = [t for t in Index_dict[kk]]
-            majority_val = self.func_mode(vals)
+            majority_val = get_mode(vals)
             if majority_val == onevsall:
                 logger.info(f"Cluster {kk} has majority {onevsall} with population {len(vals)}")
             if kk == -1:
@@ -702,7 +699,7 @@ class PARC:
         for cluster_i in set(y_data_pred):
             cluster_i_loc = np.where(np.asarray(y_data_pred) == cluster_i)[0]
             y_data_true = np.asarray(y_data_true)
-            majority_truth = self.func_mode(list(y_data_true[cluster_i_loc]))
+            majority_truth = get_mode(list(y_data_true[cluster_i_loc]))
             majority_truth_labels[cluster_i_loc] = majority_truth
 
         majority_truth_labels = list(majority_truth_labels.flatten())
