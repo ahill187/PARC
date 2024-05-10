@@ -537,11 +537,11 @@ class PARC:
         # the 0th cluster is the largest one. so if cluster 0 is not too big,
         # then the others wont be too big either
         community_indices = np.where(node_communities == 0)[0]
-        pop_i = len(community_indices)
-        if pop_i > large_community_factor * n_samples:
+        community_size = len(community_indices)
+        if community_size > large_community_factor * n_samples:
             too_big = True
             cluster_big_loc = community_indices
-            list_pop_too_bigs = [pop_i]
+            list_pop_too_bigs = [community_size]
             cluster_too_big = 0
 
         while too_big:
@@ -563,14 +563,14 @@ class PARC:
             node_communities = np.asarray(node_communities)
             for cluster_ii in set_node_communities:
                 cluster_ii_loc = np.where(node_communities == cluster_ii)[0]
-                pop_ii = len(cluster_ii_loc)
-                not_yet_expanded = pop_ii not in list_pop_too_bigs
-                if pop_ii > large_community_factor * n_samples and not_yet_expanded:
+                community_size = len(cluster_ii_loc)
+                not_yet_expanded = community_size not in list_pop_too_bigs
+                if community_size > large_community_factor * n_samples and not_yet_expanded:
                     too_big = True
-                    logger.info(f"Cluster {cluster_ii} is too big and has population {pop_ii}.")
+                    logger.info(f"Cluster {cluster_ii} is too big and has population {community_size}.")
                     cluster_big_loc = cluster_ii_loc
                     cluster_big = cluster_ii
-                    big_pop = pop_ii
+                    big_pop = community_size
             if too_big:
                 list_pop_too_bigs.append(big_pop)
                 logger.info(
