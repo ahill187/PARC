@@ -10,7 +10,7 @@ from umap.umap_ import find_ab_params, simplicial_set_embedding
 
 #latest github upload 27-June-2020
 class PARC:
-    def __init__(self, x_data, y_data_true=None, l2_std_factor=3, jac_std_factor='median', keep_all_local_dist='auto',
+    def __init__(self, x_data, y_data_true=None, l2_std_factor=3, jac_threshold_type="median", jac_std_factor=0.15, keep_all_local_dist='auto',
                  large_community_factor=0.4, small_community_size=10, jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
                  n_threads=-1, distance_metric='l2', small_community_timeout=15, partition_type = "ModularityVP", resolution_parameter = 1.0,
                  knn_struct=None, neighbor_graph=None, hnsw_param_ef_construction = 150):
@@ -28,6 +28,7 @@ class PARC:
         self.y_data_pred = None
         self.l2_std_factor = l2_std_factor   # similar to the jac_std_factor parameter. avoid setting local and global pruning to both be below 0.5 as this is very aggresive pruning.
         self.jac_std_factor = jac_std_factor  #0.15 is also a recommended value performing empirically similar to 'median'. Generally values between 0-1.5 are reasonable.
+        self.jac_threshold_type = jac_threshold_type
         self.keep_all_local_dist = keep_all_local_dist #decides whether or not to do local pruning. default is 'auto' which omits LOCAL pruning for samples >300,000 cells.
         self.large_community_factor = large_community_factor  #if a cluster exceeds this share of the entire cell population, then the PARC will be run on the large cluster. at 0.4 it does not come into play
         self.small_community_size = small_community_size  # smallest cluster population to be considered a community
@@ -160,7 +161,7 @@ class PARC:
         # If multiple items are maximal, the function returns the first one encountered.
         return max(set(ll), key=ll.count)
 
-    def run_toobig_subPARC(self, x_data, jac_std_factor=0.3,
+    def run_toobig_subPARC(self, x_data, jac_std_factor=0.3, jac_threshold_type="mean",
                            jac_weighted_edges=True):
         n_elements = x_data.shape[0]
         hnsw = self.make_knn_struct(too_big=True, big_cluster=x_data)
@@ -187,7 +188,7 @@ class PARC:
         sim_list = G.similarity_jaccard(pairs=edgelist_copy)  # list of jaccard weights
         new_edgelist = []
         sim_list_array = np.asarray(sim_list)
-        if jac_std_factor == "median":
+        if jac_threshold_type == "median":
             threshold = np.median(sim_list)
         else:
             threshold = np.mean(sim_list) - jac_std_factor * np.std(sim_list)
@@ -278,6 +279,7 @@ class PARC:
         large_community_factor = self.large_community_factor
         small_community_size = self.small_community_size
         jac_std_factor = self.jac_std_factor
+        jac_threshold_type = self.jac_threshold_type
         jac_weighted_edges = self.jac_weighted_edges
         knn = self.knn
         n_elements = x_data.shape[0]
@@ -311,7 +313,7 @@ class PARC:
         sim_list_array = np.asarray(sim_list)
         edge_list_copy_array = np.asarray(edgelist_copy)
 
-        if jac_std_factor == 'median':
+        if jac_threshold_type == "median":
             threshold = np.median(sim_list)
         else:
             threshold = np.mean(sim_list) - jac_std_factor * np.std(sim_list)
