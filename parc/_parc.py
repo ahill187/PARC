@@ -277,7 +277,7 @@ class PARC:
             col_list = neighbor_array.flatten().tolist()
             weight_list = (1. / (distance_array.flatten() + 0.1)).tolist()
 
-        else self.keep_all_local_dist:  # locally prune based on (squared) l2 distance
+        else:  # locally prune based on (squared) l2 distance
 
             logger.message(
                 f"Starting local pruning based on Euclidean (L2) distance metric at "
