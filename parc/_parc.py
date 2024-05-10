@@ -12,7 +12,7 @@ from umap.umap_ import find_ab_params, simplicial_set_embedding
 class PARC:
     def __init__(self, x_data, y_data_true=None, dist_std_local=3, jac_std_global='median', keep_all_local_dist='auto',
                  large_community_factor=0.4, small_community_size=10, jac_weighted_edges=True, knn=30, n_iter_leiden=5, random_seed=42,
-                 num_threads=-1, distance='l2', small_community_timeout=15, partition_type = "ModularityVP", resolution_parameter = 1.0,
+                 n_threads=-1, distance='l2', small_community_timeout=15, partition_type = "ModularityVP", resolution_parameter = 1.0,
                  knn_struct=None, neighbor_graph=None, hnsw_param_ef_construction = 150):
         # higher dist_std_local means more edges are kept
         # highter jac_std_global means more edges are kept
@@ -35,7 +35,7 @@ class PARC:
         self.knn = knn
         self.n_iter_leiden = n_iter_leiden #the default is 5 in PARC
         self.random_seed = random_seed  # enable reproducible Leiden clustering
-        self.num_threads = num_threads  # number of threads used in KNN search/construction
+        self.n_threads = n_threads  # number of threads used in KNN search/construction
         self.distance = distance  # Euclidean distance 'l2' by default; other options 'ip' and 'cosine'
         self.small_community_timeout = small_community_timeout #number of seconds trying to check an outlier
         self.partition_type = partition_type #default is the simple ModularityVertexPartition where resolution_parameter =1. In order to change resolution_parameter, we switch to RBConfigurationVP
@@ -51,7 +51,7 @@ class PARC:
             num_dims = self.x_data.shape[1]
             n_elements = self.x_data.shape[0]
             p = hnswlib.Index(space=self.distance, dim=num_dims)  # default to Euclidean distance
-            p.set_num_threads(self.num_threads)  # allow user to set threads used in KNN construction
+            p.set_num_threads(self.n_threads)  # allow user to set threads used in KNN construction
             if n_elements < 10000:
                 ef_query = min(n_elements - 10, 500)
                 ef_construction = ef_query
