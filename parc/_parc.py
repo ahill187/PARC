@@ -225,7 +225,25 @@ class PARC:
         graph = graph_transpose + graph - prod_matrix
         return graph
 
-    def make_csrmatrix_noselfloop(self, neighbor_array, distance_array):
+    def prune_local(self, neighbor_array, distance_array):
+        """Prune the nearest neighbors array.
+
+        If ``keep_all_local_dist`` is true, remove any neighbors which are further away than
+        the specified cutoff distance. Also, remove any self-loops. Return in the ``csr_matrix``
+        format.
+
+        If ``keep_all_local_dist`` is false, then don't perform any pruning and return the original
+        arrays in the ``csr_matrix`` format.
+
+        Args:
+            neighbor_array (np.array): An array with dimensions (n_samples, k) listing the
+                k nearest neighbors for each data point.
+            distance_array (np.array): An array with dimensions (n_samples, k) listing the
+                distances to each of the k nearest neighbors for each data point.
+        Returns:
+            scipy.sparse.csr_matrix: A compressed sparse row matrix with dimensions
+            (n_samples, n_samples), containing the pruned distances.
+        """
         # neighbor array not listed in in any order of proximity
         row_list = []
         col_list = []
@@ -288,7 +306,7 @@ class PARC:
             knnbig = int(max(5, 0.2 * n_elements))
 
         neighbor_array, distance_array = hnsw.knn_query(x_data, k=knnbig)
-        csr_array = self.make_csrmatrix_noselfloop(neighbor_array, distance_array)
+        csr_array = self.prune_local(neighbor_array, distance_array)
         sources, targets = csr_array.nonzero()
         #mask = np.zeros(len(sources), dtype=bool)
 
@@ -416,7 +434,7 @@ class PARC:
             else:
                 logger.info("knn struct already exists")
             neighbor_array, distance_array = self.knn_struct.knn_query(x_data, k=knn)
-            csr_array = self.make_csrmatrix_noselfloop(neighbor_array, distance_array)
+            csr_array = self.prune_local(neighbor_array, distance_array)
 
         sources, targets = csr_array.nonzero()
 
