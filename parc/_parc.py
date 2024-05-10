@@ -604,10 +604,10 @@ class PARC:
             vals = [t for t in Index_dict[kk]]
             majority_val = self.func_mode(vals)
             if majority_val == onevsall:
-                logger.message(f"Cluster {kk} has majority {onevsall} with population {len(vals)}")
+                logger.info(f"Cluster {kk} has majority {onevsall} with population {len(vals)}")
             if kk == -1:
                 len_unknown = len(vals)
-                logger.message(f"Number of unknown: {len_unknown}")
+                logger.info(f"Number of unknown: {len_unknown}")
             if (majority_val == onevsall) and (kk != -1):
                 thp1_labels.append(kk)
                 fp = fp + len([e for e in vals if e != onevsall])
