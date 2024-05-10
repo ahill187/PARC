@@ -329,8 +329,8 @@ class PARC:
 
         edges = list(zip(input_nodes.tolist(), output_nodes.tolist()))
         edges_copy = edges.copy()
-        G = ig.Graph(edges, edge_attrs={'weight': csr_array.data.tolist()})
-        similarities = G.similarity_jaccard(pairs=edges_copy)  # list of jaccard weights
+        graph = ig.Graph(edges, edge_attrs={'weight': csr_array.data.tolist()})
+        similarities = graph.similarity_jaccard(pairs=edges_copy)  # list of jaccard weights
 
         sim_list_array = np.asarray(similarities)
         if jac_threshold_type == "median":
