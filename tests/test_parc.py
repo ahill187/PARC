@@ -24,11 +24,12 @@ def forest_data():
 
 
 @pytest.mark.parametrize(
-    "dataset_name, large_community_factor, f1_mean, f1_accumulated, run_time",
+    "dataset_name, large_community_factor, knn, f1_mean, f1_accumulated, run_time",
     [
-        ("iris_data", 0.4, 0.9, 0.9, 1),
-        ("forest_data", 0.019, 0.6, 0.6, 10),
-        ("forest_data", 0.4, 0.6, 0.6, 10)
+        ("iris_data", 0.4, 30, 0.9, 0.9, 1),
+        ("forest_data", 0.019, 30, 0.6, 0.6, 10),
+        ("forest_data", 0.4, 30, 0.6, 0.6, 10),
+        ("forest_data", 0.4, 100, 0.5, 0.6, 15)
     ]
 )
 @pytest.mark.parametrize(
@@ -39,16 +40,17 @@ def forest_data():
     ]
 )
 def test_parc_run_parc(
-    request, dataset_name, large_community_factor, f1_mean, f1_accumulated,
+    request, dataset_name, large_community_factor, knn, f1_mean, f1_accumulated,
     run_time, targets_exist
 ):
     x_data, y_data = request.getfixturevalue(dataset_name)
     if targets_exist:
         parc_model = PARC(
-            x_data=x_data, y_data_true=y_data, large_community_factor=large_community_factor
+            x_data=x_data, y_data_true=y_data, large_community_factor=large_community_factor,
+            knn=knn
         )
     else:
-        parc_model = PARC(x_data=x_data, large_community_factor=large_community_factor)
+        parc_model = PARC(x_data=x_data, large_community_factor=large_community_factor, knn=knn)
     start_time = time.time()
     parc_model.run_parc()
     end_time = time.time()
