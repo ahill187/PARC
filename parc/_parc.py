@@ -153,6 +153,14 @@ class PARC:
             self._partition_type = partition_type
 
     def make_knn_struct(self, too_big=False, big_cluster=None):
+        """Create a Hierarchical Navigable Small Worlds (HNSW) graph.
+
+        See `hnswlib.Index
+        <https://github.com/nmslib/hnswlib/blob/master/python_bindings/LazyIndex.py>`__.
+
+        Returns:
+            (hnswlib.Index): TODO.
+        """
         if self.knn > 190:
             logger.message(f"knn = {self.knn}; consider using a lower k for KNN graph construction")
         ef_query = max(100, self.knn + 1)  # ef always should be >K. higher ef, more accurate query
@@ -184,6 +192,12 @@ class PARC:
         return p
 
     def knngraph_full(self):
+        """Create a full k-nearest neighbors graph using the HNSW algorithm.
+
+        Returns:
+            scipy.sparse.csr_matrix: A compressed sparse row matrix with dimensions
+                (n_samples, n_samples), containing the pruned distances.
+        """
         k_umap = 15
         # neighbors in array are not listed in in any order of proximity
         self.knn_struct.set_ef(k_umap+1)
