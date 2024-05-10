@@ -326,9 +326,9 @@ class PARC:
         else:
             threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
 
-        strong_locs = np.where(sim_list_array > threshold)[0]
-        for ii in strong_locs: new_edgelist.append(edgelist_copy[ii])
-        sim_list_new = list(sim_list_array[strong_locs])
+        indices_similar = np.where(sim_list_array > threshold)[0]
+        for ii in indices_similar: new_edgelist.append(edgelist_copy[ii])
+        sim_list_new = list(sim_list_array[indices_similar])
 
         if jac_weighted_edges:
             graph_pruned = ig.Graph(
@@ -465,10 +465,10 @@ class PARC:
             threshold = np.median(similarities)
         else:
             threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
-        strong_locs = np.where(sim_list_array > threshold)[0]
+        indices_similar = np.where(sim_list_array > threshold)[0]
 
-        new_edgelist = list(edge_list_copy_array[strong_locs])
-        sim_list_new = list(sim_list_array[strong_locs])
+        new_edgelist = list(edge_list_copy_array[indices_similar])
+        sim_list_new = list(sim_list_array[indices_similar])
 
         graph_pruned = ig.Graph(
             n=n_elements, edges=list(new_edgelist), edge_attrs={'weight': sim_list_new}
