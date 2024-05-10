@@ -159,18 +159,19 @@ class PARC:
         if not too_big:
             num_dims = self.x_data.shape[1]
             n_elements = self.x_data.shape[0]
-            p = hnswlib.Index(space=self.distance_metric, dim=num_dims)  # default to Euclidean distance
+            p = hnswlib.Index(space=self.distance_metric, dim=num_dims)
             p.set_num_threads(self.n_threads)  # allow user to set threads used in KNN construction
             if n_elements < 10000:
                 ef_query = min(n_elements - 10, 500)
                 ef_construction = ef_query
             else:
                 ef_construction = self.hnsw_param_ef_construction
-            if (num_dims > 30) & (n_elements<=50000) :
-                p.init_index(max_elements=n_elements, ef_construction=ef_construction,
-                             M=48)  # good for scRNA seq where dimensionality is high
+            if (num_dims > 30) & (n_elements <= 50000) :
+                p.init_index(
+                    max_elements=n_elements, ef_construction=ef_construction, M=48
+                ) # good for scRNA seq where dimensionality is high
             else:
-                p.init_index(max_elements=n_elements, ef_construction=ef_construction, M=24 ) #30
+                p.init_index(max_elements=n_elements, ef_construction=ef_construction, M=24) #30
             p.add_items(self.x_data)
         if too_big:
             num_dims = big_cluster.shape[1]
@@ -193,7 +194,9 @@ class PARC:
         n_neighbors = neighbor_array.shape[1]
         n_cells = neighbor_array.shape[0]
 
-        row_list.extend(list(np.transpose(np.ones((n_neighbors, n_cells)) * range(0, n_cells)).flatten()))
+        row_list.extend(
+            list(np.transpose(np.ones((n_neighbors, n_cells)) * range(0, n_cells)).flatten())
+        )
 
 
         row_min = np.min(distance_array, axis=1)
@@ -263,7 +266,9 @@ class PARC:
             bar = Bar("Local pruning...", max=n_cells)
             for row in neighbor_array:
                 distlist = distance_array[rowi, :]
-                to_keep = np.where(distlist < np.mean(distlist) + self.l2_std_factor * np.std(distlist))[0]  # 0*std
+                to_keep = np.where(
+                    distlist < np.mean(distlist) + self.l2_std_factor * np.std(distlist)
+                )[0]  # 0*std
                 updated_nn_ind = row[np.ix_(to_keep)]
                 updated_nn_weights = distlist[np.ix_(to_keep)]
                 discard_count = discard_count + (n_neighbors - len(to_keep))
@@ -280,7 +285,9 @@ class PARC:
             bar.finish()
 
         if self.keep_all_local_dist:  # dont prune based on distance
-            row_list.extend(list(np.transpose(np.ones((n_neighbors, n_cells)) * range(0, n_cells)).flatten()))
+            row_list.extend(
+                list(np.transpose(np.ones((n_neighbors, n_cells)) * range(0, n_cells)).flatten())
+            )
             col_list = neighbor_array.flatten().tolist()
             weight_list = (1. / (distance_array.flatten() + 0.1)).tolist()
 
@@ -325,7 +332,9 @@ class PARC:
         sim_list_new = list(sim_list_array[strong_locs])
 
         if jac_weighted_edges:
-            G_sim = ig.Graph(n=n_elements, edges=list(new_edgelist), edge_attrs={'weight': sim_list_new})
+            G_sim = ig.Graph(
+                n=n_elements, edges=list(new_edgelist), edge_attrs={'weight': sim_list_new}
+            )
         else:
             G_sim = ig.Graph(n=n_elements, edges=list(new_edgelist))
         G_sim.simplify(combine_edges='sum')
@@ -334,11 +343,16 @@ class PARC:
                 logger.message(
                     "Leiden algorithm find partition: partition type = ModularityVertexPartition"
                 )
-                partition = leidenalg.find_partition(G_sim, leidenalg.ModularityVertexPartition, weights='weight',
-                                                 n_iterations=self.n_iter_leiden, seed=self.random_seed)
+                partition = leidenalg.find_partition(
+                    G_sim, leidenalg.ModularityVertexPartition, weights='weight',
+                    n_iterations=self.n_iter_leiden, seed=self.random_seed
+                )
             else:
-                partition = leidenalg.find_partition(G_sim, leidenalg.RBConfigurationVertexPartition, weights='weight',
-                                                 n_iterations=self.n_iter_leiden, seed=self.random_seed, resolution_parameter=self.resolution_parameter)
+                partition = leidenalg.find_partition(
+                    G_sim, leidenalg.RBConfigurationVertexPartition, weights='weight',
+                    n_iterations=self.n_iter_leiden, seed=self.random_seed,
+                    resolution_parameter=self.resolution_parameter
+                )
                 logger.message(
                     "Leiden algorithm find partition: partition type = RBConfigurationVertexPartition"
                 )
@@ -347,15 +361,19 @@ class PARC:
                 logger.message(
                     "Leiden algorithm find partition: partition type = ModularityVertexPartition"
                 )
-                partition = leidenalg.find_partition(G_sim, leidenalg.ModularityVertexPartition,
-                                                 n_iterations=self.n_iter_leiden, seed=self.random_seed)
+                partition = leidenalg.find_partition(
+                    G_sim, leidenalg.ModularityVertexPartition,
+                    n_iterations=self.n_iter_leiden, seed=self.random_seed
+                )
             else:
                 logger.message(
                     "Leiden algorithm find partition: partition type = RBConfigurationVertexPartition"
                 )
-                partition = leidenalg.find_partition(G_sim, leidenalg.RBConfigurationVertexPartition,
-                                                     n_iterations=self.n_iter_leiden, seed=self.random_seed,
-                                                     resolution_parameter=self.resolution_parameter)
+                partition = leidenalg.find_partition(
+                    G_sim, leidenalg.RBConfigurationVertexPartition,
+                    n_iterations=self.n_iter_leiden, seed=self.random_seed,
+                    resolution_parameter=self.resolution_parameter
+                )
 
         PARC_labels_leiden = np.asarray(partition.membership)
         PARC_labels_leiden = np.reshape(PARC_labels_leiden, (n_elements, 1))
@@ -453,7 +471,9 @@ class PARC:
         new_edgelist = list(edge_list_copy_array[strong_locs])
         sim_list_new = list(sim_list_array[strong_locs])
 
-        G_sim = ig.Graph(n=n_elements, edges=list(new_edgelist), edge_attrs={'weight': sim_list_new})
+        G_sim = ig.Graph(
+            n=n_elements, edges=list(new_edgelist), edge_attrs={'weight': sim_list_new}
+        )
 
         G_sim.simplify(combine_edges='sum')  # "first"
 
@@ -464,14 +484,19 @@ class PARC:
                 logger.message(
                     "Leiden algorithm find partition: partition type = ModularityVertexPartition"
                 )
-                partition = leidenalg.find_partition(G_sim, leidenalg.ModularityVertexPartition, weights='weight',
-                                                 n_iterations=self.n_iter_leiden, seed=self.random_seed)
+                partition = leidenalg.find_partition(
+                    G_sim, leidenalg.ModularityVertexPartition, weights='weight',
+                    n_iterations=self.n_iter_leiden, seed=self.random_seed
+                )
             else:
                 logger.message(
                     "Leiden algorithm find partition: partition type = RBConfigurationVertexPartition"
                 )
-                partition = leidenalg.find_partition(G_sim, leidenalg.RBConfigurationVertexPartition, weights='weight',
-                                                     n_iterations=self.n_iter_leiden, seed=self.random_seed, resolution_parameter = self.resolution_parameter)
+                partition = leidenalg.find_partition(
+                    G_sim, leidenalg.RBConfigurationVertexPartition, weights='weight',
+                    n_iterations=self.n_iter_leiden, seed=self.random_seed,
+                    resolution_parameter = self.resolution_parameter
+                )
 
         else:
             start_leiden = time.time()
@@ -479,14 +504,19 @@ class PARC:
                 logger.message(
                     "Leiden algorithm find partition: partition type = ModularityVertexPartition"
                 )
-                partition = leidenalg.find_partition(G_sim, leidenalg.ModularityVertexPartition,
-                                                 n_iterations=self.n_iter_leiden, seed=self.random_seed)
+                partition = leidenalg.find_partition(
+                    G_sim, leidenalg.ModularityVertexPartition,
+                    n_iterations=self.n_iter_leiden, seed=self.random_seed
+                )
             else:
                 logger.message(
                     "Leiden algorithm find partition: partition type = RBConfigurationVertexPartition"
                 )
-                partition = leidenalg.find_partition(G_sim, leidenalg.RBConfigurationVertexPartition,
-                                                     n_iterations=self.n_iter_leiden, seed=self.random_seed, resolution_parameter = self.resolution_parameter)
+                partition = leidenalg.find_partition(
+                    G_sim, leidenalg.RBConfigurationVertexPartition,
+                    n_iterations=self.n_iter_leiden, seed=self.random_seed,
+                    resolution_parameter = self.resolution_parameter
+                )
 
         time_end_PARC = time.time()
 
@@ -495,10 +525,11 @@ class PARC:
 
         too_big = False
 
-        # the 0th cluster is the largest one. so if cluster 0 is not too big, then the others wont be too big either
+        # the 0th cluster is the largest one. so if cluster 0 is not too big,
+        # then the others wont be too big either
         cluster_i_loc = np.where(PARC_labels_leiden == 0)[0]
         pop_i = len(cluster_i_loc)
-        if pop_i > large_community_factor * n_elements:  # 0.4
+        if pop_i > large_community_factor * n_elements:
             too_big = True
             cluster_big_loc = cluster_i_loc
             list_pop_too_bigs = [pop_i]
@@ -648,8 +679,10 @@ class PARC:
         tpr = tp / n_cancer
         fpr = fp / n_pbmc
 
-        if tp != 0 or fn != 0: recall = tp / (tp + fn)  # ability to find all positives
-        if tp != 0 or fp != 0: precision = tp / (tp + fp)  # ability to not misclassify negatives as positives
+        if tp != 0 or fn != 0:
+            recall = tp / (tp + fn)  # ability to find all positives
+        if tp != 0 or fp != 0:
+            precision = tp / (tp + fp)  # ability to not misclassify negatives as positives
         if precision != 0 or recall != 0:
             f1_score = precision * recall * 2 / (precision + recall)
         majority_truth_labels = np.empty((len(y_data_true), 1), dtype=object)
@@ -690,33 +723,43 @@ class PARC:
         N = len(list(self.y_data_true))
         self.f1_accumulated = 0
         self.f1_mean = 0
-        self.stats_df = pd.DataFrame({'jac_std_factor': [self.jac_std_factor], 'l2_std_factor': [self.l2_std_factor],
-                                      'runtime(s)': [run_time]})
+        self.stats_df = pd.DataFrame({
+            'jac_std_factor': [self.jac_std_factor],
+            'l2_std_factor': [self.l2_std_factor],
+            'runtime(s)': [run_time]
+        })
         self.majority_truth_labels = []
         if len(targets) > 1:
             f1_accumulated = 0
             f1_acc_noweighting = 0
             for onevsall_val in targets:
-                vals_roc, predict_class_array, majority_truth_labels, numclusters_targetval = self.accuracy(
-                    onevsall=onevsall_val)
+                vals_roc, predict_class_array, majority_truth_labels, numclusters_targetval = self.accuracy(onevsall=onevsall_val)
                 f1_current = vals_roc[1]
-                logger.message(f"target {onevsall_val} has f1-score of {np.round(f1_current * 100, 2)}")
-                f1_accumulated = f1_accumulated + f1_current * (list(self.y_data_true).count(onevsall_val)) / N
+                logger.message(
+                    f"target {onevsall_val} has f1-score of {np.round(f1_current * 100, 2)}"
+                )
+                f1_accumulated += f1_current * (list(self.y_data_true).count(onevsall_val)) / N
                 f1_acc_noweighting = f1_acc_noweighting + f1_current
 
                 list_roc.append(
-                    [self.jac_std_factor, self.l2_std_factor, onevsall_val] + vals_roc + [numclusters_targetval] + [
-                        run_time])
+                    [self.jac_std_factor, self.l2_std_factor, onevsall_val] +
+                    vals_roc +
+                    [numclusters_targetval] +
+                    [run_time]
+                )
 
             f1_mean = f1_acc_noweighting / len(targets)
             logger.message(f"f1-score (unweighted) mean {np.round(f1_mean * 100, 2)}")
             logger.message(f"f1-score weighted (by population) {np.round(f1_accumulated * 100, 2)}")
 
-            df_accuracy = pd.DataFrame(list_roc,
-                                       columns=['jac_std_factor', 'l2_std_factor', 'onevsall-target', 'error rate',
-                                                'f1-score', 'tnr', 'fnr',
-                                                'tpr', 'fpr', 'precision', 'recall', 'num_groups',
-                                                'population of target', 'num clusters', 'clustering runtime'])
+            df_accuracy = pd.DataFrame(
+                list_roc,
+                columns=[
+                    'jac_std_factor', 'l2_std_factor', 'onevsall-target', 'error rate',
+                    'f1-score', 'tnr', 'fnr', 'tpr', 'fpr', 'precision', 'recall', 'num_groups',
+                    'population of target', 'num clusters', 'clustering runtime'
+                ]
+            )
 
             self.f1_accumulated = f1_accumulated
             self.f1_mean = f1_mean
