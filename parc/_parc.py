@@ -452,9 +452,13 @@ class PARC:
 
         return node_communities
 
-    def run_subPARC(self):
+    def run_parc(self):
 
-
+        time_start = time.time()
+        logger.message(
+            f"Input data has shape {self.x_data.shape[0]} (samples) x "
+            f"{self.x_data.shape[1]} (features)"
+        )
         x_data = self.x_data
         large_community_factor = self.large_community_factor
         small_community_size = self.small_community_size
@@ -604,7 +608,9 @@ class PARC:
         node_communities = list(node_communities.flatten())
 
         self.y_data_pred = node_communities
-        return
+        run_time = time.time() - time_start
+        logger.message(f"Time elapsed: {run_time} seconds")
+        self.compute_performance_metrics(run_time)
 
     def accuracy(self, target=1):
 
@@ -680,21 +686,10 @@ class PARC:
 
         return accuracy_val, predict_class_array, majority_truth_labels, number_clusters_for_target
 
-    def run_parc(self):
-        logger.message(
-            f"Input data has shape {self.x_data.shape[0]} (samples) x "
-            f"{self.x_data.shape[1]} (features)"
-        )
+
+    def compute_performance_metrics(self, run_time):
 
         list_roc = []
-
-        time_start_total = time.time()
-
-        # Query dataset, k - number of closest elements (returns 2 numpy arrays)
-        self.run_subPARC()
-        run_time = time.time() - time_start_total
-        logger.message(f"Time elapsed: {run_time} seconds")
-
         targets = list(set(self.y_data_true))
         n_samples = len(list(self.y_data_true))
         self.f1_accumulated = 0
