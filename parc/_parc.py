@@ -102,8 +102,8 @@ class PARC:
             small_community_timeout (int): the maximum number of seconds trying to check an outlying
                 small community.
         """
-        self.y_data_true = y_data_true
         self.x_data = x_data
+        self.y_data_true = y_data_true
         self.y_data_pred = None
         self.knn = knn
         self.n_iter_leiden = n_iter_leiden
@@ -123,6 +123,16 @@ class PARC:
         self.small_community_timeout = small_community_timeout
         self.resolution_parameter = resolution_parameter
         self.partition_type = partition_type
+
+    @property
+    def y_data_true(self):
+        return self._y_data_true
+
+    @y_data_true.setter
+    def y_data_true(self, y_data_true):
+        if y_data_true is None:
+            y_data_true = [1] * self.x_data.shape[0]
+        self._y_data_true = y_data_true
 
     @property
     def keep_all_local_dist(self):
@@ -676,8 +686,6 @@ class PARC:
             f"{self.x_data.shape[1]} (features)"
         )
 
-        if self.y_data_true is None:
-            self.y_data_true = [1] * self.x_data.shape[0]
         list_roc = []
 
         time_start_total = time.time()
