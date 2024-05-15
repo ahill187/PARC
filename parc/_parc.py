@@ -135,6 +135,16 @@ class PARC:
         self._y_data_true = y_data_true
 
     @property
+    def n_threads(self):
+        return self._n_threads
+
+    @n_threads.setter
+    def n_threads(self, n_threads):
+        if n_threads <= 0:
+            n_threads = mp.cpu_count() - 1
+        self._n_threads = n_threads
+
+    @property
     def keep_all_local_dist(self):
         return self._keep_all_local_dist
 
