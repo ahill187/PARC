@@ -6,6 +6,7 @@ from progress.bar import Bar
 import igraph as ig
 import leidenalg
 import time
+import multiprocessing as mp
 from umap.umap_ import find_ab_params, simplicial_set_embedding
 from parc.utils import get_mode
 from parc.logger import get_logger
