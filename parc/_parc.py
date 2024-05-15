@@ -5,6 +5,8 @@ from scipy.sparse import csr_matrix
 from progress.bar import Bar
 import igraph as ig
 import leidenalg
+import os
+import psutil
 import time
 import multiprocessing as mp
 from umap.umap_ import find_ab_params, simplicial_set_embedding
@@ -13,6 +15,8 @@ from parc.utils import get_mode, get_current_memory_usage, get_memory_prune_glob
 from parc.logger import get_logger
 
 logger = get_logger(__name__)
+
+process = psutil.Process(os.getpid())
 
 
 class PARC:
@@ -481,11 +485,14 @@ class PARC:
             jac_weighted_edges=jac_weighted_edges,
             n_samples=n_samples
         )
+        del csr_array
 
         partition = self.get_leiden_partition(graph_pruned, jac_weighted_edges)
 
         node_communities = np.asarray(partition.membership)
         node_communities = np.reshape(node_communities, (n_samples, 1))
+        del partition
+
         small_pop_list = []
         small_cluster_list = []
         small_pop_exist = False
@@ -568,12 +575,17 @@ class PARC:
             n_samples=n_samples,
             jac_weighted_edges=True
         )
+        del csr_array
 
-        logger.message("Starting community detection")
+        logger.message("Starting Leiden community detection...")
         partition = self.get_leiden_partition(graph_pruned, jac_weighted_edges)
+        del graph_pruned
+        logger.info(get_current_memory_usage(process))
 
         node_communities = np.asarray(partition.membership)
         node_communities = np.reshape(node_communities, (n_samples, 1))
+        del partition
+        logger.info(get_current_memory_usage(process))
 
         too_big = False
 
