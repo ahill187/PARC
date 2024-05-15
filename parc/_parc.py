@@ -180,37 +180,44 @@ class PARC:
         <https://github.com/nmslib/hnswlib/blob/master/python_bindings/LazyIndex.py>`__.
 
         Returns:
-            (hnswlib.Index): TODO.
+            hnswlib.Index: An HNSW object containing the k-nearest neighbours graph.
         """
         if self.knn > 190:
             logger.message(f"knn = {self.knn}; consider using a lower k for KNN graph construction")
+
         ef_query = max(100, self.knn + 1)  # ef always should be >K. higher ef, more accurate query
+
         if not too_big:
             num_dims = self.x_data.shape[1]
             n_samples = self.x_data.shape[0]
-            p = hnswlib.Index(space=self.distance_metric, dim=num_dims)
-            p.set_num_threads(self.n_threads)  # allow user to set threads used in KNN construction
+            knn_struct = hnswlib.Index(space=self.distance_metric, dim=num_dims)
+            logger.info(dir(knn_struct))
+            knn_struct.set_num_threads(self.n_threads)
             if n_samples < 10000:
                 ef_query = min(n_samples - 10, 500)
                 ef_construction = ef_query
             else:
                 ef_construction = self.hnsw_param_ef_construction
-            if (num_dims > 30) & (n_samples <= 50000) :
-                p.init_index(
+            if (num_dims > 30) & (n_samples <= 50000):
+                logger.info("Initializing HNSW index...")
+                knn_struct.init_index(
                     max_elements=n_samples, ef_construction=ef_construction, M=48
                 ) # good for scRNA seq where dimensionality is high
             else:
-                p.init_index(max_elements=n_samples, ef_construction=ef_construction, M=24) #30
-            p.add_items(self.x_data)
-        if too_big:
+                logger.info("Initializing HNSW index...")
+                knn_struct.init_index(max_elements=n_samples, ef_construction=ef_construction, M=24) #30
+            knn_struct.add_items(self.x_data)
+        else:
             num_dims = big_cluster.shape[1]
             n_samples = big_cluster.shape[0]
-            p = hnswlib.Index(space='l2', dim=num_dims)
-            p.init_index(max_elements=n_samples, ef_construction=200, M=30)
-            p.add_items(big_cluster)
-        p.set_ef(ef_query)  # ef should always be > k
+            knn_struct = hnswlib.Index(space='l2', dim=num_dims)
+            logger.info("Initializing HNSW index...")
+            knn_struct.init_index(max_elements=n_samples, ef_construction=200, M=30)
+            knn_struct.add_items(big_cluster)
 
-        return p
+        knn_struct.set_ef(ef_query)  # ef should always be > k
+
+        return knn_struct
 
     def create_knn_graph(self):
         """Create a full k-nearest neighbors graph using the HNSW algorithm.
