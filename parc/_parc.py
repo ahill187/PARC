@@ -399,15 +399,17 @@ class PARC:
         rowi = 0
         discard_count = 0
 
-        if self.keep_all_local_dist:  # dont prune based on distance
+        if self.keep_all_local_dist:
+            logger.message(
+                f"keep_all_local_dist set to {self.keep_all_local_dist}, skipping local pruning."
+            )
             row_list.extend(
                 list(np.transpose(np.ones((n_neighbors, n_samples)) * range(0, n_samples)).flatten())
             )
             col_list = neighbor_array.flatten().tolist()
             weight_list = (1. / (distance_array.flatten() + 0.1)).tolist()
 
-        else:  # locally prune based on (squared) l2 distance
-
+        else:
             logger.message(
                 f"Starting local pruning based on Euclidean (L2) distance metric at "
                 f"{self.l2_std_factor} standard deviations above mean"
@@ -418,7 +420,7 @@ class PARC:
                 distlist = distance_array[rowi, :]
                 to_keep = np.where(
                     distlist < np.mean(distlist) + self.l2_std_factor * np.std(distlist)
-                )[0]  # 0*std
+                )[0]
                 updated_nn_ind = row[np.ix_(to_keep)]
                 updated_nn_weights = distlist[np.ix_(to_keep)]
                 discard_count = discard_count + (n_neighbors - len(to_keep))
@@ -559,6 +561,7 @@ class PARC:
 
     def run_toobig_subPARC(self, x_data, jac_std_factor=0.3, jac_threshold_type="mean",
                            jac_weighted_edges=True):
+
         n_samples = x_data.shape[0]
         if n_samples <= 10:
             logger.message(
