@@ -23,7 +23,7 @@ class PARC:
     def __init__(self, x_data, y_data_true=None, knn=30, n_iter_leiden=5, random_seed=42,
                  distance_metric="l2", n_threads=-1, hnsw_param_ef_construction=150,
                  neighbor_graph=None, knn_struct=None,
-                 l2_std_factor=3, keep_all_local_dist=None,
+                 l2_std_factor=3, max_samples_local_pruning=300000, keep_all_local_dist=None,
                  jac_threshold_type="median", jac_std_factor=0.15, jac_weighted_edges=True,
                  resolution_parameter=1.0, partition_type="ModularityVP",
                  large_community_factor=0.4, small_community_size=10, small_community_timeout=15
@@ -72,6 +72,9 @@ class PARC:
                 Avoid setting both the ``jac_std_factor`` (global) and the ``l2_std_factor`` (local)
                 to < 0.5 as this is very aggressive pruning.
                 Higher ``l2_std_factor`` means more edges are kept.
+            max_samples_local_pruning (int): The maximum number of samples permitted for local
+                pruning. If the number of samples is greater than this, ``keep_all_local_dist``
+                will be set to ``True`` and local pruning will be skipped.
             keep_all_local_dist (bool): whether or not to do local pruning.
                 If None (default), set to ``True`` if the number of samples is > 300 000,
                 and set to ``False`` otherwise.
@@ -123,6 +126,7 @@ class PARC:
         self.jac_std_factor = jac_std_factor
         self.jac_threshold_type = jac_threshold_type
         self.jac_weighted_edges = jac_weighted_edges
+        self.max_samples_local_pruning = max_samples_local_pruning
         self.keep_all_local_dist = keep_all_local_dist
         self.large_community_factor = large_community_factor
         self.small_community_size = small_community_size
@@ -157,7 +161,7 @@ class PARC:
     @keep_all_local_dist.setter
     def keep_all_local_dist(self, keep_all_local_dist):
         if keep_all_local_dist is None:
-            if self.x_data.shape[0] > 300000:
+            if self.x_data.shape[0] > self.max_samples_local_pruning:
                 logger.message(
                     f"Sample size is {self.x_data.shape[0]}, setting keep_all_local_dist "
                     f"to True so that local pruning will be skipped and algorithm will be faster."
