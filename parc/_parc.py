@@ -8,7 +8,8 @@ import leidenalg
 import time
 import multiprocessing as mp
 from umap.umap_ import find_ab_params, simplicial_set_embedding
-from parc.utils import get_mode
+from parc.k_nearest_neighbors import get_edges
+from parc.utils import get_mode, get_current_memory_usage, get_memory_prune_global
 from parc.logger import get_logger
 
 logger = get_logger(__name__)
@@ -338,6 +339,85 @@ class PARC:
                                shape=(n_samples, n_samples))
         return csr_graph
 
+    def prune_global(
+        self, csr_array, jac_threshold_type, jac_std_factor, jac_weighted_edges, n_samples
+    ):
+        """Prune the graph globally based on the Jaccard similarity measure.
+
+        The ``csr_array`` contains the locally-pruned pairwise distances. From this, we can
+        use the Jaccard similarity metric to compute the similarity score for each edge. We then
+        remove any edges from the graph that do not meet a minimum similarity threshold.
+
+        Args:
+            csr_array (Compressed Sparse Row Matrix): A sparse matrix with dimensions
+                (n_samples, n_samples), containing the locally-pruned pair-wise distances.
+            jac_threshold_type (str): One of ``"median"`` or ``"mean"``. Determines how the
+                Jaccard similarity threshold is calculated during global pruning.
+            jac_std_factor (float): The multiplier used in calculating the Jaccard similarity
+                threshold for the similarity between two nodes during global pruning for
+                ``jac_threshold_type = "mean"``:
+
+                .. code-block:: python
+
+                    threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
+
+                Setting ``jac_std_factor = 0.15`` and ``jac_threshold_type="mean"``
+                performs empirically similar to ``jac_threshold_type="median"``, which does not use
+                the ``jac_std_factor``.
+                Generally values between 0-1.5 are reasonable.
+                Higher ``jac_std_factor`` means more edges are kept.
+            jac_weighted_edges (bool): whether to weight the pruned graph. This is always True for
+                the top-level PARC run, but can be changed when pruning the large communities.
+            n_samples (int): The number of samples in the data.
+
+        Returns:
+            igraph.Graph: a ``Graph`` object which has now been locally and globally pruned.
+        """
+        memory_prune_global = get_memory_prune_global(len(get_edges(csr_array)))
+
+        if not memory_prune_global["is_sufficient"]:
+            raise MemoryError(
+                f"Not enough memory to perform global pruning; {memory_prune_global['available']} "
+                f"GiB available, {memory_prune_global['required']} GiB required. You can either "
+                f"a) free up memory on your computer by closing other processes, "
+                f"b) reduce the number of k-nearest neighbours, which is currently set to {self.knn}, or "
+                f"c) reduce the number of samples in your data, which is currenty set to {n_samples}."
+            )
+
+        edges = get_edges(csr_array)
+        logger.info(f"Creating graph with {len(edges)} edges and {n_samples} nodes...")
+
+        graph = ig.Graph(edges, edge_attrs={'weight': csr_array.data.tolist()})
+        del csr_array
+
+        similarities = np.asarray(graph.similarity_jaccard(pairs=list(edges)))
+        del graph
+
+        logger.message("Starting global pruning...")
+
+        if jac_threshold_type == "median":
+            threshold = np.median(similarities)
+        else:
+            threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
+
+        indices_similar = np.where(similarities > threshold)[0]
+
+        logger.message(f"Creating graph with {len(edges)} edges and {n_samples} nodes...")
+        if jac_weighted_edges:
+            graph_pruned = ig.Graph(
+                n=n_samples,
+                edges=list(np.asarray(edges)[indices_similar]),
+                edge_attrs={"weight": list(similarities[indices_similar])}
+            )
+        else:
+            graph_pruned = ig.Graph(
+                n=n_samples,
+                edges=list(np.asarray(edges)[indices_similar])
+            )
+
+        graph_pruned.simplify(combine_edges="sum")  # "first"
+        return graph_pruned
+
     def get_leiden_partition(self, graph, jac_weighted_edges=True):
         """Partition the graph using the Leiden algorithm.
 
@@ -392,33 +472,15 @@ class PARC:
             knnbig = int(max(5, 0.2 * n_samples))
 
         neighbor_array, distance_array = hnsw.knn_query(x_data, k=knnbig)
+
         csr_array = self.prune_local(neighbor_array, distance_array)
-        input_nodes, output_nodes = csr_array.nonzero()
-
-        edges = list(zip(input_nodes.tolist(), output_nodes.tolist()))
-        edges_copy = edges.copy()
-        graph = ig.Graph(edges, edge_attrs={'weight': csr_array.data.tolist()})
-        similarities = graph.similarity_jaccard(pairs=edges_copy)  # list of jaccard weights
-
-        sim_list_array = np.asarray(similarities)
-        if jac_threshold_type == "median":
-            threshold = np.median(similarities)
-        else:
-            threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
-
-        indices_similar = np.where(sim_list_array > threshold)[0]
-        new_edgelist = [edges_copy[i] for i in indices_similar]
-        sim_list_new = list(sim_list_array[indices_similar])
-
-        if jac_weighted_edges:
-            graph_pruned = ig.Graph(
-                n=n_samples,
-                edges=new_edgelist,
-                edge_attrs={'weight': sim_list_new}
-            )
-        else:
-            graph_pruned = ig.Graph(n=n_samples, edges=new_edgelist)
-        graph_pruned.simplify(combine_edges='sum')
+        graph_pruned = self.prune_global(
+            csr_array=csr_array,
+            jac_std_factor=jac_std_factor,
+            jac_threshold_type=jac_threshold_type,
+            jac_weighted_edges=jac_weighted_edges,
+            n_samples=n_samples
+        )
 
         partition = self.get_leiden_partition(graph_pruned, jac_weighted_edges)
 
@@ -499,34 +561,13 @@ class PARC:
             neighbor_array, distance_array = self.knn_struct.knn_query(x_data, k=knn)
             csr_array = self.prune_local(neighbor_array, distance_array)
 
-        input_nodes, output_nodes = csr_array.nonzero()
-
-        edges = list(zip(input_nodes, output_nodes))
-
-        edges_copy = edges.copy()
-
-        graph = ig.Graph(edges, edge_attrs={'weight': csr_array.data.tolist()})
-        similarities = graph.similarity_jaccard(pairs=edges_copy)
-
-        logger.message("Starting global pruning...")
-
-        sim_list_array = np.asarray(similarities)
-
-        if jac_threshold_type == "median":
-            threshold = np.median(similarities)
-        else:
-            threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
-        indices_similar = np.where(sim_list_array > threshold)[0]
-
-        sim_list_new = list(sim_list_array[indices_similar])
-
-        graph_pruned = ig.Graph(
-            n=n_samples,
-            edges=list(np.asarray(edges_copy)[indices_similar]),
-            edge_attrs={'weight': sim_list_new}
+        graph_pruned = self.prune_global(
+            csr_array=csr_array,
+            jac_std_factor=jac_std_factor,
+            jac_threshold_type=jac_threshold_type,
+            n_samples=n_samples,
+            jac_weighted_edges=True
         )
-
-        graph_pruned.simplify(combine_edges='sum')  # "first"
 
         logger.message("Starting community detection")
         partition = self.get_leiden_partition(graph_pruned, jac_weighted_edges)
