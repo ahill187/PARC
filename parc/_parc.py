@@ -484,9 +484,13 @@ class PARC:
             raise MemoryError(
                 f"Not enough memory to perform global pruning; {memory_prune_global['available']} "
                 f"GiB available, {memory_prune_global['required']} GiB required. You can either "
-                f"a) free up memory on your computer by closing other processes, "
-                f"b) reduce the number of k-nearest neighbours, which is currently set to {self.knn}, or "
-                f"c) reduce the number of samples in your data, which is currenty set to {n_samples}."
+                f"a) free up memory on your computer by closing other processes; current usage: "
+                f"{memory_prune_global['total'] - memory_prune_global['available']} GiB out of "
+                f"a total {memory_prune_global['total']} GiB on your computer, "
+                f"b) reduce the number of k-nearest neighbours, which is currently set to {self.knn}, "
+                f"c) increase the max_samples_local_pruning parameter, and set keep_all_local_dist "
+                f"to False, so that local pruning will reduce the number of edges, or"
+                f"d) reduce the number of samples in your data, which is currenty set to {n_samples}."
             )
 
         edges = get_edges(csr_array)

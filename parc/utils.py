@@ -27,11 +27,18 @@ def get_available_memory():
     return psutil.virtual_memory().available / (1024**3)
 
 
+def get_total_memory():
+    return psutil.virtual_memory().total / (1024**3)
+
+
 def get_memory_prune_global(n_edges):
     required_memory = MEMORY_PRUNE_GLOBAL * n_edges
     available_memory = get_available_memory()
+    total_memory = get_total_memory()
+    
     return {
         "required": required_memory,
         "available": available_memory,
+        "total": total_memory,
         "is_sufficient": available_memory - required_memory - MEMORY_THRESHOLD >= 0
     }
