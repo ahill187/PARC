@@ -10,7 +10,7 @@ import psutil
 import time
 import multiprocessing as mp
 from umap.umap_ import find_ab_params, simplicial_set_embedding
-from parc.k_nearest_neighbors import get_edges
+from parc.k_nearest_neighbors import get_distance_array, get_neighbor_array, get_edges
 from parc.utils import get_mode, get_current_memory_usage, get_memory_prune_global
 from parc.logger import get_logger
 
@@ -309,6 +309,67 @@ class PARC:
         graph = graph_transpose + graph - prod_matrix
         return graph
 
+    def get_neighbor_distance_arrays(
+        self, x_data, knn, distance_metric, create_new=False, hnsw_param_m=None,
+        hnsw_param_ef_construction=None
+    ):
+        """Get the neighbor and distance arrays.
+
+        Args:
+            x_data (np.array): a Numpy array of the input x data, with dimensions
+                (n_samples, n_features).
+            knn (int): the number of nearest neighbors k for the k-nearest neighbours algorithm.
+                Larger k means more neighbors in a cluster and therefore less clusters.
+            distance_metric (string): the distance metric to be used in the KNN algorithm:
+
+                - ``l2``: Euclidean distance L^2 norm:
+
+                  .. code-block:: python
+
+                    d = sum((x_i - y_i)^2)
+                - ``cosine``: cosine similarity
+
+                  .. code-block:: python
+
+                    d = 1.0 - sum(x_i*y_i) / sqrt(sum(x_i*x_i) * sum(y_i*y_i))
+                - ``ip``: inner product distance
+
+                  .. code-block:: python
+
+                    d = 1.0 - sum(x_i*y_i)
+
+            create_new (bool): If ``False``, check to see if the ``FlowData`` object already
+                contains a ``csr_array`` or a ``knn_struct``, and use these to create the
+                neighbor and distance arrays. If ``True``, create a new ``csr_array`` and
+                ``knn_struct``, even if they exist.
+            hnsw_param_ef_construction (int): (optional) The ``ef_construction`` parameter to be
+                used in creating the ``hnswlib.Index`` object. A higher value increases accuracy of
+                index construction. Even for ``O(100 000)`` cells, 150-200 is adequate.
+            hnsw_param_m (int): (optional) The ``m`` parameter to be used in creating the
+                ``hnswlib.Index`` object.
+
+        Returns:
+            (np.array, np.array): A tuple of the ``neighbor_array`` and the ``distance_array``:
+
+                - ``neighbor_array``: An array with dimensions (n_samples, k) listing the
+                  k nearest neighbors for each data point.
+                - ``distance_array``: An array with dimensions (n_samples, k) listing the
+                  distances to each of the k nearest neighbors for each data point.
+        """
+        if self.neighbor_graph is not None and not create_new:
+            csr_array = self.neighbor_graph
+            neighbor_array = get_neighbor_array(csr_array)
+            distance_array = get_distance_array(csr_array)
+        else:
+            if self.knn_struct is None or create_new:
+                logger.message("Creating HNSW knn_struct")
+                self.knn_struct = self.make_knn_struct(
+                    x_data=x_data, knn=knn, distance_metric=distance_metric,
+                    hnsw_param_m=hnsw_param_m, hnsw_param_ef_construction=hnsw_param_ef_construction
+                )
+            neighbor_array, distance_array = self.knn_struct.knn_query(x_data, k=knn)
+        return neighbor_array, distance_array
+
     def prune_local(self, neighbor_array, distance_array):
         """Prune the nearest neighbors array.
 
@@ -499,7 +560,6 @@ class PARC:
     def run_toobig_subPARC(self, x_data, jac_std_factor=0.3, jac_threshold_type="mean",
                            jac_weighted_edges=True):
         n_samples = x_data.shape[0]
-        hnsw = self.make_knn_struct(too_big=True, big_cluster=x_data)
         if n_samples <= 10:
             logger.message(
                 f"Number of samples = {n_samples}, consider increasing the large_community_factor"
@@ -509,7 +569,10 @@ class PARC:
         else:
             knn = int(max(5, 0.2 * n_samples))
 
-        neighbor_array, distance_array = hnsw.knn_query(x_data, k=knn)
+        neighbor_array, distance_array = self.get_neighbor_distance_arrays(
+            x_data=x_data, knn=knn, create_new=True, distance_metric="l2",
+            hnsw_param_m=30, hnsw_param_ef_construction=200
+        )
 
         csr_array = self.prune_local(neighbor_array, distance_array)
         graph_pruned = self.prune_global(
@@ -580,27 +643,17 @@ class PARC:
             f"Input data has shape {self.x_data.shape[0]} (samples) x "
             f"{self.x_data.shape[1]} (features)"
         )
-        x_data = self.x_data
         large_community_factor = self.large_community_factor
         small_community_size = self.small_community_size
         jac_std_factor = self.jac_std_factor
         jac_threshold_type = self.jac_threshold_type
         jac_weighted_edges = self.jac_weighted_edges
-        knn = self.knn
-        n_samples = x_data.shape[0]
+        n_samples = self.x_data.shape[0]
 
-
-        if self.neighbor_graph is not None:
-            csr_array = self.neighbor_graph
-            neighbor_array = np.split(csr_array.indices, csr_array.indptr)[1:-1]
-        else:
-            if self.knn_struct is None:
-                logger.info('knn struct was not available, so making one')
-                self.knn_struct = self.make_knn_struct()
-            else:
-                logger.info("knn struct already exists")
-            neighbor_array, distance_array = self.knn_struct.knn_query(x_data, k=knn)
-            csr_array = self.prune_local(neighbor_array, distance_array)
+        neighbor_array, distance_array = self.get_neighbor_distance_arrays(
+            x_data=self.x_data, knn=self.knn, create_new=False, distance_metric=self.distance_metric,
+        )
+        csr_array = self.prune_local(neighbor_array, distance_array)
 
         graph_pruned = self.prune_global(
             csr_array=csr_array,
