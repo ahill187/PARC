@@ -688,7 +688,7 @@ class PARC:
 
         while too_big:
 
-            x_data_big = x_data[cluster_big_loc, :]
+            x_data_big = self.x_data[cluster_big_loc, :]
             node_communities_big = self.run_toobig_subPARC(x_data_big)
             node_communities_big = node_communities_big + 100000
 
