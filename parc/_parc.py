@@ -423,15 +423,15 @@ class PARC:
                 distances = distance_array[sample_index, :]
                 max_distance = np.mean(distances) + self.l2_std_factor * np.std(distances)
                 to_keep = np.where(distances < max_distance)[0]
-                updated_nn_ind = neighbors[np.ix_(to_keep)]
-                updated_nn_weights = distances[np.ix_(to_keep)]
+                updated_neighbors = neighbors[np.ix_(to_keep)]
+                updated_distances = distances[np.ix_(to_keep)]
                 discard_count = discard_count + (n_neighbors - len(to_keep))
 
-                for ik in range(len(updated_nn_ind)):
-                    if sample_index != neighbors[ik]:  # remove self-loops
+                for index in range(len(updated_neighbors)):
+                    if sample_index != neighbors[index]:  # remove self-loops
                         row_list.append(sample_index)
-                        col_list.append(updated_nn_ind[ik])
-                        dist = np.sqrt(updated_nn_weights[ik])
+                        col_list.append(updated_neighbors[index])
+                        dist = np.sqrt(updated_distances[index])
                         weight_list.append(1 / (dist + 0.1))
 
                 bar.next()
