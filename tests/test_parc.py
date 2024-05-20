@@ -84,22 +84,22 @@ def test_parc_run_umap_hnsw():
     ]
 )
 @pytest.mark.parametrize(
-    "keep_all_local_dist, expected_neighbor_array, expected_distance_array",
+    "do_prune_local, expected_neighbor_array, expected_distance_array",
     [
-        (True, NEIGHBOR_ARRAY, DISTANCE_ARRAY),
-        (False, EXPECTED_NEIGHBOR_ARRAY, EXPECTED_DISTANCE_ARRAY),
+        (False, NEIGHBOR_ARRAY, DISTANCE_ARRAY),
+        (True, EXPECTED_NEIGHBOR_ARRAY, EXPECTED_DISTANCE_ARRAY),
         (None, EXPECTED_NEIGHBOR_ARRAY, EXPECTED_DISTANCE_ARRAY)
     ]
 )
 def test_parc_prune_local(
     request, dataset_name, neighbor_array, distance_array, l2_std_factor,
-    keep_all_local_dist, expected_neighbor_array, expected_distance_array
+    do_prune_local, expected_neighbor_array, expected_distance_array
 ):
     x_data, y_data = request.getfixturevalue(dataset_name)
 
     parc_model = PARC(
         x_data=x_data, y_data_true=y_data, l2_std_factor=l2_std_factor,
-        keep_all_local_dist=keep_all_local_dist
+        do_prune_local=do_prune_local
     )
 
     csr_array = parc_model.prune_local(

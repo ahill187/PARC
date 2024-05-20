@@ -25,7 +25,7 @@ class PARC:
     def __init__(self, x_data, y_data_true=None, knn=30, n_iter_leiden=5, random_seed=42,
                  distance_metric="l2", n_threads=-1, hnsw_param_ef_construction=150,
                  neighbor_graph=None, knn_struct=None, l2_std_factor=3.0,
-                 max_samples_local_pruning=300000, keep_all_local_dist=None,
+                 max_samples_local_pruning=300000, do_prune_local=None,
                  jac_threshold_type="median", jac_std_factor=0.15, jac_weighted_edges=True,
                  resolution_parameter=1.0, partition_type="ModularityVP",
                  large_community_factor=0.4, small_community_size=10, small_community_timeout=15
@@ -75,11 +75,11 @@ class PARC:
                 to < 0.5 as this is very aggressive pruning.
                 Higher ``l2_std_factor`` means more edges are kept.
             max_samples_local_pruning (int): The maximum number of samples permitted for local
-                pruning. If the number of samples is greater than this, ``keep_all_local_dist``
-                will be set to ``True`` and local pruning will be skipped.
-            keep_all_local_dist (bool): whether or not to do local pruning.
-                If None (default), set to ``True`` if the number of samples is > 300 000,
-                and set to ``False`` otherwise.
+                pruning. If the number of samples is greater than this, ``do_prune_local``
+                will be set to ``False`` and local pruning will be skipped.
+            do_prune_local (bool): whether or not to do local pruning.
+                If None (default), set to ``False`` if the number of samples is > 300 000,
+                and set to ``True`` otherwise.
             jac_threshold_type (str): One of ``"median"`` or ``"mean"``. Determines how the
                 Jaccard similarity threshold is calculated during global pruning.
             jac_std_factor (float): The multiplier used in calculating the Jaccard similarity
@@ -129,7 +129,7 @@ class PARC:
         self.jac_threshold_type = jac_threshold_type
         self.jac_weighted_edges = jac_weighted_edges
         self.max_samples_local_pruning = max_samples_local_pruning
-        self.keep_all_local_dist = keep_all_local_dist
+        self.do_prune_local = do_prune_local
         self.large_community_factor = large_community_factor
         self.small_community_size = small_community_size
         self.small_community_timeout = small_community_timeout
@@ -157,22 +157,22 @@ class PARC:
         self._n_threads = n_threads
 
     @property
-    def keep_all_local_dist(self):
-        return self._keep_all_local_dist
+    def do_prune_local(self):
+        return self._do_prune_local
 
-    @keep_all_local_dist.setter
-    def keep_all_local_dist(self, keep_all_local_dist):
-        if keep_all_local_dist is None:
+    @do_prune_local.setter
+    def do_prune_local(self, do_prune_local):
+        if do_prune_local is None:
             if self.x_data.shape[0] > self.max_samples_local_pruning:
                 logger.message(
-                    f"Sample size is {self.x_data.shape[0]}, setting keep_all_local_dist "
-                    f"to True so that local pruning will be skipped and algorithm will be faster."
+                    f"Sample size is {self.x_data.shape[0]}, setting do_prune_local "
+                    f"to False so that local pruning will be skipped and algorithm will be faster."
                 )
-                keep_all_local_dist = True
+                do_prune_local = False
             else:
-                keep_all_local_dist = False
+                do_prune_local = True
 
-        self._keep_all_local_dist = keep_all_local_dist
+        self._do_prune_local = do_prune_local
 
     @property
     def partition_type(self):
@@ -378,7 +378,7 @@ class PARC:
     def prune_local(self, nearest_neighbors_collection):
         """Prune the nearest neighbors array.
 
-        If ``keep_all_local_dist`` is true, perform local pruning:
+        If ``do_prune_local`` is True, perform local pruning:
 
             1. Remove any neighbors which are further away than the specified cutoff distance.
             2. Remove any self-loops. In the ``NearestNeighborsCollection`` object, the first
@@ -400,7 +400,7 @@ class PARC:
 
         Return in the ``csr_matrix`` format.
 
-        If ``keep_all_local_dist`` is false, then don't perform any pruning and return the original
+        If ``do_prune_local`` is False, then don't perform any pruning and return the original
         arrays in the ``csr_matrix`` format.
 
         Args:
@@ -417,18 +417,7 @@ class PARC:
         n_neighbors = nearest_neighbors_collection.max_neighbors
         n_samples = nearest_neighbors_collection.n_communities
 
-        if self.keep_all_local_dist:
-            logger.message(
-                f"keep_all_local_dist set to {self.keep_all_local_dist}, skipping local pruning."
-            )
-            neighbors_collection = nearest_neighbors_collection.get_neighbors(as_type="collection")
-            row_list = []
-            for neighbors, index in zip(neighbors_collection, range(n_samples)):
-                row_list += [index]*neighbors.shape[0]
-            col_list = nearest_neighbors_collection.get_neighbors(as_type="flatten")
-            weight_list = nearest_neighbors_collection.get_weights(as_type="flatten")
-
-        else:
+        if self.do_prune_local:
             nearest_neighbors_collection = nearest_neighbors_collection.to_list()
             logger.message(
                 f"Starting local pruning based on Euclidean (L2) distance metric at "
@@ -448,6 +437,16 @@ class PARC:
                 bar.next()
             bar.finish()
             logger.info(get_current_memory_usage(process))
+        else:
+            logger.message(
+                f"do_prune_local set to {self.do_prune_local}, skipping local pruning."
+            )
+            neighbors_collection = nearest_neighbors_collection.get_neighbors(as_type="collection")
+            row_list = []
+            for neighbors, index in zip(neighbors_collection, range(n_samples)):
+                row_list += [index]*neighbors.shape[0]
+            col_list = nearest_neighbors_collection.get_neighbors(as_type="flatten")
+            weight_list = nearest_neighbors_collection.get_weights(as_type="flatten")
 
         csr_graph = csr_matrix((np.array(weight_list), (np.array(row_list), np.array(col_list))),
                                shape=(n_samples, n_samples))
@@ -519,8 +518,8 @@ class PARC:
                 a) free up memory on your computer by closing other processes; current usage:
                 {current_usage} GiB out of {memory_prune_global['total']} GiB on your computer,
                 b) reduce the number of k-nearest neighbours, which is currently set to {self.knn},
-                c) increase the max_samples_local_pruning parameter, and set keep_all_local_dist
-                to False, so that local pruning will reduce the number of edges, or
+                c) increase the max_samples_local_pruning parameter, and set do_prune_local
+                to True, so that local pruning will reduce the number of edges, or
                 d) reduce the number of samples in your data, which is currenty set to {n_samples}.
                 """
             )
