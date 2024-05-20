@@ -1,7 +1,12 @@
 import pytest
 from sklearn import datasets
+import numpy as np
 import time
 from parc._parc import PARC
+from parc.k_nearest_neighbors import NearestNeighborsCollection
+from parc.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 @pytest.fixture
@@ -20,6 +25,43 @@ def forest_data():
     return x_data, y_data
 
 
+NEIGHBOR_ARRAY = np.array([
+    [0, 1, 2, 4],
+    [1, 0, 5, 4],
+    [2, 4, 0, 1],
+    [3, 2, 4, 0],
+    [4, 2, 5, 1],
+    [5, 4, 1, 0]
+])
+
+EXPECTED_NEIGHBOR_ARRAY = np.array([
+    [1, -1],
+    [0, -1],
+    [4, -1],
+    [2, 4],
+    [2, 5],
+    [4, 1]
+])
+
+EXPECTED_DISTANCE_ARRAY = np.array([
+    [0.10, 1000000],
+    [0.10, 1000000],
+    [0.19, 1000000],
+    [0.23, 0.30],
+    [0.19, 0.20],
+    [0.20, 0.21]
+])
+
+DISTANCE_ARRAY = np.array([
+    [0.00, 0.10, 0.20, 0.25],
+    [0.00, 0.10, 0.21, 0.22],
+    [0.00, 0.19, 0.20, 0.22],
+    [0.00, 0.23, 0.30, 0.40],
+    [0.00, 0.19, 0.20, 0.25],
+    [0.00, 0.20, 0.21, 0.27]
+])
+
+
 def test_parc_run_umap_hnsw():
     iris = datasets.load_iris()
     x_data = iris.data
@@ -31,6 +73,52 @@ def test_parc_run_umap_hnsw():
     graph = parc_model.create_knn_graph()
     x_umap = parc_model.run_umap_hnsw(x_data, graph)
     assert x_umap.shape == (150, 2)
+
+
+@pytest.mark.parametrize(
+    "dataset_name, neighbor_array, distance_array, l2_std_factor",
+    [
+        (
+            "iris_data", NEIGHBOR_ARRAY, DISTANCE_ARRAY, 0.5
+        )
+    ]
+)
+@pytest.mark.parametrize(
+    "keep_all_local_dist, expected_neighbor_array, expected_distance_array",
+    [
+        (True, NEIGHBOR_ARRAY, DISTANCE_ARRAY),
+        (False, EXPECTED_NEIGHBOR_ARRAY, EXPECTED_DISTANCE_ARRAY),
+        (None, EXPECTED_NEIGHBOR_ARRAY, EXPECTED_DISTANCE_ARRAY)
+    ]
+)
+def test_parc_prune_local(
+    request, dataset_name, neighbor_array, distance_array, l2_std_factor,
+    keep_all_local_dist, expected_neighbor_array, expected_distance_array
+):
+    x_data, y_data = request.getfixturevalue(dataset_name)
+
+    parc_model = PARC(
+        x_data=x_data, y_data_true=y_data, l2_std_factor=l2_std_factor,
+        keep_all_local_dist=keep_all_local_dist
+    )
+
+    csr_array = parc_model.prune_local(
+        NearestNeighborsCollection(
+            neighbors_collection=neighbor_array,
+            distances_collection=distance_array
+        )
+    )
+
+    nearest_neighbors_collection = NearestNeighborsCollection(csr_array=csr_array)
+
+    np.testing.assert_array_equal(
+        nearest_neighbors_collection.get_neighbors(as_type="array"),
+        expected_neighbor_array
+    )
+    np.testing.assert_array_equal(
+        np.round(nearest_neighbors_collection.get_distances(as_type="array"), decimals=3),
+        expected_distance_array
+    )
 
 
 @pytest.mark.parametrize(

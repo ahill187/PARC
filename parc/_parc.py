@@ -10,8 +10,10 @@ import psutil
 import time
 import multiprocessing as mp
 from umap.umap_ import find_ab_params, simplicial_set_embedding
-from parc.k_nearest_neighbors import get_distance_array, get_neighbor_array, get_edges
-from parc.utils import get_mode, get_current_memory_usage, get_memory_prune_global
+from parc.k_nearest_neighbors import NearestNeighbors, NearestNeighborsCollection, get_edges, \
+    DISTANCE_FACTOR
+from parc.utils import get_mode, get_available_memory, get_current_memory_usage, \
+    get_memory_prune_global, get_total_memory
 from parc.logger import get_logger
 
 logger = get_logger(__name__)
@@ -22,8 +24,8 @@ process = psutil.Process(os.getpid())
 class PARC:
     def __init__(self, x_data, y_data_true=None, knn=30, n_iter_leiden=5, random_seed=42,
                  distance_metric="l2", n_threads=-1, hnsw_param_ef_construction=150,
-                 neighbor_graph=None, knn_struct=None,
-                 l2_std_factor=3, max_samples_local_pruning=300000, keep_all_local_dist=None,
+                 neighbor_graph=None, knn_struct=None, l2_std_factor=3.0,
+                 max_samples_local_pruning=300000, keep_all_local_dist=None,
                  jac_threshold_type="median", jac_std_factor=0.15, jac_weighted_edges=True,
                  resolution_parameter=1.0, partition_type="ModularityVP",
                  large_community_factor=0.4, small_community_size=10, small_community_timeout=15
@@ -313,11 +315,11 @@ class PARC:
         graph = graph_transpose + graph - prod_matrix
         return graph
 
-    def get_neighbor_distance_arrays(
+    def get_nearest_neighbors_collection(
         self, x_data, knn, distance_metric, create_new=False, hnsw_param_m=None,
         hnsw_param_ef_construction=None
     ):
-        """Get the neighbor and distance arrays.
+        """Get the community ids and distances to the nearest neighbors.
 
         Args:
             x_data (np.array): a Numpy array of the input x data, with dimensions
@@ -353,17 +355,13 @@ class PARC:
                 ``hnswlib.Index`` object.
 
         Returns:
-            (np.array, np.array): A tuple of the ``neighbor_array`` and the ``distance_array``:
-
-                - ``neighbor_array``: An array with dimensions (n_samples, k) listing the
-                  k nearest neighbors for each data point.
-                - ``distance_array``: An array with dimensions (n_samples, k) listing the
-                  distances to each of the k nearest neighbors for each data point.
+            NearestNeighborsCollection: A ``NearestNeighborsCollection`` object, containing
+                the community ids and distances of the k nearest neighbors for all the
+                communities in the graph.
         """
         if self.neighbor_graph is not None and not create_new:
             csr_array = self.neighbor_graph
-            neighbor_array = get_neighbor_array(csr_array)
-            distance_array = get_distance_array(csr_array)
+            nearest_neighbors_collection = NearestNeighborsCollection(csr_array=csr_array)
         else:
             if self.knn_struct is None or create_new:
                 logger.message("Creating HNSW knn_struct")
@@ -372,74 +370,107 @@ class PARC:
                     hnsw_param_m=hnsw_param_m, hnsw_param_ef_construction=hnsw_param_ef_construction
                 )
             neighbor_array, distance_array = self.knn_struct.knn_query(x_data, k=knn)
-        return neighbor_array, distance_array
+            nearest_neighbors_collection = NearestNeighborsCollection(
+                neighbors_collection=neighbor_array, distances_collection=distance_array
+            )
+        return nearest_neighbors_collection
 
-    def prune_local(self, neighbor_array, distance_array):
+    def prune_local(self, nearest_neighbors_collection):
         """Prune the nearest neighbors array.
 
-        If ``keep_all_local_dist`` is true, remove any neighbors which are further away than
-        the specified cutoff distance. Also, remove any self-loops. Return in the ``csr_matrix``
-        format.
+        If ``keep_all_local_dist`` is true, perform local pruning:
+
+            1. Remove any neighbors which are further away than the specified cutoff distance.
+            2. Remove any self-loops. In the ``NearestNeighborsCollection`` object, the first
+               community id listed is the community id for that community. For example, if the
+               ``community_id = 2``, then the ``k = 3`` nearest neighbors would be listed as:
+
+               .. code-block:: python
+
+                   neighbors = np.array([2, 4, 0])
+
+               and the distances as:
+
+              .. code-block:: python
+
+                  neighbors = np.array([0.0, 0.7, 1.9])
+
+               To remove self-loops, we remove the community id ``2`` from the neighbors
+               and the distance of ``0.0`` from the distances.
+
+        Return in the ``csr_matrix`` format.
 
         If ``keep_all_local_dist`` is false, then don't perform any pruning and return the original
         arrays in the ``csr_matrix`` format.
 
         Args:
-            neighbor_array (np.array): An array with dimensions (n_samples, k) listing the
-                k nearest neighbors for each data point.
-            distance_array (np.array): An array with dimensions (n_samples, k) listing the
-                distances to each of the k nearest neighbors for each data point.
+            nearest_neighbors_collection (NearestNeighborsCollection): A
+                ``NearestNeighborsCollection`` object, containing the community ids and distances
+                of the k nearest neighbors for all the communities in the graph.
+
         Returns:
             scipy.sparse.csr_matrix: A compressed sparse row matrix with dimensions
-            (n_samples, n_samples), containing the pruned distances.
+                (n_samples, n_samples), containing the pruned distances.
         """
         # neighbor array not listed in in any order of proximity
-        row_list = []
-        col_list = []
-        weight_list = []
 
-        n_neighbors = neighbor_array.shape[1]
-        n_samples = neighbor_array.shape[0]
-        discard_count = 0
+        n_neighbors = nearest_neighbors_collection.max_neighbors
+        n_samples = nearest_neighbors_collection.n_communities
 
         if self.keep_all_local_dist:
             logger.message(
                 f"keep_all_local_dist set to {self.keep_all_local_dist}, skipping local pruning."
             )
-            row_list.extend(
-                list(np.transpose(np.ones((n_neighbors, n_samples)) * range(0, n_samples)).flatten())
-            )
-            col_list = neighbor_array.flatten().tolist()
-            weight_list = (1. / (distance_array.flatten() + 0.1)).tolist()
+            neighbors_collection = nearest_neighbors_collection.get_neighbors(as_type="collection")
+            row_list = []
+            for neighbors, index in zip(neighbors_collection, range(n_samples)):
+                row_list += [index]*neighbors.shape[0]
+            col_list = nearest_neighbors_collection.get_neighbors(as_type="flatten")
+            weight_list = nearest_neighbors_collection.get_weights(as_type="flatten")
 
         else:
+            nearest_neighbors_collection = nearest_neighbors_collection.to_list()
             logger.message(
                 f"Starting local pruning based on Euclidean (L2) distance metric at "
                 f"{self.l2_std_factor} standard deviations above mean"
             )
-            distance_array = distance_array + 0.1
+            row_list = []
+            col_list = []
+            weight_list = []
+
+            logger.info(get_current_memory_usage(process))
             bar = Bar("Local pruning...", max=n_samples)
-            for sample_index, neighbors in zip(range(n_samples), neighbor_array):
-                distances = distance_array[sample_index, :]
-                max_distance = np.mean(distances) + self.l2_std_factor * np.std(distances)
-                to_keep = np.where(distances < max_distance)[0]
-                updated_neighbors = neighbors[np.ix_(to_keep)]
-                updated_distances = distances[np.ix_(to_keep)]
-                discard_count = discard_count + (n_neighbors - len(to_keep))
-
-                for index in range(len(updated_neighbors)):
-                    if sample_index != neighbors[index]:  # remove self-loops
-                        row_list.append(sample_index)
-                        col_list.append(updated_neighbors[index])
-                        dist = np.sqrt(updated_distances[index])
-                        weight_list.append(1 / (dist + 0.1))
-
+            for nearest_neighbors in nearest_neighbors_collection:
+                rows, cols, weights = self.prune_sample(nearest_neighbors, self.l2_std_factor)
+                row_list += rows
+                col_list += cols
+                weight_list += weights
                 bar.next()
             bar.finish()
+            logger.info(get_current_memory_usage(process))
 
         csr_graph = csr_matrix((np.array(weight_list), (np.array(row_list), np.array(col_list))),
                                shape=(n_samples, n_samples))
         return csr_graph
+
+    def prune_sample(self, nearest_neighbors, l2_std_factor):
+        available_memory = get_available_memory()
+        if available_memory < 2.0:
+            raise MemoryError(
+                f"{available_memory} GiB left out of {get_total_memory()} GiB, not enough memory!"
+            )
+
+        neighbors = nearest_neighbors.neighbors
+        distances = nearest_neighbors.distances
+        sample_index = nearest_neighbors.community_id
+        max_distance = np.mean(distances) + l2_std_factor * np.std(distances)
+        to_keep = np.where(distances < max_distance)[0]
+        to_keep = [index for index in to_keep if neighbors[index] != sample_index] # remove self-loops
+        col_list = list(neighbors[np.ix_(to_keep)])
+        row_list = [sample_index]*len(to_keep)
+        weight_list = list(1 / (np.sqrt(distances[np.ix_(to_keep)]) + DISTANCE_FACTOR))
+        del nearest_neighbors, distances, neighbors, to_keep
+        return row_list, col_list, weight_list
 
     def prune_global(
         self, csr_array, jac_threshold_type, jac_std_factor, jac_weighted_edges, n_samples
@@ -581,12 +612,12 @@ class PARC:
         else:
             knn = int(max(5, 0.2 * n_samples))
 
-        neighbor_array, distance_array = self.get_neighbor_distance_arrays(
+        nearest_neighbors_collection = self.get_nearest_neighbors_collection(
             x_data=x_data, knn=knn, create_new=True, distance_metric="l2",
             hnsw_param_m=30, hnsw_param_ef_construction=200
         )
 
-        csr_array = self.prune_local(neighbor_array, distance_array)
+        csr_array = self.prune_local(nearest_neighbors_collection)
         graph_pruned = self.prune_global(
             csr_array=csr_array,
             jac_std_factor=jac_std_factor,
@@ -662,10 +693,11 @@ class PARC:
         jac_weighted_edges = self.jac_weighted_edges
         n_samples = self.x_data.shape[0]
 
-        neighbor_array, distance_array = self.get_neighbor_distance_arrays(
-            x_data=self.x_data, knn=self.knn, create_new=False, distance_metric=self.distance_metric,
+        nearest_neighbors_collection = self.get_nearest_neighbors_collection(
+            x_data=self.x_data, knn=self.knn, create_new=False,
+            distance_metric=self.distance_metric,
         )
-        csr_array = self.prune_local(neighbor_array, distance_array)
+        csr_array = self.prune_local(nearest_neighbors_collection)
 
         graph_pruned = self.prune_global(
             csr_array=csr_array,
@@ -748,7 +780,7 @@ class PARC:
         for small_cluster in small_pop_list:
 
             for single_cell in small_cluster:
-                old_neighbors = neighbor_array[single_cell]
+                old_neighbors = nearest_neighbors_collection.get_neighbors(single_cell)
                 group_of_old_neighbors = node_communities[old_neighbors]
                 group_of_old_neighbors = list(group_of_old_neighbors.flatten())
                 available_neighbours = set(group_of_old_neighbors) - set(small_cluster_list)
@@ -768,7 +800,7 @@ class PARC:
                     small_pop_list.append(np.where(node_communities == cluster)[0])
             for small_cluster in small_pop_list:
                 for single_cell in small_cluster:
-                    old_neighbors = neighbor_array[single_cell]
+                    old_neighbors = nearest_neighbors_collection.get_neighbors(single_cell)
                     group_of_old_neighbors = node_communities[old_neighbors]
                     group_of_old_neighbors = list(group_of_old_neighbors.flatten())
                     best_group = max(set(group_of_old_neighbors), key=group_of_old_neighbors.count)
