@@ -20,12 +20,13 @@ logger = get_logger(__name__)
 
 process = psutil.Process(os.getpid())
 
+N_SAMPLES_LOCAL_PRUNE=300000
+
 
 class PARC:
     def __init__(self, x_data, y_data_true=None, knn=30, n_iter_leiden=5, random_seed=42,
                  distance_metric="l2", n_threads=-1, hnsw_param_ef_construction=150,
-                 neighbor_graph=None, knn_struct=None, l2_std_factor=3.0,
-                 max_samples_local_pruning=300000, do_prune_local=None,
+                 neighbor_graph=None, knn_struct=None, l2_std_factor=3.0, do_prune_local=None,
                  jac_threshold_type="median", jac_std_factor=0.15, jac_weighted_edges=True,
                  resolution_parameter=1.0, partition_type="ModularityVP",
                  large_community_factor=0.4, small_community_size=10, small_community_timeout=15
@@ -74,12 +75,9 @@ class PARC:
                 Avoid setting both the ``jac_std_factor`` (global) and the ``l2_std_factor`` (local)
                 to < 0.5 as this is very aggressive pruning.
                 Higher ``l2_std_factor`` means more edges are kept.
-            max_samples_local_pruning (int): The maximum number of samples permitted for local
-                pruning. If the number of samples is greater than this, ``do_prune_local``
-                will be set to ``False`` and local pruning will be skipped.
             do_prune_local (bool): whether or not to do local pruning.
-                If None (default), set to ``False`` if the number of samples is > 300 000,
-                and set to ``True`` otherwise.
+                If None (default), set to ``False`` if the number of samples is
+                > ``N_SAMPLES_LOCAL_PRUNE``, and set to ``True`` otherwise.
             jac_threshold_type (str): One of ``"median"`` or ``"mean"``. Determines how the
                 Jaccard similarity threshold is calculated during global pruning.
             jac_std_factor (float): The multiplier used in calculating the Jaccard similarity
@@ -128,7 +126,6 @@ class PARC:
         self.jac_std_factor = jac_std_factor
         self.jac_threshold_type = jac_threshold_type
         self.jac_weighted_edges = jac_weighted_edges
-        self.max_samples_local_pruning = max_samples_local_pruning
         self.do_prune_local = do_prune_local
         self.large_community_factor = large_community_factor
         self.small_community_size = small_community_size
@@ -163,7 +160,7 @@ class PARC:
     @do_prune_local.setter
     def do_prune_local(self, do_prune_local):
         if do_prune_local is None:
-            if self.x_data.shape[0] > self.max_samples_local_pruning:
+            if self.x_data.shape[0] > N_SAMPLES_LOCAL_PRUNE:
                 logger.message(
                     f"Sample size is {self.x_data.shape[0]}, setting do_prune_local "
                     f"to False so that local pruning will be skipped and algorithm will be faster."
@@ -518,8 +515,8 @@ class PARC:
                 a) free up memory on your computer by closing other processes; current usage:
                 {current_usage} GiB out of {memory_prune_global['total']} GiB on your computer,
                 b) reduce the number of k-nearest neighbours, which is currently set to {self.knn},
-                c) increase the max_samples_local_pruning parameter, and set do_prune_local
-                to True, so that local pruning will reduce the number of edges, or
+                c) set do_prune_local to True, so that local pruning will reduce the
+                number of edges, or
                 d) reduce the number of samples in your data, which is currenty set to {n_samples}.
                 """
             )
