@@ -21,7 +21,7 @@ def get_mode(a_list):
 
 
 def get_current_memory_usage(process):
-    return process.memory_info().rss / (1024**3)
+    return np.round(process.memory_info().rss / (1024**3), decimals=6)
 
 
 def get_available_memory():
