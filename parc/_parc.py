@@ -642,7 +642,7 @@ class PARC:
 
         for small_cluster in small_pop_list:
             for single_cell in small_cluster:
-                old_neighbors = neighbor_array[single_cell, :]
+                old_neighbors = nearest_neighbors_collection.get_neighbors(single_cell)
                 group_of_old_neighbors = node_communities[old_neighbors]
                 group_of_old_neighbors = list(group_of_old_neighbors.flatten())
                 available_neighbours = set(group_of_old_neighbors) - set(small_cluster_list)
@@ -665,7 +665,7 @@ class PARC:
                     small_pop_list.append(np.where(node_communities == cluster)[0])
             for small_cluster in small_pop_list:
                 for single_cell in small_cluster:
-                    old_neighbors = neighbor_array[single_cell, :]
+                    old_neighbors = nearest_neighbors_collection.get_neighbors(single_cell)
                     group_of_old_neighbors = node_communities[old_neighbors]
                     group_of_old_neighbors = list(group_of_old_neighbors.flatten())
                     best_group = max(set(group_of_old_neighbors), key=group_of_old_neighbors.count)
