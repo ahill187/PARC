@@ -1,6 +1,9 @@
 import os
 import psutil
 import numpy as np
+from parc.logger import get_logger
+
+logger = get_logger(__name__)
 
 MEMORY_THRESHOLD = 0.0625 # GiB
 MEMORY_PRUNE_GLOBAL = 0.22 / 10**6 # GiB / edge
@@ -30,6 +33,16 @@ def get_available_memory():
 
 def get_total_memory():
     return psutil.virtual_memory().total / (1024**3)
+
+def show_virtual_memory():
+    virtual_memory = psutil.virtual_memory()
+    virtual_memory_df = {
+        "total (GiB)": np.round(virtual_memory.total / (1024**3), 6),
+        "available (GiB)": np.round(virtual_memory.available / (1024**3), 6),
+        "used (GiB)": np.round(virtual_memory.used / (1024**3), 6),
+        "free (GiB)": np.round(virtual_memory.free / (1024**3), 6),
+    }
+    logger.info(f"Memory stats: {virtual_memory_df}")
 
 
 def get_memory_prune_global(n_edges):

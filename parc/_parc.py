@@ -13,7 +13,7 @@ from umap.umap_ import find_ab_params, simplicial_set_embedding
 from parc.k_nearest_neighbors import NearestNeighbors, NearestNeighborsCollection, get_edges, \
     DISTANCE_FACTOR
 from parc.utils import get_mode, get_available_memory, get_current_memory_usage, \
-    get_memory_prune_global, get_total_memory
+    get_memory_prune_global, get_total_memory, show_virtual_memory
 from parc.logger import get_logger
 
 logger = get_logger(__name__)
@@ -424,7 +424,7 @@ class PARC:
             col_list = []
             weight_list = []
 
-            logger.info(get_current_memory_usage(process))
+            logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
             bar = Bar("Local pruning...", max=n_samples)
             for nearest_neighbors in nearest_neighbors_collection:
                 rows, cols, weights = self.prune_sample(nearest_neighbors, self.l2_std_factor)
@@ -433,20 +433,28 @@ class PARC:
                 weight_list += weights
                 bar.next()
             bar.finish()
-            logger.info(get_current_memory_usage(process))
+            del nearest_neighbors_collection
+            logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
         else:
             logger.message(
                 f"do_prune_local set to {self.do_prune_local}, skipping local pruning."
             )
+            logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
             neighbors_collection = nearest_neighbors_collection.get_neighbors(as_type="collection")
             row_list = []
             for neighbors, index in zip(neighbors_collection, range(n_samples)):
                 row_list += [index]*neighbors.shape[0]
             col_list = nearest_neighbors_collection.get_neighbors(as_type="flatten")
             weight_list = nearest_neighbors_collection.get_weights(as_type="flatten")
+            del nearest_neighbors_collection
+            logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
 
-        csr_graph = csr_matrix((np.array(weight_list), (np.array(row_list), np.array(col_list))),
-                               shape=(n_samples, n_samples))
+        show_virtual_memory()
+
+        csr_graph = csr_matrix(
+            (np.array(weight_list, dtype="float32"), (np.array(row_list), np.array(col_list))),
+            shape=(n_samples, n_samples)
+        )
         return csr_graph
 
     def prune_sample(self, nearest_neighbors, l2_std_factor):
@@ -569,6 +577,9 @@ class PARC:
                 See `leidenalg.VertexPartition on GitHub
                 <https://github.com/vtraag/leidenalg/blob/main/src/leidenalg/VertexPartition.py>`_.
         """
+
+        logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
+
         if jac_weighted_edges:
             weights = "weight"
         else:
@@ -593,6 +604,9 @@ class PARC:
                 n_iterations=self.n_iter_leiden, seed=self.random_seed,
                 resolution_parameter=self.resolution_parameter
             )
+
+        logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
+
         return partition
 
     def run_toobig_subPARC(self, x_data, jac_std_factor=0.3, jac_threshold_type="mean",
@@ -707,12 +721,12 @@ class PARC:
         logger.message("Starting Leiden community detection...")
         partition = self.get_leiden_partition(graph_pruned, jac_weighted_edges)
         del graph_pruned
-        logger.info(get_current_memory_usage(process))
+        logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
 
         node_communities = np.asarray(partition.membership)
         node_communities = np.reshape(node_communities, (n_samples, 1))
         del partition
-        logger.info(get_current_memory_usage(process))
+        logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
 
         too_big = False
 
