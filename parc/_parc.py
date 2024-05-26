@@ -503,7 +503,7 @@ class PARC:
             igraph.Graph: a ``Graph`` object which has now been locally and globally pruned.
         """
         memory_prune_global = get_memory_prune_global(len(get_edges(csr_array)))
-        current_usage = memory_prune_global['total'] - memory_prune_global['available']
+        current_usage = memory_prune_global["usage"]
 
         if not memory_prune_global["is_sufficient"]:
             raise MemoryError(

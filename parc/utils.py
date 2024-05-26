@@ -40,6 +40,7 @@ def get_memory_prune_global(n_edges):
     return {
         "required": np.round(required_memory, 3),
         "available": np.round(available_memory, 3),
+        "usage": np.round(total_memory - available_memory, 3),
         "total": np.round(total_memory, 3),
         "is_sufficient": available_memory - required_memory - MEMORY_THRESHOLD >= 0
     }
