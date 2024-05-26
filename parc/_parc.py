@@ -411,7 +411,6 @@ class PARC:
         """
         # neighbor array not listed in in any order of proximity
 
-        n_neighbors = nearest_neighbors_collection.max_neighbors
         n_samples = nearest_neighbors_collection.n_communities
 
         if self.do_prune_local:
@@ -529,16 +528,16 @@ class PARC:
                 """
             )
 
-        edges = get_edges(csr_array)
-        logger.info(f"Creating graph with {len(edges)} edges and {n_samples} nodes...")
+        logger.message("Starting global pruning...")
 
-        graph = ig.Graph(edges, edge_attrs={'weight': csr_array.data.tolist()})
+        edges = get_edges(csr_array)
+        logger.info(f"Creating initial graph with {len(edges)} edges and {n_samples} nodes...")
+
+        graph = ig.Graph(edges, edge_attrs={"weight": csr_array.data.tolist()})
         del csr_array
 
         similarities = np.asarray(graph.similarity_jaccard(pairs=list(edges)))
         del graph
-
-        logger.message("Starting global pruning...")
 
         if jac_threshold_type == "median":
             threshold = np.median(similarities)
@@ -547,7 +546,10 @@ class PARC:
 
         indices_similar = np.where(similarities > threshold)[0]
 
-        logger.message(f"Creating graph with {len(edges)} edges and {n_samples} nodes...")
+        logger.message(
+            f"Creating pruned graph with {len(indices_similar)} edges and {n_samples} nodes..."
+        )
+
         if jac_weighted_edges:
             graph_pruned = ig.Graph(
                 n=n_samples,
@@ -752,7 +754,6 @@ class PARC:
                 node_communities[j] = node_communities_big[jj]
                 jj = jj + 1
             node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
-            logger.info(f"new set of labels: {set(node_communities)}")
             too_big = False
             set_node_communities = set(node_communities)
 
@@ -845,8 +846,8 @@ class PARC:
         for kk in sorted_keys:
             vals = [t for t in Index_dict[kk]]
             majority_val = get_mode(vals)
-            if majority_val == target:
-                logger.info(f"Cluster {kk} has majority {target} with population {len(vals)}")
+            # if majority_val == target:
+                # logger.info(f"Cluster {kk} has majority {target} with population {len(vals)}")
             if kk == -1:
                 len_unknown = len(vals)
                 logger.info(f"Number of unknown: {len_unknown}")

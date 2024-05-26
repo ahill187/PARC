@@ -31,6 +31,7 @@ class NearestNeighbors:
                 distances_collection = np.array([0.13, 0.15, 0.90])
 
     """
+
     def __init__(self, community_id, neighbors, distances):
         self.community_id = community_id
         self.neighbors = neighbors
@@ -44,7 +45,7 @@ class NearestNeighbors:
     def neighbors(self, neighbors):
         if neighbors is None:
             raise TypeError(
-                f"Neighbors is None, must provide list of neighbors"
+                "Neighbors is None, must provide list of neighbors"
             )
         else:
             if isinstance(neighbors, list):
@@ -63,7 +64,7 @@ class NearestNeighbors:
                     if isinstance(neighbors[0], float):
                         self._neighbors = neighbors.astype(int)
                         logger.warning(
-                            f"Neighbors contained float values; converting them to integers."
+                            "Neighbors contained float values; converting them to integers."
                         )
                     else:
                         raise TypeError(
@@ -86,7 +87,7 @@ class NearestNeighbors:
     def distances(self, distances):
         if distances is None:
             raise TypeError(
-                f"Distances is None, must provide distances"
+                "Distances is None, must provide distances"
             )
         else:
             if isinstance(distances, list):
@@ -101,8 +102,8 @@ class NearestNeighbors:
                         f"Distances must be an n x 1 Numpy array or an n x 1 list; "
                         f"got an array with shape {distances.shape}"
                     )
-                elif (not isinstance(distances[0], (int, np.integer)) and
-                      not isinstance(distances[0], (float, np.floating))):
+                elif (not isinstance(distances[0], (int, np.integer))
+                      and not isinstance(distances[0], (float, np.floating))):
                     raise TypeError(
                         f"Distances must be either float or integer; "
                         f"got an array with data type {type(distances[0])}"
@@ -166,6 +167,7 @@ class NearestNeighborsCollection:
                 ]
 
     """
+
     def __init__(self, neighbors_collection=None, distances_collection=None, csr_array=None):
 
         self.max_neighbors = None
@@ -174,7 +176,6 @@ class NearestNeighborsCollection:
         self.distances_collection = distances_collection
         if csr_array is not None:
             self.initialize_from_csr_array(csr_array)
-
 
     def initialize_from_csr_array(self, csr_array):
         """Given a ``csr_matrix``, initialize the distances and neighbors.
@@ -464,7 +465,7 @@ class NearestNeighborsCollection:
             return self.neighbors_collection[community_id]
 
     def get_weights(self, community_id=None, as_type="collection"):
-        """Get the weights for either a single community or all communities.
+        r"""Get the weights for either a single community or all communities.
 
         We are assuming that the distances are the L2 distances. We define the weights as:
 
@@ -566,7 +567,7 @@ class NearestNeighborsCollection:
         Returns:
             np.array: An array with dimensions (n_communities, k) distances to each of the
                 k nearest neighbors for each data point, in order of proximity. For example, if my
-                data has 5 communities, with ``k=3`` nearest neighbors, the resulting array might be:
+                data has 5 communities, with ``k=3`` nearest neighbors:
 
                 .. code-block:: python
 
@@ -714,7 +715,7 @@ class NearestNeighborsCollection:
         Returns:
             np.array: An array with dimensions (n_communities, k) containing the
                 k nearest neighbors for each community, in order of proximity. For example, if the
-                data has 5 communities, with ``k=3`` nearest neighbors, the resulting array might be:
+                data has 5 communities, with ``k=3`` nearest neighbors:
 
                 .. code-block:: python
 
@@ -780,7 +781,7 @@ class NearestNeighborsCollection:
         Returns:
             np.array: An array with dimensions (n_communities, k) distances to each of the
                 k nearest neighbors for each data point, in order of proximity. For example, if my
-                data has 5 communities, with ``k=3`` nearest neighbors, the resulting array might be:
+                data has 5 communities, with ``k=3`` nearest neighbors:
 
                 .. code-block:: python
 
@@ -856,7 +857,6 @@ class NearestNeighborsCollection:
             neighbors_collection.append(neighbors)
 
         return neighbors_collection
-
 
 
 def get_edges(csr_array):

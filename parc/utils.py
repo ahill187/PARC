@@ -1,12 +1,11 @@
-import os
 import psutil
 import numpy as np
 from parc.logger import get_logger
 
 logger = get_logger(__name__)
 
-MEMORY_THRESHOLD = 0.0625 # GiB
-MEMORY_PRUNE_GLOBAL = 0.22 / 10**6 # GiB / edge
+MEMORY_THRESHOLD = 0.0625  # GiB
+MEMORY_PRUNE_GLOBAL = 0.22 / 10**6  # GiB / edge
 
 
 def get_mode(a_list):
@@ -33,6 +32,7 @@ def get_available_memory():
 
 def get_total_memory():
     return psutil.virtual_memory().total / (1024**3)
+
 
 def show_virtual_memory():
     virtual_memory = psutil.virtual_memory()
