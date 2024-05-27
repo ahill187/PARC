@@ -12,8 +12,8 @@ import multiprocessing as mp
 from umap.umap_ import find_ab_params, simplicial_set_embedding
 from parc.k_nearest_neighbors import NearestNeighbors, NearestNeighborsCollection, \
     DISTANCE_FACTOR
-from parc.utils import get_mode, get_available_memory, get_current_memory_usage, \
-    get_memory_prune_global, get_total_memory, show_virtual_memory
+from parc.utils import get_mode, get_current_memory_usage, show_virtual_memory, check_memory, \
+    MEMORY_PRUNE_GLOBAL
 from parc.logger import get_logger
 
 logger = get_logger(__name__)
@@ -182,6 +182,7 @@ class PARC:
         else:
             self._partition_type = partition_type
 
+    @check_memory(min_memory=2.0)
     def make_knn_struct(
         self, x_data, knn=None, distance_metric=None, hnsw_param_m=None,
         hnsw_param_ef_construction=None
@@ -262,6 +263,7 @@ class PARC:
 
         return knn_struct
 
+    @check_memory(min_memory=2.0)
     def create_knn_graph(self):
         """Create a full k-nearest neighbors graph using the HNSW algorithm.
 
@@ -312,6 +314,7 @@ class PARC:
         graph = graph_transpose + graph - prod_matrix
         return graph
 
+    @check_memory(min_memory=2.0)
     def get_nearest_neighbors_collection(
         self, x_data, knn, distance_metric, create_new=False, hnsw_param_m=None,
         hnsw_param_ef_construction=None
@@ -372,6 +375,7 @@ class PARC:
             )
         return nearest_neighbors_collection
 
+    @check_memory(min_memory=2.0)
     def prune_local(self, nearest_neighbors_collection):
         """Prune the nearest neighbors array.
 
@@ -436,13 +440,8 @@ class PARC:
 
         return nearest_neighbors_collection_pruned
 
+    @check_memory(min_memory=2.0)
     def prune_sample(self, nearest_neighbors, l2_std_factor):
-        available_memory = get_available_memory()
-        if available_memory < 2.0:
-            raise MemoryError(
-                f"{available_memory} GiB left out of {get_total_memory()} GiB, not enough memory!"
-            )
-
         neighbors = nearest_neighbors.neighbors
         distances = nearest_neighbors.distances
         sample_index = nearest_neighbors.community_id
@@ -454,8 +453,9 @@ class PARC:
         neighbors, distances = nearest_neighbors.remove_indices(indices)
         return neighbors, distances
 
+    @check_memory(min_memory=2.0, items_kwarg="edges", memory_per_item=MEMORY_PRUNE_GLOBAL)
     def prune_global(
-        self, nearest_neighbors_collection, jac_threshold_type, jac_std_factor,
+        self, edges, weights, jac_threshold_type, jac_std_factor,
         jac_weighted_edges, n_samples
     ):
         """Prune the graph globally based on the Jaccard similarity measure.
@@ -489,25 +489,6 @@ class PARC:
         Returns:
             igraph.Graph: a ``Graph`` object which has now been locally and globally pruned.
         """
-        edges = nearest_neighbors_collection.get_edges()
-        memory_prune_global = get_memory_prune_global(len(edges))
-        current_usage = memory_prune_global["usage"]
-
-        if not memory_prune_global["is_sufficient"]:
-            raise MemoryError(
-                f"""
-                Not enough memory to perform global pruning.
-                available memory: {memory_prune_global['available']} GiB
-                required memory: {memory_prune_global['required']} GiB
-                You can either:
-                a) free up memory on your computer by closing other processes; current usage:
-                {current_usage} GiB out of {memory_prune_global['total']} GiB on your computer,
-                b) reduce the number of k-nearest neighbours, which is currently set to {self.knn},
-                c) set do_prune_local to True, so that local pruning will reduce the
-                number of edges, or
-                d) reduce the number of samples in your data, which is currenty set to {n_samples}.
-                """
-            )
 
         logger.message("Starting global pruning...")
         logger.info(f"Creating initial graph with {len(edges)} edges and {n_samples} nodes...")
@@ -519,10 +500,9 @@ class PARC:
         graph = ig.Graph(
             edges,
             edge_attrs={
-                "weight": nearest_neighbors_collection.get_weights(as_type="flatten")
+                "weight": weights
             }
         )
-        del nearest_neighbors_collection
 
         similarities = np.asarray(graph.similarity_jaccard(pairs=list(edges)))
 
@@ -554,6 +534,7 @@ class PARC:
         graph_pruned.simplify(combine_edges="sum")  # "first"
         return graph_pruned
 
+    @check_memory(min_memory=2.0)
     def get_leiden_partition(self, graph, jac_weighted_edges=True):
         """Partition the graph using the Leiden algorithm.
 
@@ -600,6 +581,7 @@ class PARC:
 
         return partition
 
+    @check_memory(min_memory=2.0)
     def run_toobig_subPARC(self, x_data, jac_std_factor=0.3, jac_threshold_type="mean",
                            jac_weighted_edges=True):
 
@@ -623,14 +605,18 @@ class PARC:
         else:
             nearest_neighbors_collection_pruned = nearest_neighbors_collection
 
+        edges = nearest_neighbors_collection_pruned.get_edges()
+        weights = nearest_neighbors_collection_pruned.get_weights(as_type="flatten")
+        del nearest_neighbors_collection_pruned
         graph_pruned = self.prune_global(
-            nearest_neighbors_collection=nearest_neighbors_collection_pruned,
+            edges=edges,
+            weights=weights,
             jac_std_factor=jac_std_factor,
             jac_threshold_type=jac_threshold_type,
-            jac_weighted_edges=jac_weighted_edges,
-            n_samples=n_samples
+            n_samples=n_samples,
+            jac_weighted_edges=jac_weighted_edges
         )
-        del nearest_neighbors_collection_pruned
+        del edges, weights
 
         partition = self.get_leiden_partition(graph_pruned, jac_weighted_edges)
 
@@ -684,6 +670,7 @@ class PARC:
 
         return node_communities
 
+    @check_memory(min_memory=2.0)
     def run_parc(self):
 
         time_start = time.time()
@@ -708,14 +695,19 @@ class PARC:
         else:
             nearest_neighbors_collection_pruned = nearest_neighbors_collection
 
+        edges = nearest_neighbors_collection_pruned.get_edges()
+        weights = nearest_neighbors_collection_pruned.get_weights(as_type="flatten")
+        del nearest_neighbors_collection_pruned
         graph_pruned = self.prune_global(
-            nearest_neighbors_collection=nearest_neighbors_collection_pruned,
+            edges=edges,
+            weights=weights,
             jac_std_factor=jac_std_factor,
             jac_threshold_type=jac_threshold_type,
             n_samples=n_samples,
             jac_weighted_edges=True
         )
-        del nearest_neighbors_collection_pruned
+        del edges, weights
+
 
         logger.message("Starting Leiden community detection...")
         partition = self.get_leiden_partition(graph_pruned, jac_weighted_edges)
