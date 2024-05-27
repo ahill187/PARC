@@ -453,9 +453,12 @@ class PARC:
         neighbors, distances = nearest_neighbors.remove_indices(indices)
         return neighbors, distances
 
-    @check_memory(min_memory=2.0, items_kwarg="edges", memory_per_item=MEMORY_PRUNE_GLOBAL)
+    @check_memory(
+        min_memory=2.0, items_kwarg="nearest_neighbors_collection",
+        memory_per_item=MEMORY_PRUNE_GLOBAL
+    )
     def prune_global(
-        self, edges, weights, jac_threshold_type, jac_std_factor,
+        self, nearest_neighbors_collection, jac_threshold_type, jac_std_factor,
         jac_weighted_edges, n_samples
     ):
         """Prune the graph globally based on the Jaccard similarity measure.
@@ -490,6 +493,7 @@ class PARC:
             igraph.Graph: a ``Graph`` object which has now been locally and globally pruned.
         """
 
+        edges = nearest_neighbors_collection.get_edges()
         logger.message("Starting global pruning...")
         logger.info(f"Creating initial graph with {len(edges)} edges and {n_samples} nodes...")
 
@@ -500,7 +504,7 @@ class PARC:
         graph = ig.Graph(
             edges,
             edge_attrs={
-                "weight": weights
+                "weight": nearest_neighbors_collection.get_weights(as_type="flatten")
             }
         )
 
@@ -605,18 +609,14 @@ class PARC:
         else:
             nearest_neighbors_collection_pruned = nearest_neighbors_collection
 
-        edges = nearest_neighbors_collection_pruned.get_edges()
-        weights = nearest_neighbors_collection_pruned.get_weights(as_type="flatten")
-        del nearest_neighbors_collection_pruned
         graph_pruned = self.prune_global(
-            edges=edges,
-            weights=weights,
+            nearest_neighbors_collection=nearest_neighbors_collection_pruned,
             jac_std_factor=jac_std_factor,
             jac_threshold_type=jac_threshold_type,
             n_samples=n_samples,
             jac_weighted_edges=jac_weighted_edges
         )
-        del edges, weights
+        del nearest_neighbors_collection_pruned
 
         partition = self.get_leiden_partition(graph_pruned, jac_weighted_edges)
 
@@ -695,19 +695,14 @@ class PARC:
         else:
             nearest_neighbors_collection_pruned = nearest_neighbors_collection
 
-        edges = nearest_neighbors_collection_pruned.get_edges()
-        weights = nearest_neighbors_collection_pruned.get_weights(as_type="flatten")
-        del nearest_neighbors_collection_pruned
         graph_pruned = self.prune_global(
-            edges=edges,
-            weights=weights,
+            nearest_neighbors_collection=nearest_neighbors_collection_pruned,
             jac_std_factor=jac_std_factor,
             jac_threshold_type=jac_threshold_type,
             n_samples=n_samples,
             jac_weighted_edges=True
         )
-        del edges, weights
-
+        del nearest_neighbors_collection_pruned
 
         logger.message("Starting Leiden community detection...")
         partition = self.get_leiden_partition(graph_pruned, jac_weighted_edges)

@@ -178,6 +178,7 @@ class NearestNeighborsCollection:
 
         self.max_neighbors = 0
         self.n_communities = 0
+        self.n_edges = 0
         self.neighbors_collection = neighbors_collection
         self.distances_collection = distances_collection
         if csr_array is not None:
@@ -251,10 +252,12 @@ class NearestNeighborsCollection:
                     self._neighbors_collection = list(neighbors_collection)
                     self.max_neighbors = neighbors_collection.shape[1]
                     self.n_communities = neighbors_collection.shape[0]
+                    self.n_edges = neighbors_collection.shape[0] * neighbors_collection.shape[1]
             elif isinstance(neighbors_collection, list):
                 self._neighbors_collection = neighbors_collection
                 self.max_neighbors = self.get_max_neighbors(neighbors_collection)
                 self.n_communities = len(neighbors_collection)
+                self.n_edges = int(np.sum([len(neighbors) for neighbors in neighbors_collection]))
             else:
                 raise TypeError(
                     f"Neighbors must be an n x m array or a list of n x 1 arrays; "
@@ -262,6 +265,9 @@ class NearestNeighborsCollection:
                 )
         else:
             self._neighbors_collection = []
+
+    def __len__(self):
+        return self.n_edges
 
     def _check_distances(self, distances):
         if isinstance(distances, list):
@@ -366,6 +372,7 @@ class NearestNeighborsCollection:
         self.neighbors_collection.append(neighbors)
         self.distances_collection.append(distances)
         self.n_communities += 1
+        self.n_edges += len(neighbors)
         self.max_neighbors = max(self.max_neighbors, len(neighbors))
 
     def to_list(self):

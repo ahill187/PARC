@@ -85,7 +85,9 @@ def check_memory(min_memory=2.0, items_kwarg=None, memory_per_item=None):
                 if isinstance(items, np.ndarray) or isinstance(items, pd.core.frame.DataFrame):
                     n_items = items.shape[0]
                     do_check_function_memory = True
-                elif isinstance(items, list):
+                elif (isinstance(items, list)
+                      or (hasattr(items, "__len__") and callable(items.__len__))
+                ):
                     n_items = len(items)
                     do_check_function_memory = True
                 elif items is None:
