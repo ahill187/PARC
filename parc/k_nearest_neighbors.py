@@ -1,4 +1,5 @@
 import numpy as np
+from progress.bar import Bar
 from parc.logger import get_logger
 
 logger = get_logger(__name__)
@@ -116,6 +117,11 @@ class NearestNeighbors:
                     f"got variable of type {type(distances)}"
                 )
 
+    def remove_indices(self, indices):
+        self.neighbors = np.delete(self.neighbors, np.ix_(indices))
+        self.distances = np.delete(self.distances, np.ix_(indices))
+        return self.neighbors, self.distances
+
 
 class NearestNeighborsCollection:
     """A collection of nearest neighbors and their distances for a graph.
@@ -170,8 +176,8 @@ class NearestNeighborsCollection:
 
     def __init__(self, neighbors_collection=None, distances_collection=None, csr_array=None):
 
-        self.max_neighbors = None
-        self.n_communities = None
+        self.max_neighbors = 0
+        self.n_communities = 0
         self.neighbors_collection = neighbors_collection
         self.distances_collection = distances_collection
         if csr_array is not None:
@@ -220,7 +226,7 @@ class NearestNeighborsCollection:
                     f"got variable of type {type(distances_collection)}"
                 )
         else:
-            self._distances_collection = distances_collection
+            self._distances_collection = []
 
     @property
     def neighbors_collection(self):
@@ -255,7 +261,65 @@ class NearestNeighborsCollection:
                     f"got variable of type {type(neighbors_collection)}"
                 )
         else:
-            self._neighbors_collection = neighbors_collection
+            self._neighbors_collection = []
+
+    def _check_distances(self, distances):
+        if isinstance(distances, list):
+            try:
+                distances = np.array(distances)
+            except Exception as error:
+                logger.error(error)
+
+        if isinstance(distances, np.ndarray):
+            if len(distances.shape) > 1:
+                raise ValueError(
+                    f"Distances must be an n x 1 Numpy array or an n x 1 list; "
+                    f"got an array with shape {distances.shape}"
+                )
+            elif (not isinstance(distances[0], (int, np.integer))
+                  and not isinstance(distances[0], (float, np.floating))):
+                raise TypeError(
+                    f"Distances must be either float or integer; "
+                    f"got an array with data type {type(distances[0])}"
+                )
+            return distances
+
+        else:
+            raise TypeError(
+                f"Distances must be an n x 1 Numpy array or an n x 1 list; "
+                f"got variable of type {type(distances)}"
+            )
+
+    def _check_neighbors(self, neighbors):
+        if isinstance(neighbors, list):
+            try:
+                neighbors = np.array(neighbors)
+            except Exception as error:
+                logger.error(error)
+
+        if isinstance(neighbors, np.ndarray):
+            if len(neighbors.shape) > 1:
+                raise ValueError(
+                    f"Neighbors must be an n x 1 Numpy array or an n x 1 list; "
+                    f"got an array with shape {neighbors.shape}"
+                )
+            elif not isinstance(neighbors[0], (int, np.integer)):
+                if isinstance(neighbors[0], float):
+                    neighbors = neighbors.astype(int)
+                    logger.warning(
+                        "Neighbors contained float values; converting them to integers."
+                    )
+                else:
+                    raise TypeError(
+                        f"Neighbors must be integers; "
+                        f"got an array with data type {type(neighbors[0])}"
+                    )
+            return neighbors
+        else:
+            raise TypeError(
+                f"Neighbors must be an n x 1 Numpy array or an n x 1 list; "
+                f"got variable of type {type(neighbors)}"
+            )
 
     def get_max_neighbors(self, neighbors_collection):
         """Given a list of neighbors, get the maximum value for k.
@@ -288,6 +352,20 @@ class NearestNeighborsCollection:
             if len(neighbors) > max_neighbors:
                 max_neighbors = len(neighbors)
         return max_neighbors
+
+    def append(self, neighbors, distances):
+        neighbors = self._check_neighbors(neighbors)
+        distances = self._check_distances(distances)
+
+        if neighbors.shape[0] != distances.shape[0]:
+            raise ValueError(
+                "Neighbors and distances must be same shape; got neighbors with shape "
+                f"{neighbors.shape[0]}, distances with shape {distances.shape[0]}."
+            )
+
+        self.neighbors_collection.append(neighbors)
+        self.distances_collection.append(distances)
+        self.n_communities += 1
 
     def to_list(self):
         """Convert this object to a list of ``NearestNeighbors`` objects.
@@ -858,42 +936,41 @@ class NearestNeighborsCollection:
 
         return neighbors_collection
 
+    def get_edges(self):
+        """Get the graph edges of the k nearest neighbors as ordered pairs.
 
-def get_edges(csr_array):
-    """Given a ``csr_matrix``, get the graph edges of the k nearest neighbors as ordered pairs.
+        Returns:
+            list[tuple]: A list of 2-tuples representing an edge, with length ``n_communities * k``.
+                For example, if my data has 5 communities, with ``k=3`` nearest neighbors, and the
+                resulting ``neighbors_array`` is:
 
-    Args:
-        csr_array (scipy.sparse.csr_matrix): A compressed sparse row matrix with dimensions
-            (n_communities, n_communities), containing the pruned distances.
+                .. code-block:: python
 
-    Returns:
-        list[tuple]: A list of 2-tuples representing an edge, with length ``n_communities * k``.
-            For example, if my data has 5 communities, with ``k=3`` nearest neighbors, and the
-            resulting ``neighbors_array`` is:
+                    neighbors_array = np.array([
+                        [0, 3, 1],
+                        [1, 2, 4],
+                        [2, 0, 1],
+                        [3, 0, 2],
+                        [4, 3, 1]
+                    ])
 
-            .. code-block:: python
+                then the ``edges`` would be:
 
-                neighbors_array = np.array([
-                    [0, 3, 1],
-                    [1, 2, 4],
-                    [2, 0, 1],
-                    [3, 0, 2],
-                    [4, 3, 1]
-                ])
+                .. code-block:: python
 
-            then the ``edges`` would be:
+                    edges = [
+                        (0, 0), (0, 1), (0, 3),
+                        (1, 1), (1, 2), (1, 4),
+                        (2, 0), (2, 1), (2, 2),
+                        (3, 0), (3, 2), (3, 3),
+                        (4, 1), (4, 3), (4, 4)
+                    ]
 
-            .. code-block:: python
-
-                edges = [
-                    (0, 0), (0, 1), (0, 3),
-                    (1, 1), (1, 2), (1, 4),
-                    (2, 0), (2, 1), (2, 2),
-                    (3, 0), (3, 2), (3, 3),
-                    (4, 1), (4, 3), (4, 4)
-                ]
-
-    """
-    input_nodes, output_nodes = csr_array.nonzero()
-    edges = list(zip(input_nodes, output_nodes))
-    return edges
+        """
+        edges = []
+        bar = Bar("Generating list of edges...", max=self.n_communities)
+        for community_id, neighbors in zip(range(self.n_communities), self.neighbors_collection):
+            edges += [(community_id, int(neighbor)) for neighbor in neighbors]
+            bar.next()
+        bar.finish()
+        return edges

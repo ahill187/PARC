@@ -10,7 +10,7 @@ import psutil
 import time
 import multiprocessing as mp
 from umap.umap_ import find_ab_params, simplicial_set_embedding
-from parc.k_nearest_neighbors import NearestNeighbors, NearestNeighborsCollection, get_edges, \
+from parc.k_nearest_neighbors import NearestNeighbors, NearestNeighborsCollection, \
     DISTANCE_FACTOR
 from parc.utils import get_mode, get_available_memory, get_current_memory_usage, \
     get_memory_prune_global, get_total_memory, show_virtual_memory
@@ -412,49 +412,29 @@ class PARC:
         # neighbor array not listed in in any order of proximity
 
         n_samples = nearest_neighbors_collection.n_communities
+        nearest_neighbors_collection = nearest_neighbors_collection.to_list()
+        logger.message(
+            f"Starting local pruning based on Euclidean (L2) distance metric at "
+            f"{self.l2_std_factor} standard deviations above mean"
+        )
 
-        if self.do_prune_local:
-            nearest_neighbors_collection = nearest_neighbors_collection.to_list()
-            logger.message(
-                f"Starting local pruning based on Euclidean (L2) distance metric at "
-                f"{self.l2_std_factor} standard deviations above mean"
+        logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
+        bar = Bar("Local pruning...", max=n_samples)
+        nearest_neighbors_collection_pruned = NearestNeighborsCollection()
+        for nearest_neighbors in nearest_neighbors_collection:
+            neighbors, distances = self.prune_sample(nearest_neighbors, self.l2_std_factor)
+            nearest_neighbors_collection_pruned.append(
+                neighbors, distances
             )
-            row_list = []
-            col_list = []
-            weight_list = []
+            bar.next()
+        bar.finish()
 
-            logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
-            bar = Bar("Local pruning...", max=n_samples)
-            for nearest_neighbors in nearest_neighbors_collection:
-                rows, cols, weights = self.prune_sample(nearest_neighbors, self.l2_std_factor)
-                row_list += rows
-                col_list += cols
-                weight_list += weights
-                bar.next()
-            bar.finish()
-            del nearest_neighbors_collection
-            logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
-        else:
-            logger.message(
-                f"do_prune_local set to {self.do_prune_local}, skipping local pruning."
-            )
-            logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
-            neighbors_collection = nearest_neighbors_collection.get_neighbors(as_type="collection")
-            row_list = []
-            for neighbors, index in zip(neighbors_collection, range(n_samples)):
-                row_list += [index]*neighbors.shape[0]
-            col_list = nearest_neighbors_collection.get_neighbors(as_type="flatten")
-            weight_list = nearest_neighbors_collection.get_weights(as_type="flatten")
-            del nearest_neighbors_collection
-            logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
+        del nearest_neighbors_collection
 
+        logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
         show_virtual_memory()
 
-        csr_graph = csr_matrix(
-            (np.array(weight_list, dtype="float32"), (np.array(row_list), np.array(col_list))),
-            shape=(n_samples, n_samples)
-        )
-        return csr_graph
+        return nearest_neighbors_collection_pruned
 
     def prune_sample(self, nearest_neighbors, l2_std_factor):
         available_memory = get_available_memory()
@@ -467,16 +447,16 @@ class PARC:
         distances = nearest_neighbors.distances
         sample_index = nearest_neighbors.community_id
         max_distance = np.mean(distances) + l2_std_factor * np.std(distances)
-        to_keep = np.where(distances < max_distance)[0]
-        to_keep = [index for index in to_keep if neighbors[index] != sample_index] # remove self-loops
-        col_list = list(neighbors[np.ix_(to_keep)])
-        row_list = [sample_index]*len(to_keep)
-        weight_list = list(1 / (np.sqrt(distances[np.ix_(to_keep)]) + DISTANCE_FACTOR))
-        del nearest_neighbors, distances, neighbors, to_keep
-        return row_list, col_list, weight_list
+        indices = np.append(
+            np.where(distances >= max_distance)[0],
+            np.where(neighbors == sample_index)[0]
+        )
+        neighbors, distances = nearest_neighbors.remove_indices(indices)
+        return neighbors, distances
 
     def prune_global(
-        self, csr_array, jac_threshold_type, jac_std_factor, jac_weighted_edges, n_samples
+        self, nearest_neighbors_collection, jac_threshold_type, jac_std_factor,
+        jac_weighted_edges, n_samples
     ):
         """Prune the graph globally based on the Jaccard similarity measure.
 
@@ -509,7 +489,8 @@ class PARC:
         Returns:
             igraph.Graph: a ``Graph`` object which has now been locally and globally pruned.
         """
-        memory_prune_global = get_memory_prune_global(len(get_edges(csr_array)))
+        edges = nearest_neighbors_collection.get_edges()
+        memory_prune_global = get_memory_prune_global(len(edges))
         current_usage = memory_prune_global["usage"]
 
         if not memory_prune_global["is_sufficient"]:
@@ -529,14 +510,22 @@ class PARC:
             )
 
         logger.message("Starting global pruning...")
-
-        edges = get_edges(csr_array)
         logger.info(f"Creating initial graph with {len(edges)} edges and {n_samples} nodes...")
 
-        graph = ig.Graph(edges, edge_attrs={"weight": csr_array.data.tolist()})
-        del csr_array
+        # TODO: It doesn't seem like the weights are doing anything. I think the Jaccard
+        # similarity only computes based on the number of edges, not on the weights.
+        # If this is the case, then the edge_attrs can be removed.
+
+        graph = ig.Graph(
+            edges,
+            edge_attrs={
+                "weight": nearest_neighbors_collection.get_weights(as_type="flatten")
+            }
+        )
+        del nearest_neighbors_collection
 
         similarities = np.asarray(graph.similarity_jaccard(pairs=list(edges)))
+
         del graph
 
         if jac_threshold_type == "median":
@@ -629,15 +618,19 @@ class PARC:
             hnsw_param_m=30, hnsw_param_ef_construction=200
         )
 
-        csr_array = self.prune_local(nearest_neighbors_collection)
+        if self.do_prune_local:
+            nearest_neighbors_collection_pruned = self.prune_local(nearest_neighbors_collection)
+        else:
+            nearest_neighbors_collection_pruned = nearest_neighbors_collection
+
         graph_pruned = self.prune_global(
-            csr_array=csr_array,
+            nearest_neighbors_collection=nearest_neighbors_collection_pruned,
             jac_std_factor=jac_std_factor,
             jac_threshold_type=jac_threshold_type,
             jac_weighted_edges=jac_weighted_edges,
             n_samples=n_samples
         )
-        del csr_array
+        del nearest_neighbors_collection_pruned
 
         partition = self.get_leiden_partition(graph_pruned, jac_weighted_edges)
 
@@ -709,16 +702,20 @@ class PARC:
             x_data=self.x_data, knn=self.knn, create_new=False,
             distance_metric=self.distance_metric,
         )
-        csr_array = self.prune_local(nearest_neighbors_collection)
+
+        if self.do_prune_local:
+            nearest_neighbors_collection_pruned = self.prune_local(nearest_neighbors_collection)
+        else:
+            nearest_neighbors_collection_pruned = nearest_neighbors_collection
 
         graph_pruned = self.prune_global(
-            csr_array=csr_array,
+            nearest_neighbors_collection=nearest_neighbors_collection_pruned,
             jac_std_factor=jac_std_factor,
             jac_threshold_type=jac_threshold_type,
             n_samples=n_samples,
             jac_weighted_edges=True
         )
-        del csr_array
+        del nearest_neighbors_collection_pruned
 
         logger.message("Starting Leiden community detection...")
         partition = self.get_leiden_partition(graph_pruned, jac_weighted_edges)
