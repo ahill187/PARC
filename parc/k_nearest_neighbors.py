@@ -366,6 +366,7 @@ class NearestNeighborsCollection:
         self.neighbors_collection.append(neighbors)
         self.distances_collection.append(distances)
         self.n_communities += 1
+        self.max_neighbors = max(self.max_neighbors, len(neighbors))
 
     def to_list(self):
         """Convert this object to a list of ``NearestNeighbors`` objects.
