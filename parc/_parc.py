@@ -10,8 +10,7 @@ import psutil
 import time
 import multiprocessing as mp
 from umap.umap_ import find_ab_params, simplicial_set_embedding
-from parc.k_nearest_neighbors import NearestNeighbors, NearestNeighborsCollection, \
-    DISTANCE_FACTOR
+from parc.k_nearest_neighbors import NearestNeighborsCollection
 from parc.utils import get_mode, get_current_memory_usage, show_virtual_memory, check_memory, \
     MEMORY_PRUNE_GLOBAL, MEMORY_KNN_STRUCT
 from parc.logger import get_logger
@@ -20,7 +19,7 @@ logger = get_logger(__name__)
 
 process = psutil.Process(os.getpid())
 
-N_SAMPLES_LOCAL_PRUNE=300000
+N_SAMPLES_LOCAL_PRUNE = 300000
 
 
 class PARC:
@@ -247,7 +246,7 @@ class PARC:
 
         if hnsw_param_m is None:
             if (n_features > 30) & (n_samples <= 50000):
-                hnsw_param_m = 48 # good for scRNA seq where dimensionality is high
+                hnsw_param_m = 48  # good for scRNA seq where dimensionality is high
             else:
                 hnsw_param_m = 24
 
@@ -284,7 +283,6 @@ class PARC:
             list(np.transpose(np.ones((n_neighbors, n_samples)) * range(0, n_samples)).flatten())
         )
 
-
         row_min = np.min(distance_array, axis=1)
         row_sigma = np.std(distance_array, axis=1)
 
@@ -297,13 +295,11 @@ class PARC:
 
         weight_list = np.exp(distance_array)
 
-
         threshold = np.mean(weight_list) + 2* np.std(weight_list)
 
         weight_list[weight_list >= threshold] = threshold
 
         weight_list = weight_list.tolist()
-
 
         graph = csr_matrix((np.array(weight_list), (np.array(row_list), np.array(col_list))),
                            shape=(n_samples, n_samples))
