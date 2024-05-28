@@ -13,7 +13,7 @@ from umap.umap_ import find_ab_params, simplicial_set_embedding
 from parc.k_nearest_neighbors import NearestNeighbors, NearestNeighborsCollection, \
     DISTANCE_FACTOR
 from parc.utils import get_mode, get_current_memory_usage, show_virtual_memory, check_memory, \
-    MEMORY_PRUNE_GLOBAL
+    MEMORY_PRUNE_GLOBAL, MEMORY_KNN_STRUCT
 from parc.logger import get_logger
 
 logger = get_logger(__name__)
@@ -182,7 +182,7 @@ class PARC:
         else:
             self._partition_type = partition_type
 
-    @check_memory(min_memory=2.0)
+    @check_memory(items_kwarg="x_data", memory_per_item=MEMORY_KNN_STRUCT)
     def make_knn_struct(
         self, x_data, knn=None, distance_metric=None, hnsw_param_m=None,
         hnsw_param_ef_construction=None
@@ -224,7 +224,7 @@ class PARC:
         Returns:
             hnswlib.Index: An HNSW object containing the k-nearest neighbours graph.
         """
-
+        logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
         if knn is None:
             knn = self.knn
 
@@ -260,7 +260,7 @@ class PARC:
         )
         knn_struct.add_items(x_data)
         knn_struct.set_ef(ef_query)  # ef should always be > k
-
+        logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
         return knn_struct
 
     @check_memory(min_memory=2.0)
@@ -359,6 +359,7 @@ class PARC:
                 the community ids and distances of the k nearest neighbors for all the
                 communities in the graph.
         """
+        logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
         if self.neighbor_graph is not None and not create_new:
             csr_array = self.neighbor_graph
             nearest_neighbors_collection = NearestNeighborsCollection(csr_array=csr_array)
@@ -373,6 +374,7 @@ class PARC:
             nearest_neighbors_collection = NearestNeighborsCollection(
                 neighbors_collection=neighbor_array, distances_collection=distance_array
             )
+        logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
         return nearest_neighbors_collection
 
     @check_memory(min_memory=2.0)
@@ -678,6 +680,7 @@ class PARC:
             f"Input data has shape {self.x_data.shape[0]} (samples) x "
             f"{self.x_data.shape[1]} (features)"
         )
+        logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
         large_community_factor = self.large_community_factor
         small_community_size = self.small_community_size
         jac_std_factor = self.jac_std_factor
@@ -689,6 +692,7 @@ class PARC:
             x_data=self.x_data, knn=self.knn, create_new=False,
             distance_metric=self.distance_metric,
         )
+        logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
 
         if self.do_prune_local:
             nearest_neighbors_collection_pruned = self.prune_local(nearest_neighbors_collection)

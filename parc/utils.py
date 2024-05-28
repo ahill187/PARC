@@ -6,8 +6,9 @@ from parc.logger import get_logger
 
 logger = get_logger(__name__)
 
-MEMORY_THRESHOLD = 0.0625  # GiB
+MEMORY_THRESHOLD = 1.0  # GiB
 MEMORY_PRUNE_GLOBAL = 0.22 / 10**6  # GiB / edge
+MEMORY_KNN_STRUCT = 360 / (1024**3) # GiB / sample
 
 
 def get_mode(a_list):
