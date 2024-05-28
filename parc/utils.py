@@ -61,7 +61,7 @@ def get_function_memory(n_items, memory_per_item):
     }
 
 
-def check_memory(min_memory=2.0, items_kwarg=None, memory_per_item=None):
+def check_memory(min_memory=2.0, items_kwarg=None, items_factor_kwarg="", memory_per_item=None):
     """A decorator to check the current memory usage.
 
     Args:
@@ -100,7 +100,13 @@ def check_memory(min_memory=2.0, items_kwarg=None, memory_per_item=None):
                     )
 
             if do_check_function_memory:
-                function_memory = get_function_memory(n_items, memory_per_item)
+                if items_factor_kwarg != "":
+                    items_factor = kwargs.get(items_factor_kwarg, 1)
+                    if not isinstance(items_factor, int):
+                        items_factor = 1
+                else:
+                    items_factor = 1
+                function_memory = get_function_memory(n_items * items_factor, memory_per_item)
                 current_usage = function_memory["usage"]
 
                 if not function_memory["is_sufficient"]:
@@ -113,7 +119,7 @@ def check_memory(min_memory=2.0, items_kwarg=None, memory_per_item=None):
                         f"current usage: {current_usage} GiB out of {function_memory['total']}"
                         "GiB on your computer, or\n"
                         f"b) reduce the number of items in your data, which is currently "
-                        f"set to {n_items}."
+                        f"set to {n_items} {items_kwarg} x {items_factor} {items_factor_kwarg}."
                     )
             else:
                 available_memory = get_available_memory()
