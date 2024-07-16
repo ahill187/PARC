@@ -8,7 +8,8 @@ logger = get_logger(__name__)
 
 MEMORY_THRESHOLD = 1.0  # GiB
 MEMORY_PRUNE_GLOBAL = 0.22 / 10**6  # GiB / edge
-MEMORY_KNN_STRUCT = 360 / (1024**3) # GiB / sample
+MEMORY_KNN_STRUCT = 360 / (1024**3)  # GiB / sample
+MEMORY_GET_NEAREST_NEIGHBORS_COLLECTION = 0.0  # GiB / edge
 
 
 def get_mode(a_list):

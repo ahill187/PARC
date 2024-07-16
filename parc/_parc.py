@@ -12,7 +12,7 @@ import multiprocessing as mp
 from umap.umap_ import find_ab_params, simplicial_set_embedding
 from parc.k_nearest_neighbors import NearestNeighborsCollection
 from parc.utils import get_mode, get_current_memory_usage, show_virtual_memory, check_memory, \
-    MEMORY_PRUNE_GLOBAL, MEMORY_KNN_STRUCT
+    MEMORY_PRUNE_GLOBAL, MEMORY_KNN_STRUCT, MEMORY_GET_NEAREST_NEIGHBORS_COLLECTION
 from parc.logger import get_logger
 
 logger = get_logger(__name__)
@@ -310,7 +310,10 @@ class PARC:
         graph = graph_transpose + graph - prod_matrix
         return graph
 
-    @check_memory(min_memory=2.0)
+    @check_memory(
+        items_kwarg="x_data", items_factor_kwarg="knn",
+        memory_per_item=MEMORY_GET_NEAREST_NEIGHBORS_COLLECTION
+    )
     def get_nearest_neighbors_collection(
         self, x_data, knn, distance_metric, create_new=False, hnsw_param_m=None,
         hnsw_param_ef_construction=None
@@ -882,7 +885,6 @@ class PARC:
                         recall, num_groups, n_target]
 
         return accuracy_val, predict_class_array, majority_truth_labels, number_clusters_for_target
-
 
     def compute_performance_metrics(self, run_time):
 
