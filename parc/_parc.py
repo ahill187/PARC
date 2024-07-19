@@ -5,20 +5,27 @@ from scipy.sparse import csr_matrix
 from progress.bar import Bar
 import igraph as ig
 import leidenalg
+import os
+import psutil
 import time
 import multiprocessing as mp
 from umap.umap_ import find_ab_params, simplicial_set_embedding
-from parc.utils import get_mode
+from parc.k_nearest_neighbors import NearestNeighborsCollection
+from parc.utils import get_mode, get_current_memory_usage, show_virtual_memory, check_memory, \
+    MEMORY_PRUNE_GLOBAL, MEMORY_KNN_STRUCT, MEMORY_GET_NEAREST_NEIGHBORS_COLLECTION
 from parc.logger import get_logger
 
 logger = get_logger(__name__)
+
+process = psutil.Process(os.getpid())
+
+N_SAMPLES_LOCAL_PRUNE = 300000
 
 
 class PARC:
     def __init__(self, x_data, y_data_true=None, knn=30, n_iter_leiden=5, random_seed=42,
                  distance_metric="l2", n_threads=-1, hnsw_param_ef_construction=150,
-                 neighbor_graph=None, knn_struct=None,
-                 l2_std_factor=3, keep_all_local_dist=None,
+                 neighbor_graph=None, knn_struct=None, l2_std_factor=3.0, do_prune_local=None,
                  jac_threshold_type="median", jac_std_factor=0.15, jac_weighted_edges=True,
                  resolution_parameter=1.0, partition_type="ModularityVP",
                  large_community_factor=0.4, small_community_size=10, small_community_timeout=15
@@ -67,9 +74,9 @@ class PARC:
                 Avoid setting both the ``jac_std_factor`` (global) and the ``l2_std_factor`` (local)
                 to < 0.5 as this is very aggressive pruning.
                 Higher ``l2_std_factor`` means more edges are kept.
-            keep_all_local_dist (bool): whether or not to do local pruning.
-                If None (default), set to ``True`` if the number of samples is > 300 000,
-                and set to ``False`` otherwise.
+            do_prune_local (bool): whether or not to do local pruning.
+                If None (default), set to ``False`` if the number of samples is
+                > ``N_SAMPLES_LOCAL_PRUNE``, and set to ``True`` otherwise.
             jac_threshold_type (str): One of ``"median"`` or ``"mean"``. Determines how the
                 Jaccard similarity threshold is calculated during global pruning.
             jac_std_factor (float): The multiplier used in calculating the Jaccard similarity
@@ -118,7 +125,7 @@ class PARC:
         self.jac_std_factor = jac_std_factor
         self.jac_threshold_type = jac_threshold_type
         self.jac_weighted_edges = jac_weighted_edges
-        self.keep_all_local_dist = keep_all_local_dist
+        self.do_prune_local = do_prune_local
         self.large_community_factor = large_community_factor
         self.small_community_size = small_community_size
         self.small_community_timeout = small_community_timeout
@@ -146,22 +153,22 @@ class PARC:
         self._n_threads = n_threads
 
     @property
-    def keep_all_local_dist(self):
-        return self._keep_all_local_dist
+    def do_prune_local(self):
+        return self._do_prune_local
 
-    @keep_all_local_dist.setter
-    def keep_all_local_dist(self, keep_all_local_dist):
-        if keep_all_local_dist is None:
-            if self.x_data.shape[0] > 300000:
+    @do_prune_local.setter
+    def do_prune_local(self, do_prune_local):
+        if do_prune_local is None:
+            if self.x_data.shape[0] > N_SAMPLES_LOCAL_PRUNE:
                 logger.message(
-                    f"Sample size is {self.x_data.shape[0]}, setting keep_all_local_dist "
-                    f"to True so that local pruning will be skipped and algorithm will be faster."
+                    f"Sample size is {self.x_data.shape[0]}, setting do_prune_local "
+                    f"to False so that local pruning will be skipped and algorithm will be faster."
                 )
-                keep_all_local_dist = True
+                do_prune_local = False
             else:
-                keep_all_local_dist = False
+                do_prune_local = True
 
-        self._keep_all_local_dist = keep_all_local_dist
+        self._do_prune_local = do_prune_local
 
     @property
     def partition_type(self):
@@ -174,52 +181,88 @@ class PARC:
         else:
             self._partition_type = partition_type
 
-    def make_knn_struct(self, too_big=False, big_cluster=None):
+    @check_memory(items_kwarg="x_data", memory_per_item=MEMORY_KNN_STRUCT)
+    def make_knn_struct(
+        self, x_data, knn=None, distance_metric=None, hnsw_param_m=None,
+        hnsw_param_ef_construction=None
+    ):
         """Create a Hierarchical Navigable Small Worlds (HNSW) graph.
 
         See `hnswlib.Index
         <https://github.com/nmslib/hnswlib/blob/master/python_bindings/LazyIndex.py>`__.
 
+        Args:
+            x_data (np.array): a Numpy array of the input x data, with dimensions
+                (n_samples, n_features).
+            knn (int): the number of nearest neighbors k for the k-nearest neighbours algorithm.
+                Larger k means more neighbors in a cluster and therefore less clusters.
+            distance_metric (string): the distance metric to be used in the KNN algorithm:
+
+                - ``l2``: Euclidean distance L^2 norm:
+
+                  .. code-block:: python
+
+                    d = sum((x_i - y_i)^2)
+                - ``cosine``: cosine similarity
+
+                  .. code-block:: python
+
+                    d = 1.0 - sum(x_i*y_i) / sqrt(sum(x_i*x_i) * sum(y_i*y_i))
+                - ``ip``: inner product distance
+
+                  .. code-block:: python
+
+                    d = 1.0 - sum(x_i*y_i)
+
+            hnsw_param_ef_construction (int): (optional) The ``ef_construction`` parameter to be
+                used in creating the ``hnswlib.Index`` object. A higher value increases accuracy of
+                index construction. Even for ``O(100 000)`` cells, 150-200 is adequate.
+            hnsw_param_m (int): (optional) The ``m`` parameter to be used in creating the
+                ``hnswlib.Index`` object.
+
         Returns:
             hnswlib.Index: An HNSW object containing the k-nearest neighbours graph.
         """
-        if self.knn > 190:
-            logger.message(f"knn = {self.knn}; consider using a lower k for KNN graph construction")
+        logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
+        if knn is None:
+            knn = self.knn
 
-        ef_query = max(100, self.knn + 1)  # ef always should be >K. higher ef, more accurate query
+        if knn > 190:
+            logger.message(f"knn = {knn}; consider using a lower k for KNN graph construction")
 
-        if not too_big:
-            num_dims = self.x_data.shape[1]
-            n_samples = self.x_data.shape[0]
-            knn_struct = hnswlib.Index(space=self.distance_metric, dim=num_dims)
-            logger.info(dir(knn_struct))
-            knn_struct.set_num_threads(self.n_threads)
+        if distance_metric is None:
+            distance_metric = self.distance_metric
+
+        n_features = x_data.shape[1]
+        n_samples = x_data.shape[0]
+
+        ef_query = max(100, knn + 1)  # ef always should be >K. higher ef, more accurate query
+        if hnsw_param_ef_construction is None:
             if n_samples < 10000:
                 ef_query = min(n_samples - 10, 500)
-                ef_construction = ef_query
+                hnsw_param_ef_construction = ef_query
             else:
-                ef_construction = self.hnsw_param_ef_construction
-            if (num_dims > 30) & (n_samples <= 50000):
-                logger.info("Initializing HNSW index...")
-                knn_struct.init_index(
-                    max_elements=n_samples, ef_construction=ef_construction, M=48
-                ) # good for scRNA seq where dimensionality is high
-            else:
-                logger.info("Initializing HNSW index...")
-                knn_struct.init_index(max_elements=n_samples, ef_construction=ef_construction, M=24) #30
-            knn_struct.add_items(self.x_data)
-        else:
-            num_dims = big_cluster.shape[1]
-            n_samples = big_cluster.shape[0]
-            knn_struct = hnswlib.Index(space='l2', dim=num_dims)
-            logger.info("Initializing HNSW index...")
-            knn_struct.init_index(max_elements=n_samples, ef_construction=200, M=30)
-            knn_struct.add_items(big_cluster)
+                hnsw_param_ef_construction = self.hnsw_param_ef_construction
 
+        if hnsw_param_m is None:
+            if (n_features > 30) & (n_samples <= 50000):
+                hnsw_param_m = 48  # good for scRNA seq where dimensionality is high
+            else:
+                hnsw_param_m = 24
+
+        knn_struct = hnswlib.Index(space=distance_metric, dim=n_features)
+        knn_struct.set_num_threads(self.n_threads)
+
+        logger.info("Initializing HNSW index...")
+        knn_struct.init_index(
+            max_elements=n_samples, ef_construction=hnsw_param_ef_construction, M=hnsw_param_m
+        )
+        knn_struct.add_items(x_data)
         knn_struct.set_ef(ef_query)  # ef should always be > k
-
+        logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
         return knn_struct
 
+    @check_memory(min_memory=2.0)
     def create_knn_graph(self):
         """Create a full k-nearest neighbors graph using the HNSW algorithm.
 
@@ -240,7 +283,6 @@ class PARC:
             list(np.transpose(np.ones((n_neighbors, n_samples)) * range(0, n_samples)).flatten())
         )
 
-
         row_min = np.min(distance_array, axis=1)
         row_sigma = np.std(distance_array, axis=1)
 
@@ -253,13 +295,11 @@ class PARC:
 
         weight_list = np.exp(distance_array)
 
-
         threshold = np.mean(weight_list) + 2* np.std(weight_list)
 
         weight_list[weight_list >= threshold] = threshold
 
         weight_list = weight_list.tolist()
-
 
         graph = csr_matrix((np.array(weight_list), (np.array(row_list), np.array(col_list))),
                            shape=(n_samples, n_samples))
@@ -270,74 +310,236 @@ class PARC:
         graph = graph_transpose + graph - prod_matrix
         return graph
 
-    def prune_local(self, neighbor_array, distance_array):
+    @check_memory(
+        items_kwarg="x_data", items_factor_kwarg="knn",
+        memory_per_item=MEMORY_GET_NEAREST_NEIGHBORS_COLLECTION
+    )
+    def get_nearest_neighbors_collection(
+        self, x_data, knn, distance_metric, create_new=False, hnsw_param_m=None,
+        hnsw_param_ef_construction=None
+    ):
+        """Get the community ids and distances to the nearest neighbors.
+
+        Args:
+            x_data (np.array): a Numpy array of the input x data, with dimensions
+                (n_samples, n_features).
+            knn (int): the number of nearest neighbors k for the k-nearest neighbours algorithm.
+                Larger k means more neighbors in a cluster and therefore less clusters.
+            distance_metric (string): the distance metric to be used in the KNN algorithm:
+
+                - ``l2``: Euclidean distance L^2 norm:
+
+                  .. code-block:: python
+
+                    d = sum((x_i - y_i)^2)
+                - ``cosine``: cosine similarity
+
+                  .. code-block:: python
+
+                    d = 1.0 - sum(x_i*y_i) / sqrt(sum(x_i*x_i) * sum(y_i*y_i))
+                - ``ip``: inner product distance
+
+                  .. code-block:: python
+
+                    d = 1.0 - sum(x_i*y_i)
+
+            create_new (bool): If ``False``, check to see if the ``FlowData`` object already
+                contains a ``csr_array`` or a ``knn_struct``, and use these to create the
+                neighbor and distance arrays. If ``True``, create a new ``csr_array`` and
+                ``knn_struct``, even if they exist.
+            hnsw_param_ef_construction (int): (optional) The ``ef_construction`` parameter to be
+                used in creating the ``hnswlib.Index`` object. A higher value increases accuracy of
+                index construction. Even for ``O(100 000)`` cells, 150-200 is adequate.
+            hnsw_param_m (int): (optional) The ``m`` parameter to be used in creating the
+                ``hnswlib.Index`` object.
+
+        Returns:
+            NearestNeighborsCollection: A ``NearestNeighborsCollection`` object, containing
+                the community ids and distances of the k nearest neighbors for all the
+                communities in the graph.
+        """
+        logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
+        if self.neighbor_graph is not None and not create_new:
+            csr_array = self.neighbor_graph
+            nearest_neighbors_collection = NearestNeighborsCollection(csr_array=csr_array)
+        else:
+            if self.knn_struct is None or create_new:
+                logger.message("Creating HNSW knn_struct")
+                self.knn_struct = self.make_knn_struct(
+                    x_data=x_data, knn=knn, distance_metric=distance_metric,
+                    hnsw_param_m=hnsw_param_m, hnsw_param_ef_construction=hnsw_param_ef_construction
+                )
+            neighbor_array, distance_array = self.knn_struct.knn_query(x_data, k=knn)
+            nearest_neighbors_collection = NearestNeighborsCollection(
+                neighbors_collection=neighbor_array, distances_collection=distance_array
+            )
+        logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
+        return nearest_neighbors_collection
+
+    @check_memory(min_memory=2.0)
+    def prune_local(self, nearest_neighbors_collection):
         """Prune the nearest neighbors array.
 
-        If ``keep_all_local_dist`` is true, remove any neighbors which are further away than
-        the specified cutoff distance. Also, remove any self-loops. Return in the ``csr_matrix``
-        format.
+        If ``do_prune_local`` is True, perform local pruning:
 
-        If ``keep_all_local_dist`` is false, then don't perform any pruning and return the original
+            1. Remove any neighbors which are further away than the specified cutoff distance.
+            2. Remove any self-loops. In the ``NearestNeighborsCollection`` object, the first
+               community id listed is the community id for that community. For example, if the
+               ``community_id = 2``, then the ``k = 3`` nearest neighbors would be listed as:
+
+               .. code-block:: python
+
+                   neighbors = np.array([2, 4, 0])
+
+               and the distances as:
+
+              .. code-block:: python
+
+                  neighbors = np.array([0.0, 0.7, 1.9])
+
+               To remove self-loops, we remove the community id ``2`` from the neighbors
+               and the distance of ``0.0`` from the distances.
+
+        Return in the ``csr_matrix`` format.
+
+        If ``do_prune_local`` is False, then don't perform any pruning and return the original
         arrays in the ``csr_matrix`` format.
 
         Args:
-            neighbor_array (np.array): An array with dimensions (n_samples, k) listing the
-                k nearest neighbors for each data point.
-            distance_array (np.array): An array with dimensions (n_samples, k) listing the
-                distances to each of the k nearest neighbors for each data point.
+            nearest_neighbors_collection (NearestNeighborsCollection): A
+                ``NearestNeighborsCollection`` object, containing the community ids and distances
+                of the k nearest neighbors for all the communities in the graph.
+
         Returns:
             scipy.sparse.csr_matrix: A compressed sparse row matrix with dimensions
-            (n_samples, n_samples), containing the pruned distances.
+                (n_samples, n_samples), containing the pruned distances.
         """
         # neighbor array not listed in in any order of proximity
-        row_list = []
-        col_list = []
-        weight_list = []
 
-        n_neighbors = neighbor_array.shape[1]
-        n_samples = neighbor_array.shape[0]
-        rowi = 0
-        discard_count = 0
+        n_samples = nearest_neighbors_collection.n_communities
+        nearest_neighbors_collection = nearest_neighbors_collection.to_list()
+        logger.message(
+            f"Starting local pruning based on Euclidean (L2) distance metric at "
+            f"{self.l2_std_factor} standard deviations above mean"
+        )
 
-        if self.keep_all_local_dist:  # dont prune based on distance
-            row_list.extend(
-                list(np.transpose(np.ones((n_neighbors, n_samples)) * range(0, n_samples)).flatten())
+        logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
+        bar = Bar("Local pruning...", max=n_samples)
+        nearest_neighbors_collection_pruned = NearestNeighborsCollection()
+        for nearest_neighbors in nearest_neighbors_collection:
+            neighbors, distances = self.prune_sample(nearest_neighbors, self.l2_std_factor)
+            nearest_neighbors_collection_pruned.append(
+                neighbors, distances
             )
-            col_list = neighbor_array.flatten().tolist()
-            weight_list = (1. / (distance_array.flatten() + 0.1)).tolist()
+            bar.next()
+        bar.finish()
 
-        else:  # locally prune based on (squared) l2 distance
+        del nearest_neighbors_collection
 
-            logger.message(
-                f"Starting local pruning based on Euclidean (L2) distance metric at "
-                f"{self.l2_std_factor} standard deviations above mean"
+        logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
+        show_virtual_memory()
+
+        return nearest_neighbors_collection_pruned
+
+    @check_memory(min_memory=2.0)
+    def prune_sample(self, nearest_neighbors, l2_std_factor):
+        neighbors = nearest_neighbors.neighbors
+        distances = nearest_neighbors.distances
+        sample_index = nearest_neighbors.community_id
+        max_distance = np.mean(distances) + l2_std_factor * np.std(distances)
+        indices = np.append(
+            np.where(distances >= max_distance)[0],
+            np.where(neighbors == sample_index)[0]
+        )
+        neighbors, distances = nearest_neighbors.remove_indices(indices)
+        return neighbors, distances
+
+    @check_memory(
+        min_memory=2.0, items_kwarg="nearest_neighbors_collection",
+        memory_per_item=MEMORY_PRUNE_GLOBAL
+    )
+    def prune_global(
+        self, nearest_neighbors_collection, jac_threshold_type, jac_std_factor,
+        jac_weighted_edges, n_samples
+    ):
+        """Prune the graph globally based on the Jaccard similarity measure.
+
+        The ``csr_array`` contains the locally-pruned pairwise distances. From this, we can
+        use the Jaccard similarity metric to compute the similarity score for each edge. We then
+        remove any edges from the graph that do not meet a minimum similarity threshold.
+
+        Args:
+            csr_array (Compressed Sparse Row Matrix): A sparse matrix with dimensions
+                (n_samples, n_samples), containing the locally-pruned pair-wise distances.
+            jac_threshold_type (str): One of ``"median"`` or ``"mean"``. Determines how the
+                Jaccard similarity threshold is calculated during global pruning.
+            jac_std_factor (float): The multiplier used in calculating the Jaccard similarity
+                threshold for the similarity between two nodes during global pruning for
+                ``jac_threshold_type = "mean"``:
+
+                .. code-block:: python
+
+                    threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
+
+                Setting ``jac_std_factor = 0.15`` and ``jac_threshold_type="mean"``
+                performs empirically similar to ``jac_threshold_type="median"``, which does not use
+                the ``jac_std_factor``.
+                Generally values between 0-1.5 are reasonable.
+                Higher ``jac_std_factor`` means more edges are kept.
+            jac_weighted_edges (bool): whether to weight the pruned graph. This is always True for
+                the top-level PARC run, but can be changed when pruning the large communities.
+            n_samples (int): The number of samples in the data.
+
+        Returns:
+            igraph.Graph: a ``Graph`` object which has now been locally and globally pruned.
+        """
+
+        edges = nearest_neighbors_collection.get_edges()
+        logger.message("Starting global pruning...")
+        logger.info(f"Creating initial graph with {len(edges)} edges and {n_samples} nodes...")
+
+        # TODO: It doesn't seem like the weights are doing anything. I think the Jaccard
+        # similarity only computes based on the number of edges, not on the weights.
+        # If this is the case, then the edge_attrs can be removed.
+
+        graph = ig.Graph(
+            edges,
+            edge_attrs={
+                "weight": nearest_neighbors_collection.get_weights(as_type="flatten")
+            }
+        )
+
+        similarities = np.asarray(graph.similarity_jaccard(pairs=list(edges)))
+
+        del graph
+
+        if jac_threshold_type == "median":
+            threshold = np.median(similarities)
+        else:
+            threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
+
+        indices_similar = np.where(similarities > threshold)[0]
+
+        logger.message(
+            f"Creating pruned graph with {len(indices_similar)} edges and {n_samples} nodes..."
+        )
+
+        if jac_weighted_edges:
+            graph_pruned = ig.Graph(
+                n=n_samples,
+                edges=list(np.asarray(edges)[indices_similar]),
+                edge_attrs={"weight": list(similarities[indices_similar])}
             )
-            distance_array = distance_array + 0.1
-            bar = Bar("Local pruning...", max=n_samples)
-            for row in neighbor_array:
-                distlist = distance_array[rowi, :]
-                to_keep = np.where(
-                    distlist < np.mean(distlist) + self.l2_std_factor * np.std(distlist)
-                )[0]  # 0*std
-                updated_nn_ind = row[np.ix_(to_keep)]
-                updated_nn_weights = distlist[np.ix_(to_keep)]
-                discard_count = discard_count + (n_neighbors - len(to_keep))
+        else:
+            graph_pruned = ig.Graph(
+                n=n_samples,
+                edges=list(np.asarray(edges)[indices_similar])
+            )
 
-                for ik in range(len(updated_nn_ind)):
-                    if rowi != row[ik]:  # remove self-loops
-                        row_list.append(rowi)
-                        col_list.append(updated_nn_ind[ik])
-                        dist = np.sqrt(updated_nn_weights[ik])
-                        weight_list.append(1/(dist+0.1))
+        graph_pruned.simplify(combine_edges="sum")  # "first"
+        return graph_pruned
 
-                rowi = rowi + 1
-                bar.next()
-            bar.finish()
-
-        csr_graph = csr_matrix((np.array(weight_list), (np.array(row_list), np.array(col_list))),
-                               shape=(n_samples, n_samples))
-        return csr_graph
-
+    @check_memory(min_memory=2.0)
     def get_leiden_partition(self, graph, jac_weighted_edges=True):
         """Partition the graph using the Leiden algorithm.
 
@@ -352,6 +554,9 @@ class PARC:
                 See `leidenalg.VertexPartition on GitHub
                 <https://github.com/vtraag/leidenalg/blob/main/src/leidenalg/VertexPartition.py>`_.
         """
+
+        logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
+
         if jac_weighted_edges:
             weights = "weight"
         else:
@@ -376,54 +581,50 @@ class PARC:
                 n_iterations=self.n_iter_leiden, seed=self.random_seed,
                 resolution_parameter=self.resolution_parameter
             )
+
+        logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
+
         return partition
 
+    @check_memory(min_memory=2.0)
     def run_toobig_subPARC(self, x_data, jac_std_factor=0.3, jac_threshold_type="mean",
                            jac_weighted_edges=True):
+
         n_samples = x_data.shape[0]
-        hnsw = self.make_knn_struct(too_big=True, big_cluster=x_data)
         if n_samples <= 10:
             logger.message(
                 f"Number of samples = {n_samples}, consider increasing the large_community_factor"
             )
         if n_samples > self.knn:
-            knnbig = self.knn
+            knn = self.knn
         else:
-            knnbig = int(max(5, 0.2 * n_samples))
+            knn = int(max(5, 0.2 * n_samples))
 
-        neighbor_array, distance_array = hnsw.knn_query(x_data, k=knnbig)
-        csr_array = self.prune_local(neighbor_array, distance_array)
-        input_nodes, output_nodes = csr_array.nonzero()
+        nearest_neighbors_collection = self.get_nearest_neighbors_collection(
+            x_data=x_data, knn=knn, create_new=True, distance_metric="l2",
+            hnsw_param_m=30, hnsw_param_ef_construction=200
+        )
 
-        edges = list(zip(input_nodes.tolist(), output_nodes.tolist()))
-        edges_copy = edges.copy()
-        graph = ig.Graph(edges, edge_attrs={'weight': csr_array.data.tolist()})
-        similarities = graph.similarity_jaccard(pairs=edges_copy)  # list of jaccard weights
-
-        sim_list_array = np.asarray(similarities)
-        if jac_threshold_type == "median":
-            threshold = np.median(similarities)
+        if self.do_prune_local:
+            nearest_neighbors_collection_pruned = self.prune_local(nearest_neighbors_collection)
         else:
-            threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
+            nearest_neighbors_collection_pruned = nearest_neighbors_collection
 
-        indices_similar = np.where(sim_list_array > threshold)[0]
-        new_edgelist = [edges_copy[i] for i in indices_similar]
-        sim_list_new = list(sim_list_array[indices_similar])
-
-        if jac_weighted_edges:
-            graph_pruned = ig.Graph(
-                n=n_samples,
-                edges=new_edgelist,
-                edge_attrs={'weight': sim_list_new}
-            )
-        else:
-            graph_pruned = ig.Graph(n=n_samples, edges=new_edgelist)
-        graph_pruned.simplify(combine_edges='sum')
+        graph_pruned = self.prune_global(
+            nearest_neighbors_collection=nearest_neighbors_collection_pruned,
+            jac_std_factor=jac_std_factor,
+            jac_threshold_type=jac_threshold_type,
+            n_samples=n_samples,
+            jac_weighted_edges=jac_weighted_edges
+        )
+        del nearest_neighbors_collection_pruned
 
         partition = self.get_leiden_partition(graph_pruned, jac_weighted_edges)
 
         node_communities = np.asarray(partition.membership)
         node_communities = np.reshape(node_communities, (n_samples, 1))
+        del partition
+
         small_pop_list = []
         small_cluster_list = []
         small_pop_exist = False
@@ -437,7 +638,7 @@ class PARC:
 
         for small_cluster in small_pop_list:
             for single_cell in small_cluster:
-                old_neighbors = neighbor_array[single_cell, :]
+                old_neighbors = nearest_neighbors_collection.get_neighbors(single_cell)
                 group_of_old_neighbors = node_communities[old_neighbors]
                 group_of_old_neighbors = list(group_of_old_neighbors.flatten())
                 available_neighbours = set(group_of_old_neighbors) - set(small_cluster_list)
@@ -460,7 +661,7 @@ class PARC:
                     small_pop_list.append(np.where(node_communities == cluster)[0])
             for small_cluster in small_pop_list:
                 for single_cell in small_cluster:
-                    old_neighbors = neighbor_array[single_cell, :]
+                    old_neighbors = nearest_neighbors_collection.get_neighbors(single_cell)
                     group_of_old_neighbors = node_communities[old_neighbors]
                     group_of_old_neighbors = list(group_of_old_neighbors.flatten())
                     best_group = max(set(group_of_old_neighbors), key=group_of_old_neighbors.count)
@@ -470,6 +671,7 @@ class PARC:
 
         return node_communities
 
+    @check_memory(min_memory=2.0)
     def run_parc(self):
 
         time_start = time.time()
@@ -477,62 +679,43 @@ class PARC:
             f"Input data has shape {self.x_data.shape[0]} (samples) x "
             f"{self.x_data.shape[1]} (features)"
         )
-        x_data = self.x_data
+        logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
         large_community_factor = self.large_community_factor
         small_community_size = self.small_community_size
         jac_std_factor = self.jac_std_factor
         jac_threshold_type = self.jac_threshold_type
         jac_weighted_edges = self.jac_weighted_edges
-        knn = self.knn
-        n_samples = x_data.shape[0]
+        n_samples = self.x_data.shape[0]
 
-
-        if self.neighbor_graph is not None:
-            csr_array = self.neighbor_graph
-            neighbor_array = np.split(csr_array.indices, csr_array.indptr)[1:-1]
-        else:
-            if self.knn_struct is None:
-                logger.info('knn struct was not available, so making one')
-                self.knn_struct = self.make_knn_struct()
-            else:
-                logger.info("knn struct already exists")
-            neighbor_array, distance_array = self.knn_struct.knn_query(x_data, k=knn)
-            csr_array = self.prune_local(neighbor_array, distance_array)
-
-        input_nodes, output_nodes = csr_array.nonzero()
-
-        edges = list(zip(input_nodes, output_nodes))
-
-        edges_copy = edges.copy()
-
-        graph = ig.Graph(edges, edge_attrs={'weight': csr_array.data.tolist()})
-        similarities = graph.similarity_jaccard(pairs=edges_copy)
-
-        logger.message("Starting global pruning...")
-
-        sim_list_array = np.asarray(similarities)
-
-        if jac_threshold_type == "median":
-            threshold = np.median(similarities)
-        else:
-            threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
-        indices_similar = np.where(sim_list_array > threshold)[0]
-
-        sim_list_new = list(sim_list_array[indices_similar])
-
-        graph_pruned = ig.Graph(
-            n=n_samples,
-            edges=list(np.asarray(edges_copy)[indices_similar]),
-            edge_attrs={'weight': sim_list_new}
+        nearest_neighbors_collection = self.get_nearest_neighbors_collection(
+            x_data=self.x_data, knn=self.knn, create_new=False,
+            distance_metric=self.distance_metric,
         )
+        logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
 
-        graph_pruned.simplify(combine_edges='sum')  # "first"
+        if self.do_prune_local:
+            nearest_neighbors_collection_pruned = self.prune_local(nearest_neighbors_collection)
+        else:
+            nearest_neighbors_collection_pruned = nearest_neighbors_collection
 
-        logger.message("Starting community detection")
+        graph_pruned = self.prune_global(
+            nearest_neighbors_collection=nearest_neighbors_collection_pruned,
+            jac_std_factor=jac_std_factor,
+            jac_threshold_type=jac_threshold_type,
+            n_samples=n_samples,
+            jac_weighted_edges=True
+        )
+        del nearest_neighbors_collection_pruned
+
+        logger.message("Starting Leiden community detection...")
         partition = self.get_leiden_partition(graph_pruned, jac_weighted_edges)
+        del graph_pruned
+        logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
 
         node_communities = np.asarray(partition.membership)
         node_communities = np.reshape(node_communities, (n_samples, 1))
+        del partition
+        logger.info(f"Current memory usage: {get_current_memory_usage(process)} GiB")
 
         too_big = False
 
@@ -548,7 +731,7 @@ class PARC:
 
         while too_big:
 
-            x_data_big = x_data[cluster_big_loc, :]
+            x_data_big = self.x_data[cluster_big_loc, :]
             node_communities_big = self.run_toobig_subPARC(x_data_big)
             node_communities_big = node_communities_big + 100000
 
@@ -558,7 +741,6 @@ class PARC:
                 node_communities[j] = node_communities_big[jj]
                 jj = jj + 1
             node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
-            logger.info(f"new set of labels: {set(node_communities)}")
             too_big = False
             set_node_communities = set(node_communities)
 
@@ -596,7 +778,7 @@ class PARC:
         for small_cluster in small_pop_list:
 
             for single_cell in small_cluster:
-                old_neighbors = neighbor_array[single_cell]
+                old_neighbors = nearest_neighbors_collection.get_neighbors(single_cell)
                 group_of_old_neighbors = node_communities[old_neighbors]
                 group_of_old_neighbors = list(group_of_old_neighbors.flatten())
                 available_neighbours = set(group_of_old_neighbors) - set(small_cluster_list)
@@ -616,7 +798,7 @@ class PARC:
                     small_pop_list.append(np.where(node_communities == cluster)[0])
             for small_cluster in small_pop_list:
                 for single_cell in small_cluster:
-                    old_neighbors = neighbor_array[single_cell]
+                    old_neighbors = nearest_neighbors_collection.get_neighbors(single_cell)
                     group_of_old_neighbors = node_communities[old_neighbors]
                     group_of_old_neighbors = list(group_of_old_neighbors.flatten())
                     best_group = max(set(group_of_old_neighbors), key=group_of_old_neighbors.count)
@@ -651,8 +833,8 @@ class PARC:
         for kk in sorted_keys:
             vals = [t for t in Index_dict[kk]]
             majority_val = get_mode(vals)
-            if majority_val == target:
-                logger.info(f"Cluster {kk} has majority {target} with population {len(vals)}")
+            # if majority_val == target:
+                # logger.info(f"Cluster {kk} has majority {target} with population {len(vals)}")
             if kk == -1:
                 len_unknown = len(vals)
                 logger.info(f"Number of unknown: {len_unknown}")
@@ -703,7 +885,6 @@ class PARC:
                         recall, num_groups, n_target]
 
         return accuracy_val, predict_class_array, majority_truth_labels, number_clusters_for_target
-
 
     def compute_performance_metrics(self, run_time):
 

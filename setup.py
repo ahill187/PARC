@@ -15,7 +15,7 @@ setuptools.setup(
     setup_requires=['numpy', 'pybind11'],
     install_requires=[
         'pybind11', 'numpy', 'scipy', 'pandas', 'hnswlib', 'igraph',
-        'leidenalg>=0.7.0', 'umap-learn', 'progress'
+        'leidenalg>=0.7.0', 'umap-learn', 'progress', 'psutil'
     ],
     extras_require={
         "dev": ["pytest", "scikit-learn"]
