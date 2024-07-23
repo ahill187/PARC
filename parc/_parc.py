@@ -321,11 +321,11 @@ class PARC:
                 updated_distances = distances[np.ix_(to_keep)]
                 discard_count = discard_count + (n_neighbors - len(to_keep))
 
-                for ik in range(len(updated_neighbors)):
-                    if sample_index != neighbors[ik]:
+                for index in range(len(updated_neighbors)):
+                    if sample_index != neighbors[index]:
                         row_list.append(sample_index)
-                        col_list.append(updated_neighbors[ik])
-                        dist = np.sqrt(updated_distances[ik])
+                        col_list.append(updated_neighbors[index])
+                        dist = np.sqrt(updated_distances[index])
                         weight_list.append(1/(dist+0.1))
 
                 bar.next()
