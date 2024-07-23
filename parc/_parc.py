@@ -314,9 +314,8 @@ class PARC:
             bar = Bar("Local pruning...", max=n_samples)
             for sample_index, neighbors in zip(range(n_samples), neighbor_array):
                 distances = distance_array[sample_index, :]
-                to_keep = np.where(
-                    distances < np.mean(distances) + l2_std_factor * np.std(distances)
-                )[0]
+                max_distance = np.mean(distances) + l2_std_factor * np.std(distances)
+                to_keep = np.where(distances < max_distance)[0]
                 updated_neighbors = neighbors[np.ix_(to_keep)]
                 updated_distances = distances[np.ix_(to_keep)]
                 discard_count = discard_count + (n_neighbors - len(to_keep))
