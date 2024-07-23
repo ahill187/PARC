@@ -210,9 +210,9 @@ class PARC:
             logger.message(f"knn = {self.knn}; consider using a lower k for KNN graph construction")
 
         ef_query = max(100, self.knn + 1)  # ef always should be >K. higher ef, more accurate query
-        num_dims = x_data.shape[1]
+        n_features = x_data.shape[1]
         n_samples = x_data.shape[0]
-        knn_struct = hnswlib.Index(space=distance_metric, dim=num_dims)
+        knn_struct = hnswlib.Index(space=distance_metric, dim=n_features)
 
         if not too_big:
             knn_struct.set_num_threads(self.n_threads)
@@ -222,7 +222,7 @@ class PARC:
             else:
                 ef_construction = self.hnsw_param_ef_construction
 
-            if (num_dims > 30) & (n_samples <= 50000):
+            if (n_features > 30) & (n_samples <= 50000):
                 M = 48  # good for scRNA seq where dimensionality is high
             else:
                 M = 24
