@@ -395,7 +395,12 @@ class PARC:
 
         indices_similar = np.where(similarities > threshold)[0]
 
-        logger.message(f"Creating graph with {len(edges)} edges and {n_samples} nodes...")
+        logger.info(
+            f"Pruning {len(edges) - len(indices_similar)} edges based on Jaccard similarity"
+            f" threshold of {threshold}"
+        )
+
+        logger.message(f"Creating graph with {len(indices_similar)} edges and {n_samples} nodes...")
 
         if jac_weighted_edges:
             graph_pruned = ig.Graph(
@@ -410,6 +415,9 @@ class PARC:
             )
 
         graph_pruned.simplify(combine_edges="sum")  # "first"
+        logger.message(
+            f"Simplified graph has {graph_pruned.ecount()} edges and {n_samples} nodes"
+        )
         return graph_pruned
 
     def get_leiden_partition(self, graph, jac_weighted_edges=True):
