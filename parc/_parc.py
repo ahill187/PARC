@@ -318,14 +318,14 @@ class PARC:
                     distances < np.mean(distances) + l2_std_factor * np.std(distances)
                 )[0]
                 updated_neighbors = neighbors[np.ix_(to_keep)]
-                updated_nn_weights = distances[np.ix_(to_keep)]
+                updated_distances = distances[np.ix_(to_keep)]
                 discard_count = discard_count + (n_neighbors - len(to_keep))
 
                 for ik in range(len(updated_neighbors)):
                     if sample_index != neighbors[ik]:
                         row_list.append(sample_index)
                         col_list.append(updated_neighbors[ik])
-                        dist = np.sqrt(updated_nn_weights[ik])
+                        dist = np.sqrt(updated_distances[ik])
                         weight_list.append(1/(dist+0.1))
 
                 bar.next()
