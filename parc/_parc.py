@@ -271,7 +271,7 @@ class PARC:
         graph = graph_transpose + graph - prod_matrix
         return graph
 
-    def prune_local(self, neighbor_array, distance_array):
+    def prune_local(self, neighbor_array, distance_array, l2_std_factor: float | None = None):
         """Prune the nearest neighbors array.
 
         If ``keep_all_local_dist`` is true, remove any neighbors which are further away than
@@ -290,6 +290,12 @@ class PARC:
             scipy.sparse.csr_matrix: A compressed sparse row matrix with dimensions
             (n_samples, n_samples), containing the pruned distances.
         """
+
+        if l2_std_factor is None:
+            l2_std_factor = self.l2_std_factor
+        else:
+            self.l2_std_factor = l2_std_factor
+
         # neighbor array not listed in in any order of proximity
         row_list = []
         col_list = []
@@ -310,14 +316,14 @@ class PARC:
 
             logger.message(
                 f"Starting local pruning based on Euclidean (L2) distance metric at "
-                f"{self.l2_std_factor} standard deviations above mean"
+                f"{l2_std_factor} standard deviations above mean"
             )
             distance_array = distance_array + 0.1
             bar = Bar("Local pruning...", max=n_samples)
             for sample_index, neighbors in zip(range(n_samples), neighbor_array):
                 distances = distance_array[sample_index, :]
                 to_keep = np.where(
-                    distances < np.mean(distances) + self.l2_std_factor * np.std(distances)
+                    distances < np.mean(distances) + l2_std_factor * np.std(distances)
                 )[0]  # 0*std
                 updated_nn_ind = neighbors[np.ix_(to_keep)]
                 updated_nn_weights = distances[np.ix_(to_keep)]
