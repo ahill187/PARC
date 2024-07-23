@@ -221,20 +221,18 @@ class PARC:
                 ef_construction = ef_query
             else:
                 ef_construction = self.hnsw_param_ef_construction
-            if (num_dims > 30) & (n_samples <= 50000):
-                logger.info("Initializing HNSW index...")
-                knn_struct.init_index(
-                    max_elements=n_samples, ef_construction=ef_construction, M=48
-                ) # good for scRNA seq where dimensionality is high
-            else:
-                logger.info("Initializing HNSW index...")
-                knn_struct.init_index(max_elements=n_samples, ef_construction=ef_construction, M=24) #30
-            knn_struct.add_items(x_data)
-        else:
-            logger.info("Initializing HNSW index...")
-            knn_struct.init_index(max_elements=n_samples, ef_construction=200, M=30)
-            knn_struct.add_items(x_data)
 
+            if (num_dims > 30) & (n_samples <= 50000):
+                M = 48  # good for scRNA seq where dimensionality is high
+            else:
+                M = 24
+        else:
+            M = 30
+            ef_construction = 200
+
+        logger.info("Initializing HNSW index...")
+        knn_struct.init_index(max_elements=n_samples, ef_construction=ef_construction, M=M)
+        knn_struct.add_items(x_data)
         knn_struct.set_ef(ef_query)  # ef should always be > k
 
         return knn_struct
