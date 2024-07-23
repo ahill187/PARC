@@ -175,7 +175,12 @@ class PARC:
         else:
             self._partition_type = partition_type
 
-    def make_knn_struct(self, x_data: np.ndarray, too_big=False):
+    def make_knn_struct(
+        self,
+        x_data: np.ndarray,
+        distance_metric: str = "l2",
+        too_big=False
+    ) -> hnswlib.Index:
         """Create a Hierarchical Navigable Small Worlds (HNSW) graph.
 
         See `hnswlib.Index
@@ -184,6 +189,19 @@ class PARC:
         Args:
             x_data (np.array): a Numpy array of the input x data, with dimensions
                 (n_samples, n_features).
+            distance_metric (str): the distance metric to be used in the KNN algorithm:
+
+                * ``l2``: Euclidean distance L^2 norm:
+
+                  .. code-block:: python
+
+                    d = sum((x_i - y_i)^2)
+
+                * ``cosine``: cosine similarity
+
+                  .. code-block:: python
+
+                    d = 1.0 - sum(x_i*y_i) / sqrt(sum(x_i*x_i) * sum(y_i*y_i))
 
         Returns:
             hnswlib.Index: An HNSW object containing the k-nearest neighbours graph.
@@ -194,10 +212,9 @@ class PARC:
         ef_query = max(100, self.knn + 1)  # ef always should be >K. higher ef, more accurate query
         num_dims = x_data.shape[1]
         n_samples = x_data.shape[0]
+        knn_struct = hnswlib.Index(space=distance_metric, dim=num_dims)
 
         if not too_big:
-            knn_struct = hnswlib.Index(space=self.distance_metric, dim=num_dims)
-            logger.info(dir(knn_struct))
             knn_struct.set_num_threads(self.n_threads)
             if n_samples < 10000:
                 ef_query = min(n_samples - 10, 500)
@@ -214,7 +231,6 @@ class PARC:
                 knn_struct.init_index(max_elements=n_samples, ef_construction=ef_construction, M=24) #30
             knn_struct.add_items(x_data)
         else:
-            knn_struct = hnswlib.Index(space='l2', dim=num_dims)
             logger.info("Initializing HNSW index...")
             knn_struct.init_index(max_elements=n_samples, ef_construction=200, M=30)
             knn_struct.add_items(x_data)
@@ -559,7 +575,9 @@ class PARC:
         else:
             if self.knn_struct is None:
                 logger.info('knn struct was not available, so making one')
-                self.knn_struct = self.make_knn_struct(x_data=x_data)
+                self.knn_struct = self.make_knn_struct(
+                    x_data=x_data, distance_metric=self.distance_metric
+                )
             else:
                 logger.info("knn struct already exists")
             neighbor_array, distance_array = self.knn_struct.knn_query(x_data, k=knn)
