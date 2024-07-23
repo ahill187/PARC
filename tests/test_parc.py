@@ -1,6 +1,7 @@
 import pytest
 from sklearn import datasets
 import igraph
+import scipy
 import time
 from parc._parc import PARC
 from parc.logger import get_logger
@@ -22,6 +23,28 @@ def forest_data():
     x_data = forests.data[list(range(0, 30000)), :]
     y_data = forests.target[list(range(0, 30000))]
     return x_data, y_data
+
+
+@pytest.mark.parametrize(
+    "dataset_name, knn, l2_std_factor, n_edges",
+    [
+        ("iris_data", 100, 3.0, 14625),
+        ("iris_data", 100, 100.0, 14850),
+        ("iris_data", 100, -100.0, 0)
+    ]
+)
+def test_parc_prune_local(
+    request, dataset_name, knn, l2_std_factor, n_edges
+):
+    x_data, y_data = request.getfixturevalue(dataset_name)
+    parc_model = PARC(x_data=x_data, y_data_true=y_data)
+    knn_struct = parc_model.make_knn_struct()
+    neighbor_array, distance_array = knn_struct.knn_query(x_data, k=knn)
+    csr_array = parc_model.prune_local(neighbor_array, distance_array, l2_std_factor)
+    input_nodes, output_nodes = csr_array.nonzero()
+    edges = list(zip(input_nodes, output_nodes))
+    assert isinstance(csr_array, scipy.sparse.csr_matrix)
+    assert len(edges) == n_edges
 
 
 @pytest.mark.parametrize(

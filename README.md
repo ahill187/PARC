@@ -207,6 +207,8 @@ For a more detailed explanation of the impact of tuning key parameters please se
 | `data` | (numpy.ndarray) n_samples x n_features |
 | `true_label` | (numpy.ndarray) (optional)|
 | `dist_std_local` |  (optional, default = 2) local pruning threshold: the number of standard deviations above the mean minkowski distance between neighbors of a given node. the higher the parameter, the more edges are retained|
+| `do_prune_local` | (optional, default=None) Whether or not to do local pruning. If None (default),
+  set to ``False`` if the number of samples is > 300 000, and set to ``True`` otherwise.|
 | `jac_std_global` |  (optional, default = 'median') global level  graph pruning. This threshold can also be set as the number of standard deviations below the network's mean-jaccard-weighted edges. 0.1-1 provide reasonable pruning. higher value means less pruning. e.g. a value of 0.15 means all edges that are above mean(edgeweight)-0.15*std(edge-weights) are retained. We find both 0.15 and 'median' to yield good results resulting in pruning away ~ 50-60% edges |
 | `dist_std_local` |  (optional, default = 2) local pruning threshold: the number of standard deviations above the mean minkowski distance between neighbors of a given node. higher value means less pruning|
 | `random_seed` |  (optional, default = 42) The random seed to pass to Leiden|

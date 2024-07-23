@@ -19,7 +19,7 @@ class PARC:
     def __init__(self, x_data, y_data_true=None, knn=30, n_iter_leiden=5, random_seed=42,
                  distance_metric="l2", n_threads=-1, hnsw_param_ef_construction=150,
                  neighbor_graph=None, knn_struct=None,
-                 l2_std_factor=3, keep_all_local_dist=None,
+                 l2_std_factor=3.0, do_prune_local=None,
                  jac_threshold_type="median", jac_std_factor=0.15, jac_weighted_edges=True,
                  resolution_parameter=1.0, partition_type="ModularityVP",
                  large_community_factor=0.4, small_community_size=10, small_community_timeout=15
@@ -68,9 +68,9 @@ class PARC:
                 Avoid setting both the ``jac_std_factor`` (global) and the ``l2_std_factor`` (local)
                 to < 0.5 as this is very aggressive pruning.
                 Higher ``l2_std_factor`` means more edges are kept.
-            keep_all_local_dist (bool): whether or not to do local pruning.
-                If None (default), set to ``True`` if the number of samples is > 300 000,
-                and set to ``False`` otherwise.
+            do_prune_local (bool): whether or not to do local pruning.
+                If None (default), set to ``False`` if the number of samples is > 300 000,
+                and set to ``True`` otherwise.
             jac_threshold_type (str): One of ``"median"`` or ``"mean"``. Determines how the
                 Jaccard similarity threshold is calculated during global pruning.
             jac_std_factor (float): The multiplier used in calculating the Jaccard similarity
@@ -119,7 +119,7 @@ class PARC:
         self.jac_std_factor = jac_std_factor
         self.jac_threshold_type = jac_threshold_type
         self.jac_weighted_edges = jac_weighted_edges
-        self.keep_all_local_dist = keep_all_local_dist
+        self.do_prune_local = do_prune_local
         self.large_community_factor = large_community_factor
         self.small_community_size = small_community_size
         self.small_community_timeout = small_community_timeout
@@ -147,22 +147,22 @@ class PARC:
         self._n_threads = n_threads
 
     @property
-    def keep_all_local_dist(self):
-        return self._keep_all_local_dist
+    def do_prune_local(self):
+        return self._do_prune_local
 
-    @keep_all_local_dist.setter
-    def keep_all_local_dist(self, keep_all_local_dist):
-        if keep_all_local_dist is None:
+    @do_prune_local.setter
+    def do_prune_local(self, do_prune_local):
+        if do_prune_local is None:
             if self.x_data.shape[0] > 300000:
                 logger.message(
-                    f"Sample size is {self.x_data.shape[0]}, setting keep_all_local_dist "
-                    f"to True so that local pruning will be skipped and algorithm will be faster."
+                    f"Sample size is {self.x_data.shape[0]}, setting do_prune_local "
+                    f"to False so that local pruning will be skipped and algorithm will be faster."
                 )
-                keep_all_local_dist = True
+                do_prune_local = False
             else:
-                keep_all_local_dist = False
+                do_prune_local = True
 
-        self._keep_all_local_dist = keep_all_local_dist
+        self._do_prune_local = do_prune_local
 
     @property
     def partition_type(self):
@@ -271,14 +271,14 @@ class PARC:
         graph = graph_transpose + graph - prod_matrix
         return graph
 
-    def prune_local(self, neighbor_array, distance_array):
+    def prune_local(self, neighbor_array, distance_array, l2_std_factor: float | None = None):
         """Prune the nearest neighbors array.
 
-        If ``keep_all_local_dist`` is true, remove any neighbors which are further away than
+        If ``do_prune_local = True``, remove any neighbors which are further away than
         the specified cutoff distance. Also, remove any self-loops. Return in the ``csr_matrix``
         format.
 
-        If ``keep_all_local_dist`` is false, then don't perform any pruning and return the original
+        If ``do_prune_local = False``, then don't perform any pruning and return the original
         arrays in the ``csr_matrix`` format.
 
         Args:
@@ -290,6 +290,12 @@ class PARC:
             scipy.sparse.csr_matrix: A compressed sparse row matrix with dimensions
             (n_samples, n_samples), containing the pruned distances.
         """
+
+        if l2_std_factor is None:
+            l2_std_factor = self.l2_std_factor
+        else:
+            self.l2_std_factor = l2_std_factor
+
         # neighbor array not listed in in any order of proximity
         row_list = []
         col_list = []
@@ -297,43 +303,38 @@ class PARC:
 
         n_neighbors = neighbor_array.shape[1]
         n_samples = neighbor_array.shape[0]
-        rowi = 0
         discard_count = 0
 
-        if self.keep_all_local_dist:  # dont prune based on distance
-            row_list.extend(
-                list(np.transpose(np.ones((n_neighbors, n_samples)) * range(0, n_samples)).flatten())
-            )
-            col_list = neighbor_array.flatten().tolist()
-            weight_list = (1. / (distance_array.flatten() + 0.1)).tolist()
-
-        else:  # locally prune based on (squared) l2 distance
-
+        if self.do_prune_local:
             logger.message(
                 f"Starting local pruning based on Euclidean (L2) distance metric at "
-                f"{self.l2_std_factor} standard deviations above mean"
+                f"{l2_std_factor} standard deviations above mean"
             )
             distance_array = distance_array + 0.1
             bar = Bar("Local pruning...", max=n_samples)
-            for row in neighbor_array:
-                distlist = distance_array[rowi, :]
-                to_keep = np.where(
-                    distlist < np.mean(distlist) + self.l2_std_factor * np.std(distlist)
-                )[0]  # 0*std
-                updated_nn_ind = row[np.ix_(to_keep)]
-                updated_nn_weights = distlist[np.ix_(to_keep)]
+            for sample_index, neighbors in zip(range(n_samples), neighbor_array):
+                distances = distance_array[sample_index, :]
+                max_distance = np.mean(distances) + l2_std_factor * np.std(distances)
+                to_keep = np.where(distances < max_distance)[0]
+                updated_neighbors = neighbors[np.ix_(to_keep)]
+                updated_distances = distances[np.ix_(to_keep)]
                 discard_count = discard_count + (n_neighbors - len(to_keep))
 
-                for ik in range(len(updated_nn_ind)):
-                    if rowi != row[ik]:  # remove self-loops
-                        row_list.append(rowi)
-                        col_list.append(updated_nn_ind[ik])
-                        dist = np.sqrt(updated_nn_weights[ik])
-                        weight_list.append(1/(dist+0.1))
+                for index in range(len(updated_neighbors)):
+                    if sample_index != neighbors[index]:
+                        row_list.append(sample_index)
+                        col_list.append(updated_neighbors[index])
+                        dist = np.sqrt(updated_distances[index])
+                        weight_list.append(1 / (dist + 0.1))
 
-                rowi = rowi + 1
                 bar.next()
             bar.finish()
+        else:
+            row_list.extend(
+                list(np.transpose(np.ones((n_neighbors, n_samples)) * range(n_samples)).flatten())
+            )
+            col_list = neighbor_array.flatten().tolist()
+            weight_list = (1.0 / (distance_array.flatten() + 0.1)).tolist()
 
         csr_graph = csr_matrix((np.array(weight_list), (np.array(row_list), np.array(col_list))),
                                shape=(n_samples, n_samples))
