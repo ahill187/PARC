@@ -378,13 +378,12 @@ class PARC:
 
         input_nodes, output_nodes = csr_array.nonzero()
         edges = list(zip(input_nodes, output_nodes))
-        edges_copy = edges.copy()
 
         logger.info(f"Creating graph with {len(edges)} edges and {n_samples} nodes...")
 
         graph = ig.Graph(edges, edge_attrs={"weight": csr_array.data.tolist()})
 
-        similarities = np.asarray(graph.similarity_jaccard(pairs=edges_copy))
+        similarities = np.asarray(graph.similarity_jaccard(pairs=edges))
 
         logger.message("Starting global pruning...")
 
@@ -405,13 +404,13 @@ class PARC:
         if jac_weighted_edges:
             graph_pruned = ig.Graph(
                 n=n_samples,
-                edges=list(np.asarray(edges_copy)[indices_similar]),
+                edges=list(np.asarray(edges)[indices_similar]),
                 edge_attrs={"weight": list(similarities[indices_similar])}
             )
         else:
             graph_pruned = ig.Graph(
                 n=n_samples,
-                edges=list(np.asarray(edges_copy)[indices_similar])
+                edges=list(np.asarray(edges)[indices_similar])
             )
 
         graph_pruned.simplify(combine_edges="sum")  # "first"
