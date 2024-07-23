@@ -1,7 +1,11 @@
 import pytest
 from sklearn import datasets
+import igraph
 import time
 from parc._parc import PARC
+from parc.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 @pytest.fixture
@@ -18,6 +22,35 @@ def forest_data():
     x_data = forests.data[list(range(0, 30000)), :]
     y_data = forests.target[list(range(0, 30000))]
     return x_data, y_data
+
+
+@pytest.mark.parametrize(
+    "dataset_name, knn, jac_threshold_type, jac_std_factor, jac_weighted_edges, n_edges",
+    [
+        ("iris_data", 100, "median", 0.3, True, 3679),
+        ("iris_data", 100, "mean", 0.3, False, 3865),
+        ("iris_data", 100, "mean", -1000, False, 0),
+        ("iris_data", 100, "mean", 1000, False, 8558)
+    ]
+)
+def test_parc_prune_global(
+    request, dataset_name, knn, jac_threshold_type, jac_std_factor, jac_weighted_edges, n_edges
+):
+    x_data, y_data = request.getfixturevalue(dataset_name)
+    parc_model = PARC(x_data=x_data, y_data_true=y_data)
+    knn_struct = parc_model.make_knn_struct()
+    neighbor_array, distance_array = knn_struct.knn_query(x_data, k=knn)
+    csr_array = parc_model.prune_local(neighbor_array, distance_array)
+    graph_pruned = parc_model.prune_global(
+        csr_array=csr_array,
+        jac_threshold_type=jac_threshold_type,
+        jac_std_factor=jac_std_factor,
+        jac_weighted_edges=jac_weighted_edges,
+        n_samples=x_data.shape[0]
+    )
+    assert isinstance(graph_pruned, igraph.Graph)
+    assert graph_pruned.ecount() == n_edges
+    assert graph_pruned.vcount() == x_data.shape[0]
 
 
 def test_parc_run_umap_hnsw():
