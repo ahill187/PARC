@@ -312,10 +312,9 @@ class PARC:
                 f"Starting local pruning based on Euclidean (L2) distance metric at "
                 f"{self.l2_std_factor} standard deviations above mean"
             )
-            sample_index = 0
             distance_array = distance_array + 0.1
             bar = Bar("Local pruning...", max=n_samples)
-            for neighbors in neighbor_array:
+            for sample_index, neighbors in zip(range(n_samples), neighbor_array):
                 distances = distance_array[sample_index, :]
                 to_keep = np.where(
                     distances < np.mean(distances) + self.l2_std_factor * np.std(distances)
@@ -331,7 +330,6 @@ class PARC:
                         dist = np.sqrt(updated_nn_weights[ik])
                         weight_list.append(1/(dist+0.1))
 
-                sample_index = sample_index + 1
                 bar.next()
             bar.finish()
 
