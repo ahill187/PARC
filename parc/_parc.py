@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import hnswlib
+import scipy
 from scipy.sparse import csr_matrix
 from progress.bar import Bar
 import igraph as ig
@@ -340,12 +341,12 @@ class PARC:
 
     def prune_global(
         self,
-        csr_array,
+        csr_array: scipy.sparse._csr.csr_matrix,
         jac_threshold_type: str,
         jac_std_factor: float,
         jac_weighted_edges: bool,
         n_samples: int
-    ):
+    ) -> ig.Graph:
         """Prune the graph globally based on the Jaccard similarity measure.
 
         The ``csr_array`` contains the locally-pruned pairwise distances. From this, we can
