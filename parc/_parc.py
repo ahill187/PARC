@@ -315,17 +315,17 @@ class PARC:
             )
             distance_array = distance_array + 0.1
             bar = Bar("Local pruning...", max=n_samples)
-            for row in neighbor_array:
+            for neighbors in neighbor_array:
                 distlist = distance_array[rowi, :]
                 to_keep = np.where(
                     distlist < np.mean(distlist) + self.l2_std_factor * np.std(distlist)
                 )[0]  # 0*std
-                updated_nn_ind = row[np.ix_(to_keep)]
+                updated_nn_ind = neighbors[np.ix_(to_keep)]
                 updated_nn_weights = distlist[np.ix_(to_keep)]
                 discard_count = discard_count + (n_neighbors - len(to_keep))
 
                 for ik in range(len(updated_nn_ind)):
-                    if rowi != row[ik]:  # remove self-loops
+                    if rowi != neighbors[ik]:  # remove self-loops
                         row_list.append(rowi)
                         col_list.append(updated_nn_ind[ik])
                         dist = np.sqrt(updated_nn_weights[ik])
