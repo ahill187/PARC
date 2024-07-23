@@ -175,11 +175,15 @@ class PARC:
         else:
             self._partition_type = partition_type
 
-    def make_knn_struct(self, too_big=False, big_cluster=None):
+    def make_knn_struct(self, x_data: np.ndarray, too_big=False):
         """Create a Hierarchical Navigable Small Worlds (HNSW) graph.
 
         See `hnswlib.Index
         <https://github.com/nmslib/hnswlib/blob/master/python_bindings/LazyIndex.py>`__.
+
+        Args:
+            x_data (np.array): a Numpy array of the input x data, with dimensions
+                (n_samples, n_features).
 
         Returns:
             hnswlib.Index: An HNSW object containing the k-nearest neighbours graph.
@@ -188,10 +192,10 @@ class PARC:
             logger.message(f"knn = {self.knn}; consider using a lower k for KNN graph construction")
 
         ef_query = max(100, self.knn + 1)  # ef always should be >K. higher ef, more accurate query
+        num_dims = x_data.shape[1]
+        n_samples = x_data.shape[0]
 
         if not too_big:
-            num_dims = self.x_data.shape[1]
-            n_samples = self.x_data.shape[0]
             knn_struct = hnswlib.Index(space=self.distance_metric, dim=num_dims)
             logger.info(dir(knn_struct))
             knn_struct.set_num_threads(self.n_threads)
@@ -210,12 +214,10 @@ class PARC:
                 knn_struct.init_index(max_elements=n_samples, ef_construction=ef_construction, M=24) #30
             knn_struct.add_items(self.x_data)
         else:
-            num_dims = big_cluster.shape[1]
-            n_samples = big_cluster.shape[0]
             knn_struct = hnswlib.Index(space='l2', dim=num_dims)
             logger.info("Initializing HNSW index...")
             knn_struct.init_index(max_elements=n_samples, ef_construction=200, M=30)
-            knn_struct.add_items(big_cluster)
+            knn_struct.add_items(x_data)
 
         knn_struct.set_ef(ef_query)  # ef should always be > k
 
@@ -463,7 +465,7 @@ class PARC:
     def run_toobig_subPARC(self, x_data, jac_std_factor=0.3, jac_threshold_type="mean",
                            jac_weighted_edges=True):
         n_samples = x_data.shape[0]
-        hnsw = self.make_knn_struct(too_big=True, big_cluster=x_data)
+        hnsw = self.make_knn_struct(x_data=x_data, too_big=True)
         if n_samples <= 10:
             logger.message(
                 f"Number of samples = {n_samples}, consider increasing the large_community_factor"
@@ -557,7 +559,7 @@ class PARC:
         else:
             if self.knn_struct is None:
                 logger.info('knn struct was not available, so making one')
-                self.knn_struct = self.make_knn_struct()
+                self.knn_struct = self.make_knn_struct(x_data=x_data)
             else:
                 logger.info("knn struct already exists")
             neighbor_array, distance_array = self.knn_struct.knn_query(x_data, k=knn)
