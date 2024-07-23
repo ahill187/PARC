@@ -325,16 +325,16 @@ class PARC:
                         row_list.append(sample_index)
                         col_list.append(updated_neighbors[index])
                         dist = np.sqrt(updated_distances[index])
-                        weight_list.append(1/(dist+0.1))
+                        weight_list.append(1 / (dist + 0.1))
 
                 bar.next()
             bar.finish()
         else:
             row_list.extend(
-                list(np.transpose(np.ones((n_neighbors, n_samples)) * range(0, n_samples)).flatten())
+                list(np.transpose(np.ones((n_neighbors, n_samples)) * range(n_samples)).flatten())
             )
             col_list = neighbor_array.flatten().tolist()
-            weight_list = (1. / (distance_array.flatten() + 0.1)).tolist()
+            weight_list = (1.0 / (distance_array.flatten() + 0.1)).tolist()
 
         csr_graph = csr_matrix((np.array(weight_list), (np.array(row_list), np.array(col_list))),
                                shape=(n_samples, n_samples))
