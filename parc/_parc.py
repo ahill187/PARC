@@ -212,7 +212,7 @@ class PARC:
             else:
                 logger.info("Initializing HNSW index...")
                 knn_struct.init_index(max_elements=n_samples, ef_construction=ef_construction, M=24) #30
-            knn_struct.add_items(self.x_data)
+            knn_struct.add_items(x_data)
         else:
             knn_struct = hnswlib.Index(space='l2', dim=num_dims)
             logger.info("Initializing HNSW index...")
