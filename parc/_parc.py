@@ -19,7 +19,7 @@ class PARC:
     def __init__(self, x_data, y_data_true=None, knn=30, n_iter_leiden=5, random_seed=42,
                  distance_metric="l2", n_threads=-1, hnsw_param_ef_construction=150,
                  neighbor_graph=None, knn_struct=None,
-                 l2_std_factor=3, keep_all_local_dist=None,
+                 l2_std_factor=3.0, keep_all_local_dist=None,
                  jac_threshold_type="median", jac_std_factor=0.15, jac_weighted_edges=True,
                  resolution_parameter=1.0, partition_type="ModularityVP",
                  large_community_factor=0.4, small_community_size=10, small_community_timeout=15
