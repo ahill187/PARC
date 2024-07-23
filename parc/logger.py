@@ -1,16 +1,23 @@
+"""Custom colored logger.
+
+See:
+
+`StackOverflow <http://stackoverflow.com/a/24956305/408556>`__
+`python-colors GitHub <https://gist.github.com/dideler/3814182>`__
+
+"""
+
 import logging
 import sys
-import os
 
 MIN_LEVEL = logging.DEBUG
 MESSAGE = 25
 logging.addLevelName(MESSAGE, "MESSAGE")
-LOGGING_LEVEL = 25
+LOGGING_LEVEL = 20
 
 
 class LogFilter(logging.Filter):
     """Filters (lets through) all messages with level < LEVEL"""
-    # http://stackoverflow.com/a/24956305/408556
     def __init__(self, level):
         self.level = level
 
@@ -27,38 +34,56 @@ class Logger(logging.Logger):
 
 
 class ColoredFormatter(logging.Formatter):
+    def __init__(self, fmt_prefix, fmt_msg):
+        self.use_color = self.supports_color()
+        self.fmt_prefix = fmt_prefix
+        self.fmt_msg = fmt_msg
+        super().__init__(fmt=f"{fmt_prefix} {fmt_msg}")
+
     def format(self, record):
-        use_color = self.supports_color()
         if record.levelno == logging.WARNING:
-            if use_color:
-                record.msg = f"\033[93m{record.msg}\033[0m"
+            if self.use_color:
+                fmt = f"\x1b[93m{self.fmt_prefix}\x1b[0m {self.fmt_msg}"
+                formatter = logging.Formatter(fmt)
+                return formatter.format(record)
+            else:
+                return super().format(record)
         elif record.levelno == logging.ERROR:
-            if use_color:
-                record.msg = f"\033[91m{record.msg}\033[0m"
+            if self.use_color:
+                fmt = f"\x1b[91m{self.fmt_prefix}\x1b[0m {self.fmt_msg}"
+                formatter = logging.Formatter(fmt)
+                return formatter.format(record)
+            else:
+                return super().format(record)
         elif record.levelno == 25 or record.levelno == logging.INFO:
-            if use_color:
-                record.msg = f"\033[96m{record.msg}\033[0m"
-        return super().format(record)
+            if self.use_color:
+                fmt = f"\x1b[96m{self.fmt_prefix}\x1b[0m {self.fmt_msg}"
+                formatter = logging.Formatter(fmt)
+                return formatter.format(record)
+            else:
+                return super().format(record)
 
     def supports_color(self):
         """Check if the system supports ANSI color formatting.
         """
-        supported_platform = 'ANSICON' in os.environ
-        is_a_tty = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
-        return supported_platform and is_a_tty
+        return hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
 
 
-def get_logger(module_name, level=LOGGING_LEVEL):
+def get_logger(module_name, level=LOGGING_LEVEL) -> Logger:
     logging.setLoggerClass(Logger)
     stdout_handler = logging.StreamHandler(sys.stdout)
     stderr_handler = logging.StreamHandler(sys.stderr)
     stdout_handler.addFilter(LogFilter(logging.WARNING))
     stdout_handler.setLevel(level)
     if level == 25:
-        formatter = ColoredFormatter("[%(levelname)s]: %(message)s")
+        formatter = ColoredFormatter(
+            fmt_prefix="[%(levelname)s]:",
+            fmt_msg="%(message)s"
+        )
     else:
         formatter = ColoredFormatter(
-            "[%(levelname)s] %(name)s.%(funcName)s (line %(lineno)d): %(message)s"
+            fmt_prefix="[%(levelname)s] %(name)s.%(funcName)s (line %(lineno)d):",
+            fmt_msg="%(message)s"
         )
     stdout_handler.setFormatter(formatter)
     stderr_handler.setLevel(max(MIN_LEVEL, logging.WARNING))
