@@ -179,6 +179,7 @@ class PARC:
         self,
         x_data: np.ndarray,
         distance_metric: str = "l2",
+        hnsw_param_m: int | None = None,
         too_big=False
     ) -> hnswlib.Index:
         """Create a Hierarchical Navigable Small Worlds (HNSW) graph.
@@ -203,6 +204,9 @@ class PARC:
 
                     d = 1.0 - sum(x_i*y_i) / sqrt(sum(x_i*x_i) * sum(y_i*y_i))
 
+            hnsw_param_m (int): (optional) The ``M`` parameter to be used in creating the
+                ``hnswlib.Index`` object.
+
         Returns:
             hnswlib.Index: An HNSW object containing the k-nearest neighbours graph.
         """
@@ -214,6 +218,12 @@ class PARC:
         n_samples = x_data.shape[0]
         knn_struct = hnswlib.Index(space=distance_metric, dim=n_features)
 
+        if hnsw_param_m is None:
+            if n_features > 30 and n_samples <= 50000:
+                hnsw_param_m = 48  # good for scRNA seq where dimensionality is high
+            else:
+                hnsw_param_m = 24
+
         if not too_big:
             knn_struct.set_num_threads(self.n_threads)
             if n_samples < 10000:
@@ -221,17 +231,15 @@ class PARC:
                 ef_construction = ef_query
             else:
                 ef_construction = self.hnsw_param_ef_construction
-
-            if (n_features > 30) & (n_samples <= 50000):
-                M = 48  # good for scRNA seq where dimensionality is high
-            else:
-                M = 24
         else:
-            M = 30
             ef_construction = 200
 
         logger.info("Initializing HNSW index...")
-        knn_struct.init_index(max_elements=n_samples, ef_construction=ef_construction, M=M)
+        knn_struct.init_index(
+            max_elements=n_samples,
+            ef_construction=ef_construction,
+            M=hnsw_param_m
+        )
         knn_struct.add_items(x_data)
         knn_struct.set_ef(ef_query)  # ef should always be > k
 
@@ -479,7 +487,7 @@ class PARC:
     def run_toobig_subPARC(self, x_data, jac_std_factor=0.3, jac_threshold_type="mean",
                            jac_weighted_edges=True):
         n_samples = x_data.shape[0]
-        hnsw = self.make_knn_struct(x_data=x_data, too_big=True)
+        hnsw = self.make_knn_struct(x_data=x_data, hnsw_param_m=30, too_big=True)
         if n_samples <= 10:
             logger.message(
                 f"Number of samples = {n_samples}, consider increasing the large_community_factor"
