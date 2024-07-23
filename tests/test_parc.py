@@ -1,10 +1,13 @@
 import pytest
 from sklearn import datasets
+import numpy as np
 import igraph
 import scipy
+import hnswlib
 import time
 from parc._parc import PARC
 from parc.logger import get_logger
+from tests.variables import NEIGHBOR_ARRAY_L2, NEIGHBOR_ARRAY_COSINE
 
 logger = get_logger(__name__)
 
@@ -23,6 +26,27 @@ def forest_data():
     x_data = forests.data[list(range(0, 30000)), :]
     y_data = forests.target[list(range(0, 30000))]
     return x_data, y_data
+
+
+@pytest.mark.parametrize(
+    "dataset_name, knn, distance_metric, expected_neighbor_array",
+    [
+        ("iris_data", 2, "l2", NEIGHBOR_ARRAY_L2),
+        ("iris_data", 2, "cosine", NEIGHBOR_ARRAY_COSINE)
+    ]
+)
+def test_parc_make_knn_struct(
+    request, dataset_name, knn, distance_metric, expected_neighbor_array
+):
+    x_data, y_data = request.getfixturevalue(dataset_name)
+    parc_model = PARC(x_data=x_data, y_data_true=y_data)
+    knn_struct = parc_model.make_knn_struct(x_data=x_data, distance_metric=distance_metric)
+    assert isinstance(knn_struct, hnswlib.Index)
+    neighbor_array, distance_array = knn_struct.knn_query(x_data, k=knn)
+    assert neighbor_array.shape == (x_data.shape[0], knn)
+    assert distance_array.shape == (x_data.shape[0], knn)
+    n_diff = np.count_nonzero(expected_neighbor_array != neighbor_array)
+    assert n_diff / x_data.shape[0] < 0.1
 
 
 @pytest.mark.parametrize(
