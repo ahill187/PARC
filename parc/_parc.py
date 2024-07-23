@@ -341,7 +341,7 @@ class PARC:
 
     def prune_global(
         self,
-        csr_array: scipy.sparse._csr.csr_matrix,
+        csr_array: scipy.sparse.csr_matrix,
         jac_threshold_type: str,
         jac_std_factor: float,
         jac_weighted_edges: bool,
