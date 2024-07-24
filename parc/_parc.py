@@ -179,6 +179,7 @@ class PARC:
         self,
         x_data: np.ndarray,
         distance_metric: str = "l2",
+        hnsw_param_ef_construction: int | None = None,
         hnsw_param_m: int | None = None,
         too_big=False
     ) -> hnswlib.Index:
@@ -204,6 +205,9 @@ class PARC:
 
                     d = 1.0 - sum(x_i*y_i) / sqrt(sum(x_i*x_i) * sum(y_i*y_i))
 
+            hnsw_param_ef_construction (int): (optional) The ``ef_construction`` parameter to be
+                used in creating the ``hnswlib.Index`` object. A higher value increases accuracy of
+                index construction. Even for ``O(100 000)`` cells, 150-200 is adequate.
             hnsw_param_m (int): (optional) The ``M`` parameter to be used in creating the
                 ``hnswlib.Index`` object.
 
@@ -218,6 +222,12 @@ class PARC:
         n_samples = x_data.shape[0]
         knn_struct = hnswlib.Index(space=distance_metric, dim=n_features)
 
+        if hnsw_param_ef_construction is None:
+            if n_samples < 10000:
+                hnsw_param_ef_construction = min(n_samples - 10, 500)
+            else:
+                hnsw_param_ef_construction = self.hnsw_param_ef_construction
+
         if hnsw_param_m is None:
             if n_features > 30 and n_samples <= 50000:
                 hnsw_param_m = 48  # good for scRNA seq where dimensionality is high
@@ -228,16 +238,11 @@ class PARC:
             knn_struct.set_num_threads(self.n_threads)
             if n_samples < 10000:
                 ef_query = min(n_samples - 10, 500)
-                ef_construction = ef_query
-            else:
-                ef_construction = self.hnsw_param_ef_construction
-        else:
-            ef_construction = 200
 
         logger.info("Initializing HNSW index...")
         knn_struct.init_index(
             max_elements=n_samples,
-            ef_construction=ef_construction,
+            ef_construction=hnsw_param_ef_construction,
             M=hnsw_param_m
         )
         knn_struct.add_items(x_data)
@@ -487,7 +492,12 @@ class PARC:
     def run_toobig_subPARC(self, x_data, jac_std_factor=0.3, jac_threshold_type="mean",
                            jac_weighted_edges=True):
         n_samples = x_data.shape[0]
-        hnsw = self.make_knn_struct(x_data=x_data, hnsw_param_m=30, too_big=True)
+        hnsw = self.make_knn_struct(
+            x_data=x_data,
+            hnsw_param_ef_construction=200,
+            hnsw_param_m=30,
+            too_big=True
+        )
         if n_samples <= 10:
             logger.message(
                 f"Number of samples = {n_samples}, consider increasing the large_community_factor"
