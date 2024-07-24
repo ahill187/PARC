@@ -217,55 +217,68 @@ parc_model.stats_df
 
 ### Example 5: 10X PBMC (Zheng et al., 2017) integrating Scanpy pipeline
 
-[raw datafile 68K pbmc from github page](https://github.com/10XGenomics/single-cell-3prime-paper/tree/master/pbmc68k_analysis)
+The description of the data for this is example can be found in the
+[GitHub repository: single-cell-3prime-paper](https://github.com/10XGenomics/single-cell-3prime-paper/tree/master/pbmc68k_analysis).
 
-[10X compressed file "filtered genes"](http://cf.10xgenomics.com/samples/cell-exp/1.1.0/fresh_68k_pbmc_donor_a/fresh_68k_pbmc_donor_a_filtered_gene_bc_matrices.tar.gz)
+1. Download and unzip the [10X compressed folder "filtered genes"](http://cf.10xgenomics.com/samples/cell-exp/1.1.0/fresh_68k_pbmc_donor_a/fresh_68k_pbmc_donor_a_filtered_gene_bc_matrices.tar.gz). Save it to `PARC/data/`.
+
+2. You can view the target annotations here:
+[PARC/data/zheng17_annotations.txt](https://github.com/ahill187/PARC/blob/main/data/zheng17_annotations.txt).
+
+3. Install `scanpy`:
 
 ```sh
 pip install scanpy
 ```
 
+
 ```python
-import scanpy.api as sc
+import scanpy as sc
 import pandas as pd
+import pathlib
 
-# load data
-path = './data/filtered_matrices_mex/hg19/'
-adata = sc.read(path + 'matrix.mtx', cache=True).T  # transpose the data
-adata.var_names = pd.read_csv(path + 'genes.tsv', header=None, sep='\t')[1]
-adata.obs_names = pd.read_csv(path + 'barcodes.tsv', header=None)[0]
+# Set the directory by replacing {PATH/TO/PARC}
+PARC_DIR = "{PATH/TO/PARC}/PARC/"
+x_data_path = pathlib.Path(PARC_DIR, "data/filtered_matrices_mex/hg19")
+y_data_path = pathlib.Path(PARC_DIR, "data/zheng17_annotations.txt")
 
-# annotations as per correlation with pure samples
-annotations = list(pd.read_csv('./data/zheng17_annotations.txt', header=None)[0])
-adata.obs['annotations'] = pd.Categorical(annotations)
+# Load data
+ann_data = sc.read(f"{x_data_path}/matrix.mtx", cache=True).T  # transpose the data
+ann_data.var_names = pd.read_csv(f"{x_data_path}/genes.tsv", header=None, sep='\t')[1]
+ann_data.obs_names = pd.read_csv(f"{x_data_path}/barcodes.tsv", header=None)[0]
 
-# pre-process as per Zheng et al., and take first 50 PCs for analysis
-sc.pp.recipe_zheng17(adata)
-sc.tl.pca(adata, n_comps=50)
+# Load the annotations as per correlation with pure samples
+y_data = list(pd.read_csv(y_data_path, header=None)[0])
+ann_data.obs["annotations"] = pd.Categorical(y_data)
 
-# setting small_community_size to 50 cleans up some of the smaller clusters, but can also be left at the default 10
+# Pre-process as per Zheng et al., and take first 50 PCs for analysis
+sc.pp.recipe_zheng17(ann_data)
+sc.tl.pca(ann_data, n_comps=50)
 
 # Instantiate the PARC model
 parc_model = parc.PARC(
-    x_data=adata.obsm['X_pca'],
-    y_data_true=annotations,
+    x_data=ann_data.obsm["X_pca"],
+    y_data_true=y_data,
     jac_std_factor=0.15,
     jac_threshold_type="mean",
     random_seed=1,
-    small_community_size=50
+    small_community_size=50 # setting small_community_size to 50 cleans up some of the
+    # smaller clusters, but can also be left at the default 10
 )
 
 # Run the PARC clustering
 parc_model.run_parc()
-y_data_pred = parc_model.y_data_pred
-adata.obs["PARC"] = pd.Categorical(y_data_pred)
 
-# Visualize
+# Get the predicted cell types
+y_data_pred = parc_model.y_data_pred
+ann_data.obs["PARC"] = pd.Categorical(y_data_pred)
+
+# Visualize UMAP
 sc.settings.n_jobs=4
-sc.pp.neighbors(adata, n_neighbors=10, n_pcs=40)
-sc.tl.umap(adata)
-sc.pl.umap(adata, color='annotations')
-sc.pl.umap(adata, color='PARC')
+sc.pp.neighbors(ann_data, n_neighbors=10, n_pcs=40)
+sc.tl.umap(ann_data)
+sc.pl.umap(ann_data, color="annotations")
+sc.pl.umap(ann_data, color="PARC")
 ```
 
 
