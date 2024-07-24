@@ -181,7 +181,6 @@ class PARC:
         distance_metric: str = "l2",
         hnsw_param_ef_construction: int | None = None,
         hnsw_param_m: int | None = None,
-        too_big=False,
         set_threads=True
     ) -> hnswlib.Index:
         """Create a Hierarchical Navigable Small Worlds (HNSW) graph.
@@ -219,14 +218,19 @@ class PARC:
         if self.knn > 190:
             logger.message(f"knn = {self.knn}; consider using a lower k for KNN graph construction")
 
-        ef_query = max(100, self.knn + 1)  # ef always should be >K. higher ef, more accurate query
         n_features = x_data.shape[1]
         n_samples = x_data.shape[0]
         knn_struct = hnswlib.Index(space=distance_metric, dim=n_features)
 
+        # ef always should be > knn. Higher ef = more accurate query
+        if n_samples < 10000:
+            ef_query = max(min(n_samples - 10, 500), self.knn + 1)
+        else:
+            ef_query = max(100, self.knn + 1)
+
         if hnsw_param_ef_construction is None:
             if n_samples < 10000:
-                hnsw_param_ef_construction = min(n_samples - 10, 500)
+                hnsw_param_ef_construction = ef_query
             else:
                 hnsw_param_ef_construction = self.hnsw_param_ef_construction
 
@@ -239,10 +243,6 @@ class PARC:
         if set_threads:
             knn_struct.set_num_threads(self.n_threads)
 
-        if not too_big:
-            if n_samples < 10000:
-                ef_query = min(n_samples - 10, 500)
-
         logger.info("Initializing HNSW index...")
         knn_struct.init_index(
             max_elements=n_samples,
@@ -250,7 +250,7 @@ class PARC:
             M=hnsw_param_m
         )
         knn_struct.add_items(x_data)
-        knn_struct.set_ef(ef_query)  # ef should always be > k
+        knn_struct.set_ef(ef_query)
 
         return knn_struct
 
@@ -500,7 +500,6 @@ class PARC:
             x_data=x_data,
             hnsw_param_ef_construction=200,
             hnsw_param_m=30,
-            too_big=True,
             set_threads=False
         )
         if n_samples <= 10:
