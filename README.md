@@ -343,4 +343,6 @@ pytest tests/
 - igraph (igraph.org/python/)
 
 ## Citing
-If you find this code useful in your work, please consider citing this paper [PARC:ultrafast and accurate clustering of phenotypic data of millions of single cells](https://academic.oup.com/bioinformatics/advance-article/doi/10.1093/bioinformatics/btaa042/5714737)
+If you find this code useful in your work, please consider citing this paper:
+
+[PARC: ultrafast and accurate clustering of phenotypic data of millions of single cells](https://academic.oup.com/bioinformatics/advance-article/doi/10.1093/bioinformatics/btaa042/5714737)
