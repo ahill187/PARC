@@ -337,7 +337,7 @@ In addition to the parameters described above, the `PARC` model has the followin
 To install a development version:
 
 ```sh
-git clone https://github.com/ShobiStassen/PARC.git
+git clone https://github.com/ahill187/PARC.git
 cd PARC
 pip install -e ".[extra]"
 ```
