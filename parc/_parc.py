@@ -181,7 +181,8 @@ class PARC:
         distance_metric: str = "l2",
         hnsw_param_ef_construction: int | None = None,
         hnsw_param_m: int | None = None,
-        too_big=False
+        too_big=False,
+        set_threads=True
     ) -> hnswlib.Index:
         """Create a Hierarchical Navigable Small Worlds (HNSW) graph.
 
@@ -210,6 +211,7 @@ class PARC:
                 index construction. Even for ``O(100 000)`` cells, 150-200 is adequate.
             hnsw_param_m (int): (optional) The ``M`` parameter to be used in creating the
                 ``hnswlib.Index`` object.
+            set_threads (bool): whether to set the number of threads used in the KNN algorithm.
 
         Returns:
             hnswlib.Index: An HNSW object containing the k-nearest neighbours graph.
@@ -234,8 +236,10 @@ class PARC:
             else:
                 hnsw_param_m = 24
 
-        if not too_big:
+        if set_threads:
             knn_struct.set_num_threads(self.n_threads)
+
+        if not too_big:
             if n_samples < 10000:
                 ef_query = min(n_samples - 10, 500)
 
@@ -496,7 +500,8 @@ class PARC:
             x_data=x_data,
             hnsw_param_ef_construction=200,
             hnsw_param_m=30,
-            too_big=True
+            too_big=True,
+            set_threads=False
         )
         if n_samples <= 10:
             logger.message(
