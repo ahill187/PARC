@@ -178,6 +178,7 @@ class PARC:
     def make_knn_struct(
         self,
         x_data: np.ndarray,
+        knn: int = 30,
         distance_metric: str = "l2",
         hnsw_param_ef_construction: int | None = None,
         hnsw_param_m: int | None = None,
@@ -191,6 +192,8 @@ class PARC:
         Args:
             x_data (np.array): a Numpy array of the input x data, with dimensions
                 (n_samples, n_features).
+            knn (int): the number of nearest neighbors k for the k-nearest neighbours algorithm.
+                Larger k means more neighbors in a cluster and therefore less clusters.
             distance_metric (str): the distance metric to be used in the KNN algorithm:
 
                 * ``l2``: Euclidean distance L^2 norm:
@@ -215,8 +218,9 @@ class PARC:
         Returns:
             hnswlib.Index: An HNSW object containing the k-nearest neighbours graph.
         """
-        if self.knn > 190:
-            logger.message(f"knn = {self.knn}; consider using a lower k for KNN graph construction")
+
+        if knn > 190:
+            logger.message(f"knn = {knn}; consider using a lower k for KNN graph construction")
 
         n_features = x_data.shape[1]
         n_samples = x_data.shape[0]
@@ -498,6 +502,7 @@ class PARC:
         n_samples = x_data.shape[0]
         hnsw = self.make_knn_struct(
             x_data=x_data,
+            knn=self.knn,
             hnsw_param_ef_construction=200,
             hnsw_param_m=30,
             set_threads=False
@@ -596,7 +601,7 @@ class PARC:
             if self.knn_struct is None:
                 logger.info('knn struct was not available, so making one')
                 self.knn_struct = self.make_knn_struct(
-                    x_data=x_data, distance_metric=self.distance_metric
+                    x_data=x_data, knn=self.knn, distance_metric=self.distance_metric
                 )
             else:
                 logger.info("knn struct already exists")
