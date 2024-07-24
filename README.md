@@ -291,24 +291,33 @@ parc_labels_rare = parc_model.y_data_pred
 ```
 ![](Images/70K_Lung_github_overview.png) t-SNE plot of annotations and PARC clustering, heatmap of features
 
-## Parameters and Attributes
+## Parameters
 
-### Parameter tuning
-For a more detailed explanation of the impact of tuning key parameters please see the Supplementary Analysis in our paper.
-[PARC Supplementary Analysis](https://oup.silverchair-cdn.com/oup/backfile/Content_public/Journal/bioinformatics/PAP/10.1093_bioinformatics_btaa042/1/btaa042_supplementary-data.pdf?Expires=1583098421&Signature=R1gJB7MebQjg7t9Mp-MoaHdubyyke4OcoevEK5817el27onwA7TlU-~u7Ug1nOUFND2C8cTnwBle7uSHikx7BJ~SOAo6xUeniePrCIzQBi96MvtoL674C8Pd47a4SAcHqrA2R1XMLnhkv6M8RV0eWS-4fnTPnp~lnrGWV5~mdrvImwtqKkOyEVeHyt1Iajeb1W8Msuh0I2y6QXlLDU9mhuwBvJyQ5bV8sD9C-NbdlLZugc4LMqngbr5BX7AYNJxvhVZMSKKl4aMnIf4uMv4aWjFBYXTGwlIKCjurM2GcHK~i~yzpi-1BMYreyMYnyuYHi05I9~aLJfHo~Qd3Ux2VVQ__&Key-Pair-Id=APKAIE5G5CRDK6RD3PGA)
+For a more detailed explanation of the impact of tuning key parameters please see the
+[Supplementary Analysis](https://oup.silverchair-cdn.com/oup/backfile/Content_public/Journal/bioinformatics/PAP/10.1093_bioinformatics_btaa042/1/btaa042_supplementary-data.pdf?Expires=1583098421&Signature=R1gJB7MebQjg7t9Mp-MoaHdubyyke4OcoevEK5817el27onwA7TlU-~u7Ug1nOUFND2C8cTnwBle7uSHikx7BJ~SOAo6xUeniePrCIzQBi96MvtoL674C8Pd47a4SAcHqrA2R1XMLnhkv6M8RV0eWS-4fnTPnp~lnrGWV5~mdrvImwtqKkOyEVeHyt1Iajeb1W8Msuh0I2y6QXlLDU9mhuwBvJyQ5bV8sD9C-NbdlLZugc4LMqngbr5BX7AYNJxvhVZMSKKl4aMnIf4uMv4aWjFBYXTGwlIKCjurM2GcHK~i~yzpi-1BMYreyMYnyuYHi05I9~aLJfHo~Qd3Ux2VVQ__&Key-Pair-Id=APKAIE5G5CRDK6RD3PGA)  in our paper.
 
 | Input Parameter | Description |
 | ---------- |----------|
-| `data` | (numpy.ndarray) n_samples x n_features |
-| `true_label` | (numpy.ndarray) (optional)|
-| `dist_std_local` |  (optional, default = 2) local pruning threshold: the number of standard deviations above the mean minkowski distance between neighbors of a given node. the higher the parameter, the more edges are retained|
-| `do_prune_local` | (optional, default=None) Whether or not to do local pruning. If None (default),
-  set to ``False`` if the number of samples is > 300 000, and set to ``True`` otherwise.|
-| `jac_std_global` |  (optional, default = 'median') global level  graph pruning. This threshold can also be set as the number of standard deviations below the network's mean-jaccard-weighted edges. 0.1-1 provide reasonable pruning. higher value means less pruning. e.g. a value of 0.15 means all edges that are above mean(edgeweight)-0.15*std(edge-weights) are retained. We find both 0.15 and 'median' to yield good results resulting in pruning away ~ 50-60% edges |
-| `dist_std_local` |  (optional, default = 2) local pruning threshold: the number of standard deviations above the mean minkowski distance between neighbors of a given node. higher value means less pruning|
-| `random_seed` |  (optional, default = 42) The random seed to pass to Leiden|
-| `resolution_parameter` |  (optional, default = 1) Uses ModuliartyVP and RBConfigurationVertexPartition|
-| `jac_weighted_edges` |  (optional, default = True) Uses Jaccard weighted pruned graph as input to community detection. For very large datasets set this to False to observe a speed-up with negligble impact on accuracy |
+| `x_data` | `np.ndarray` a Numpy array of the input x data, with dimensions (n_samples, n_features) |
+| `y_data_true` | `np.ndarray` (optional) a Numpy array of the true output y labels. |
+| `knn` | (int) The number of nearest neighbors k for the k-nearest neighbours algorithm. Larger k means more neighbors in a cluster and therefore less clusters. |
+| `n_iter_leiden` | `int` The number of iterations for the Leiden algorithm.|
+| `random_seed` | `int` The random seed to enable reproducible Leiden clustering.|
+| `distance_metric`| `str` The distance metric to be used in the KNN algorithm. |
+| `n_threads`| `int` The number of threads used in the KNN algorithm.|
+| `hnsw_param_ef_construction` | `int` A higher value increases accuracy of index construction. Even for O(100 000) cells, 150-200 is adequate. |
+| `neighbor_graph` | `Compressed Sparse Row Matrix` A sparse matrix with dimensions (n_samples, n_samples), containing the distances between nodes.|
+| `knn_struct`| `hnswlib.Index` The HNSW index of the KNN graph on which we perform queries.|
+| `l2_std_factor` | `float` The multiplier used in calculating the Euclidean distance threshold for the distance between two nodes during local pruning: `max_distance = np.mean(distances) + l2_std_factor * np.std(distances)`. Avoid setting both the `jac_std_factor` (global) and the `l2_std_factor` (local) to < 0.5 as this is very aggressive pruning. Higher `l2_std_factor` means more edges are kept.
+| `do_prune_local` | (optional, default=None) Whether or not to do local pruning. If None (default), set to `False` if the number of samples is > 300 000, and set to `True` otherwise.|
+| `jac_threshold_type` | `str` (optional, default = 'median') One of ``"median"`` or ``"mean"``. Determines how the Jaccard similarity threshold is calculated during global pruning. |
+| `jac_std_factor` | `float` The multiplier used in calculating the Jaccard similarity threshold for the similarity between two nodes during global pruning for `jac_threshold_type = "mean"`: `threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)`. Setting `jac_std_factor = 0.15` and `jac_threshold_type="mean"` performs empirically similar to `jac_threshold_type="median"`, which does not use the `jac_std_factor`. Generally values between 0-1.5 are reasonable. Higher `jac_std_factor` means more edges are kept.|
+| `jac_weighted_edges` | `bool` (optional, default = True) Whether to partition using the weighted graph. |
+| `resolution_parameter` |  `float` (optional, default = 1) The resolution parameter to be used in the Leiden algorithm. In order to change `resolution_parameter`, we switch to `RBVP`.|
+| `partition_type` | `str` The partition type to be used in the Leiden algorithm.|
+| `large_community_factor` | `float` A factor used to determine if a community is too large. If the community size is greater than `large_community_factor * n_samples`, then the community is too large and the PARC algorithm will be run on the single community to split it up. The default value of `0.4` ensures that all communities will be less than the cutoff size.|
+| `small_community_size` | `int` The smallest population size to be considered a community. |
+| `small_community_timeout` | `int` The maximum number of seconds trying to check an outlying small community.|
 
 | Attributes | Description |
 | ---------- |----------|
