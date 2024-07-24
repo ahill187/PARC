@@ -170,7 +170,8 @@ y_data_pred = parc_model.y_data_pred
 1. Download the input data file and save it to the `PARC/data/` directory:
 [pca50_pbmc68k.txt](https://drive.google.com/file/d/1H4gOZ09haP_VPCwsYxZt4vf3hJ1GZj3b/view?usp=sharing).
 
-2. You can view the target annotations here: [PARC/data/zheng17_annotations.txt](https://github.com/ahill187/PARC/blob/main/data/zheng17_annotations.txt).
+2. You can view the target annotations here:
+[PARC/data/zheng17_annotations.txt](https://github.com/ahill187/PARC/blob/main/data/zheng17_annotations.txt).
 
 
 ```python
