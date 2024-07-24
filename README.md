@@ -87,48 +87,68 @@ the HNSW graph built in PARC, enabling a very fast and memory efficient viusaliz
 #### PARC visualizes cells by integrating UMAP embedding on the HNSW graph
 ![](https://github.com/ShobiStassen/PARC/blob/master/Images/Covid_hnsw_umap.png)
 
-## Example Usage 1. (small test sets) - IRIS and Digits dataset from sklearn
 
-```
+### Example 2: IRIS Dataset from `sklearn`
+
+```python
 import parc
 import matplotlib.pyplot as plt
 from sklearn import datasets
 
-// load sample IRIS data
-//data (n_obs x k_dim, 150x4)
+# Load the Iris dataset
 iris = datasets.load_iris()
-X = iris.data
-y=iris.target
+x_data = iris.data # (n_samples x n_features = 150 x 4)
+y_data = iris.target
 
-plt.scatter(X[:,0],X[:,1], c = y) // colored by 'ground truth'
+# Plot the data (coloured by ground truth)
+plt.scatter(x_data[:, 0], x_data[:, 1], c=y_data)
 plt.show()
 
-Parc1 = parc.PARC(X,true_label=y) // instantiate PARC
-//Parc1 = parc.PARC(X) // when no 'true labels' are available
-Parc1.run_PARC() // run the clustering
-parc_labels = Parc1.labels
+# Instantiate the PARC model
+parc_model = parc.PARC(x_data=x_data, y_data_true=y_data)
+
+# Run the PARC clustering
+parc_model.run_parc()
+y_data_pred = parc_model.y_data_pred
+
 # View scatterplot colored by PARC labels
-plt.scatter(X[:, 0], X[:, 1], c=parc_labels, cmap='rainbow')
+plt.scatter(x_data[:, 0], x_data[:, 1], c=y_data_pred, cmap="rainbow")
 plt.show()
 
-# Run umap on the HNSW knngraph already built in PARC (more time and memory efficient for large datasets)
-// Parc1.knn_struct = p1.make_knn_struct() // if you choose to visualize before running PARC clustering. then you need to include this line
-graph = Parc1.knngraph_full()
-X_umap = Parc1.run_umap_hnsw(X, graph)
-plt.scatter(X_umap[:, 0], X_umap[:, 1], c=Parc1.labels)
+# Run UMAP on the HNSW knngraph already built in PARC
+# (more time and memory efficient for large datasets)
+csr_array = parc_model.create_knn_graph()
+x_umap = parc_model.run_umap_hnsw(x_data=x_data, graph=csr_array)
+
+# Visualize UMAP results
+plt.scatter(x_umap[:, 0], x_umap[:, 1], c=parc_model.y_data_pred)
 plt.show()
 
+```
+
+### Example 3: Digits Dataset from `sklearn`
+
+```python
+import parc
+import matplotlib.pyplot as plt
+from sklearn import datasets
 
 
-
-
-// load sample digits data
+# Load the Digits dataset
 digits = datasets.load_digits()
-X = digits.data // (n_obs x k_dim, 1797x64)
-y = digits.target
-Parc2 = parc.PARC(X,true_label=y, jac_std_global='median') // 'median' is default pruning level
-Parc2.run_PARC()
-parc_labels = Parc2.labels
+x_data = digits.data # (n_samples x n_features = 1797 x 64)
+y_data = digits.target
+
+# Insantiate the PARC model
+parc_model = parc.PARC(
+    x_data=x_data,
+    y_data_true=y_data,
+    jac_threshold_type="median"  # "median" is default pruning level
+)
+
+# Run the PARC clustering
+parc_model.run_parc()
+y_data_pred = parc_model.y_data_pred
 
 ```
 ## Example Usage 2. (mid-scale scRNA-seq): 10X PBMC (Zheng et al., 2017)
