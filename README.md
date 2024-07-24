@@ -51,13 +51,18 @@ pip install igraph, leidenalg, hnswlib, umap-learn
 pip install .
 ```
 
-**Windows installation**
-Once you have Visual Studio installed it should be smooth sailing (sometimes requires a restart after intalling VS). It might be easier to install dependences using either pip or conda -c conda-forge install. If this doesn't work then you might need to consider using binaries to install igraph and leidenalg.
+### Windows
 
-python-igraph: download the python36 Windows Binaries by [Gohlke](http://www.lfd.uci.edu/~gohlke/pythonlibs)
-leidenalg: depends on python-igraph. download [windows binary](https://pypi.org/project/leidenalg/#files) available for python3.6 only
+Once you have Visual Studio installed it should be smooth sailing
+(sometimes requires a restart after intalling VS). It might be easier to install dependences using
+either `pip install` or `conda -c conda-forge install`. If this doesn't work then you might need to
+consider using binaries to install `igraph` and `leidenalg`.
 
-```
+* python-igraph: download the python36 Windows Binaries by [Gohlke](http://www.lfd.uci.edu/~gohlke/pythonlibs)
+* leidenalg: depends on python-igraph. download [windows binary](https://pypi.org/project/leidenalg/#files) available for Python 3.6 only
+
+
+```sh
 conda create --name parcEnv python=3.6 pip
 pip install igraph #(or install python_igraph-0.7.1.post6-cp36-cp36m-win_amd64.whl )
 pip install leidenalg #(or install leidenalg-0.7.0-cp36-cp36m-win_amd64.whl)
