@@ -322,7 +322,7 @@ For a more detailed explanation of the impact of tuning key parameters please se
 
 To install a development version:
 
-```
+```sh
 git clone https://github.com/ShobiStassen/PARC.git
 cd PARC
 pip install -e ".[extra]"
@@ -332,7 +332,7 @@ pip install -e ".[extra]"
 
 To run the test suite for the package:
 
-```
+```sh
 cd PARC
 pytest tests/
 ```
