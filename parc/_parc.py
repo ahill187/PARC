@@ -175,49 +175,86 @@ class PARC:
         else:
             self._partition_type = partition_type
 
-    def make_knn_struct(self, too_big=False, big_cluster=None):
+    def make_knn_struct(
+        self,
+        x_data: np.ndarray,
+        knn: int = 30,
+        distance_metric: str = "l2",
+        hnsw_param_ef_construction: int | None = None,
+        hnsw_param_m: int | None = None,
+        set_threads: bool = True
+    ) -> hnswlib.Index:
         """Create a Hierarchical Navigable Small Worlds (HNSW) graph.
 
         See `hnswlib.Index
         <https://github.com/nmslib/hnswlib/blob/master/python_bindings/LazyIndex.py>`__.
 
+        Args:
+            x_data (np.array): a Numpy array of the input x data, with dimensions
+                (n_samples, n_features).
+            knn (int): the number of nearest neighbors k for the k-nearest neighbours algorithm.
+                Larger k means more neighbors in a cluster and therefore less clusters.
+            distance_metric (str): the distance metric to be used in the KNN algorithm:
+
+                * ``l2``: Euclidean distance L^2 norm:
+
+                  .. code-block:: python
+
+                    d = sum((x_i - y_i)^2)
+
+                * ``cosine``: cosine similarity
+
+                  .. code-block:: python
+
+                    d = 1.0 - sum(x_i*y_i) / sqrt(sum(x_i*x_i) * sum(y_i*y_i))
+
+            hnsw_param_ef_construction (int): (optional) The ``ef_construction`` parameter to be
+                used in creating the ``hnswlib.Index`` object. A higher value increases accuracy of
+                index construction. Even for ``O(100 000)`` cells, 150-200 is adequate.
+            hnsw_param_m (int): (optional) The ``M`` parameter to be used in creating the
+                ``hnswlib.Index`` object.
+            set_threads (bool): whether to set the number of threads used in the KNN algorithm.
+
         Returns:
             hnswlib.Index: An HNSW object containing the k-nearest neighbours graph.
         """
-        if self.knn > 190:
-            logger.message(f"knn = {self.knn}; consider using a lower k for KNN graph construction")
 
-        ef_query = max(100, self.knn + 1)  # ef always should be >K. higher ef, more accurate query
+        if knn > 190:
+            logger.message(f"knn = {knn}; consider using a lower k for KNN graph construction")
 
-        if not too_big:
-            num_dims = self.x_data.shape[1]
-            n_samples = self.x_data.shape[0]
-            knn_struct = hnswlib.Index(space=self.distance_metric, dim=num_dims)
-            logger.info(dir(knn_struct))
-            knn_struct.set_num_threads(self.n_threads)
-            if n_samples < 10000:
-                ef_query = min(n_samples - 10, 500)
-                ef_construction = ef_query
-            else:
-                ef_construction = self.hnsw_param_ef_construction
-            if (num_dims > 30) & (n_samples <= 50000):
-                logger.info("Initializing HNSW index...")
-                knn_struct.init_index(
-                    max_elements=n_samples, ef_construction=ef_construction, M=48
-                ) # good for scRNA seq where dimensionality is high
-            else:
-                logger.info("Initializing HNSW index...")
-                knn_struct.init_index(max_elements=n_samples, ef_construction=ef_construction, M=24) #30
-            knn_struct.add_items(self.x_data)
+        n_features = x_data.shape[1]
+        n_samples = x_data.shape[0]
+        knn_struct = hnswlib.Index(space=distance_metric, dim=n_features)
+
+        # ef always should be > knn. Higher ef = more accurate query
+        if n_samples < 10000:
+            ef_query = max(min(n_samples - 10, 500), self.knn + 1)
         else:
-            num_dims = big_cluster.shape[1]
-            n_samples = big_cluster.shape[0]
-            knn_struct = hnswlib.Index(space='l2', dim=num_dims)
-            logger.info("Initializing HNSW index...")
-            knn_struct.init_index(max_elements=n_samples, ef_construction=200, M=30)
-            knn_struct.add_items(big_cluster)
+            ef_query = max(100, self.knn + 1)
 
-        knn_struct.set_ef(ef_query)  # ef should always be > k
+        if hnsw_param_ef_construction is None:
+            if n_samples < 10000:
+                hnsw_param_ef_construction = ef_query
+            else:
+                hnsw_param_ef_construction = self.hnsw_param_ef_construction
+
+        if hnsw_param_m is None:
+            if n_features > 30 and n_samples <= 50000:
+                hnsw_param_m = 48  # good for scRNA seq where dimensionality is high
+            else:
+                hnsw_param_m = 24
+
+        if set_threads:
+            knn_struct.set_num_threads(self.n_threads)
+
+        logger.info("Initializing HNSW index...")
+        knn_struct.init_index(
+            max_elements=n_samples,
+            ef_construction=hnsw_param_ef_construction,
+            M=hnsw_param_m
+        )
+        knn_struct.add_items(x_data)
+        knn_struct.set_ef(ef_query)
 
         return knn_struct
 
@@ -463,17 +500,23 @@ class PARC:
     def run_toobig_subPARC(self, x_data, jac_std_factor=0.3, jac_threshold_type="mean",
                            jac_weighted_edges=True):
         n_samples = x_data.shape[0]
-        hnsw = self.make_knn_struct(too_big=True, big_cluster=x_data)
+        knn_struct = self.make_knn_struct(
+            x_data=x_data,
+            knn=self.knn,
+            hnsw_param_ef_construction=200,
+            hnsw_param_m=30,
+            set_threads=False
+        )
         if n_samples <= 10:
             logger.message(
                 f"Number of samples = {n_samples}, consider increasing the large_community_factor"
             )
         if n_samples > self.knn:
-            knnbig = self.knn
+            knn = self.knn
         else:
-            knnbig = int(max(5, 0.2 * n_samples))
+            knn = int(max(5, 0.2 * n_samples))
 
-        neighbor_array, distance_array = hnsw.knn_query(x_data, k=knnbig)
+        neighbor_array, distance_array = knn_struct.knn_query(x_data, k=knn)
         csr_array = self.prune_local(neighbor_array, distance_array)
 
         graph_pruned = self.prune_global(
@@ -557,7 +600,9 @@ class PARC:
         else:
             if self.knn_struct is None:
                 logger.info('knn struct was not available, so making one')
-                self.knn_struct = self.make_knn_struct()
+                self.knn_struct = self.make_knn_struct(
+                    x_data=x_data, knn=self.knn, distance_metric=self.distance_metric
+                )
             else:
                 logger.info("knn struct already exists")
             neighbor_array, distance_array = self.knn_struct.knn_query(x_data, k=knn)
