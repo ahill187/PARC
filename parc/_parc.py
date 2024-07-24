@@ -512,11 +512,11 @@ class PARC:
                 f"Number of samples = {n_samples}, consider increasing the large_community_factor"
             )
         if n_samples > self.knn:
-            knnbig = self.knn
+            knn = self.knn
         else:
-            knnbig = int(max(5, 0.2 * n_samples))
+            knn = int(max(5, 0.2 * n_samples))
 
-        neighbor_array, distance_array = knn_struct.knn_query(x_data, k=knnbig)
+        neighbor_array, distance_array = knn_struct.knn_query(x_data, k=knn)
         csr_array = self.prune_local(neighbor_array, distance_array)
 
         graph_pruned = self.prune_global(
