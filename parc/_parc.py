@@ -182,7 +182,7 @@ class PARC:
         distance_metric: str = "l2",
         hnsw_param_ef_construction: int | None = None,
         hnsw_param_m: int | None = None,
-        set_threads=True
+        set_threads: bool = True
     ) -> hnswlib.Index:
         """Create a Hierarchical Navigable Small Worlds (HNSW) graph.
 
