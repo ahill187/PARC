@@ -319,11 +319,16 @@ For a more detailed explanation of the impact of tuning key parameters please se
 | `small_community_size` | `int` The smallest population size to be considered a community. |
 | `small_community_timeout` | `int` The maximum number of seconds trying to check an outlying small community.|
 
+## Attributes
+
+In addition to the parameters described above, the `PARC` model has the following attributes:
+
 | Attributes | Description |
 | ---------- |----------|
-| `labels` | (list) length n_samples of corresponding cluster labels |
-| `f1_mean` | (list) f1 score (not weighted by population). For details see supplementary section of [paper](https://doi.org/10.1101/765628) |
-| `stats_df` | (DataFrame) stores parameter values and performance metrics |
+| `y_data_pred` | `np.ndarray` a Numpy array of the predicted output y labels. |
+| `f1_mean` | `list` f1 score (not weighted by population). For details see supplementary section of [paper](https://doi.org/10.1101/765628). |
+| `stats_df` | `pd.DataFrame` Stores parameter values and performance metrics |
+
 
 ## Developers
 
