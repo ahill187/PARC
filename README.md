@@ -23,11 +23,32 @@ cell fates and temporal gene dynamics along detected lineages.
 VIA can also be used to topologically visualize the graph-based connectivity of clusters found
 by PARC in a non-TI context.
 
-**install dependencies separately if needed (linux)**
-If the pip install doesn't work, it usually suffices to first install all the requirements (using pip) and subsequently install parc (also using pip)
+
+
+## Installation
+
+### MacOS / Linux
+
+```sh
+git clone https://github.com/ahill187/PARC.git
+cd PARC
+python3 -m venv env
+source env/bin/activate
+pip install .
 ```
+
+> **Note**  
+> If the `pip install` doesn't work, it usually suffices to first install all the requirements
+> (using pip) and subsequently install `PARC` (also using pip), i.e.
+
+
+```sh
+git clone https://github.com/ahill187/PARC.git
+cd PARC
+python3 -m venv env
+source env/bin/activate
 pip install igraph, leidenalg, hnswlib, umap-learn
-pip install parc
+pip install .
 ```
 
 **Windows installation**
