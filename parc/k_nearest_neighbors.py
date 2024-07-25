@@ -105,3 +105,6 @@ class NearestNeighbors:
                 f"Distances must be an n x 1 Numpy array or an n x 1 list; "
                 f"got variable of type {type(distances)}"
             )
+
+    def __len__(self):
+        return len(self.neighbors)
