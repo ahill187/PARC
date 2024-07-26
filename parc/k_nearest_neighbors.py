@@ -4,6 +4,8 @@ from parc.logger import get_logger
 
 logger = get_logger(__name__)
 
+NEIGHBOR_PLACEHOLDER = -1
+
 
 class NearestNeighbors:
     """The ids and distances to the nearest neighbors of a community.
@@ -319,3 +321,83 @@ class NearestNeighborsCollection:
             if len(nearest_neighbors) > max_neighbors:
                 max_neighbors = len(nearest_neighbors)
         return max_neighbors
+
+    def get_neighbors_collection(self) -> list[np.ndarray]:
+        """Return a list of k nearest neighbors.
+
+        Returns:
+            list[np.ndarray]: An array with dimensions (n_communities, k) representing the
+                k nearest neighbors for each data point, in order of proximity. For example, if my
+                data has 5 communities, with ``k=3`` nearest neighbors:
+
+                .. code-block:: python
+
+                    neighbors_collection = [
+                        np.array([0, 1, 2]),
+                        np.array([1, 0, 3]),
+                        np.array([2, 4, 0]),
+                        np.array([3, 2, 4]),
+                        np.array([4, 2, 3])
+                    ]
+
+                It is possible that the number of nearest neighbors is different for each sample.
+                For example:
+
+                .. code-block:: python
+
+                    neighbors_collection = [
+                        np.array([0, 1]),
+                        np.array([1]),
+                        np.array([2, 4, 0]),
+                        np.array([3, 2]),
+                        np.array([4, 2, 3])
+                    ]
+
+        """
+        return [nearest_neighbors.neighbors for nearest_neighbors in self.collection]
+
+    def get_neighbors_array(self) -> np.ndarray:
+        """Given a collection of neighbors, return it as a Numpy array.
+
+        Returns:
+            np.ndarray: An array with dimensions (n_communities, k) representing the
+                k nearest neighbors for each data point, in order of proximity. For example, if my
+                data has 5 communities, with ``k=3`` nearest neighbors:
+
+                .. code-block:: python
+
+                    neighbors_array = np.array([
+                        [0, 1, 2],
+                        [1, 0, 3],
+                        [2, 4, 0],
+                        [3, 2, 4],
+                        [4, 2, 3]
+                    ])
+
+                It is possible that the number of nearest neighbors is different for each sample.
+                If that is the case, the NEIGHBOR_PLACEHOLDER = -1 will be added to the
+                missing values so that a 2D array can be created. For example:
+
+                .. code-block:: python
+
+                    neighbors_array = np.array([
+                        [0, 1, -1],
+                        [1, -1, -1],
+                        [2, 4, 0],
+                        [3, 2, -1],
+                        [4, 2, 3]
+                    ])
+
+        """
+        neighbors_array = []
+        for neighbors in self.get_neighbors_collection():
+            neighbors = np.insert(
+                neighbors,
+                len(neighbors),
+                [NEIGHBOR_PLACEHOLDER] * (self.max_neighbors - len(neighbors))
+            )
+            neighbors_array.append(neighbors)
+
+        neighbors_array = np.array(neighbors_array)
+
+        return neighbors_array
