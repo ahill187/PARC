@@ -108,3 +108,214 @@ class NearestNeighbors:
 
     def __len__(self):
         return len(self.neighbors)
+
+
+class NearestNeighborsCollection:
+    """A collection of nearest neighbors and their distances for a graph.
+
+    Attributes:
+        collection (list[NearestNeighbors]): a list of k x 1 Numpy vectors with the
+            k nearest neighbors for each community, in order of proximity. Note that the
+            value of k can be different for each community.
+            For example, if we have 5 communities:
+            .. code-block:: python
+                neighbors_collection = [
+                    np.array([0, 3]),
+                    np.array([1]),
+                    np.array([2, 4, 0]),
+                    np.array([3, 2]),
+                    np.array([4, 2, 3])
+                ]
+        max_neighbors (int): Since the value of k can be different for each community in the
+            list of nearest neighbors, this is the maximum value of k.
+            For example, if we have 5 communities:
+
+            .. code-block:: python
+
+                neighbors_collection = [
+                    np.array([0, 3]),
+                    np.array([1]),
+                    np.array([2, 4, 0]),
+                    np.array([3, 2]),
+                    np.array([4, 2, 3])
+                ]
+
+            then the maximum value of k would be 3.
+        n_communities (int): The total number of communities in the graph.
+        n_edges (int): The total number of edges in the graph.
+    """
+
+    def __init__(
+        self,
+        collection: list[NearestNeighbors] | None = None,
+        neighbors_collection: list[list[int]] | list[list[float]] | np.ndarray | None = None,
+        distances_collection: list[list[float]] | np.ndarray | None = None
+    ):
+        """Initialize the NearestNeighborsCollection object.
+
+        Args:
+            collection: A list of ``NearestNeighbors`` objects.
+            neighbors_collection: A list of k x 1 Numpy vectors with the
+                k nearest neighbors for each community, in order of proximity. Note that the
+                value of k can be different for each community.
+                For example, if we have 5 communities:
+
+                .. code-block:: python
+
+                    neighbors_collection = [
+                        np.array([0, 3]),
+                        np.array([1]),
+                        np.array([2, 4, 0]),
+                        np.array([3, 2]),
+                        np.array([4, 2, 3])
+                    ]
+            distances_collection: A list of k x 1 Numpy vectors, giving the distances to each of
+                the k nearest neighbors for each community, in order of proximity. Note that the
+                value of k may be different for each community.
+                For example, if my data has 5 communities:
+
+                .. code-block:: python
+
+                    distances_collection = [
+                        np.array([0.10, 0.03]),
+                        np.array([0.50]),
+                        np.array([0.13, 0.15, 0.90]),
+                        np.array([0.40, 0.51]),
+                        np.array([0.98, 1.56, 1.90])
+                    ]
+            """
+
+        self.max_neighbors = 0
+        self.n_communities = 0
+        self.n_edges = 0
+        if collection is None and neighbors_collection is None and distances_collection is None:
+            raise ValueError(
+                "User must provide either: a) collection or b) neighbors_collection "
+                "and distances_collection."
+            )
+        elif collection is not None:
+            self.collection = collection
+        else:
+            neighbors_collection = self._check_neighbors_collection(neighbors_collection)
+            distances_collection = self._check_distances_collection(distances_collection)
+            if len(neighbors_collection) != len(distances_collection):
+                raise ValueError(
+                    f"Neighbors and distances collections must have the same length; "
+                    f"got {len(neighbors_collection)} neighbors and {len(distances_collection)} "
+                    "distances."
+                )
+            else:
+                collection = []
+                for index, neighbors, distances in zip(
+                    range(len(neighbors_collection)), neighbors_collection, distances_collection
+                ):
+                    if len(neighbors) != len(distances):
+                        raise ValueError(
+                            f"Neighbors and distances must have the same length; "
+                            f"got {len(neighbors)} neighbors and {len(distances)} distances."
+                        )
+                    else:
+                        collection.append(
+                            NearestNeighbors(
+                                community_id=index,
+                                neighbors=neighbors,
+                                distances=distances
+                            )
+                        )
+                self.collection = collection
+
+    @property
+    def collection(self) -> list[NearestNeighbors]:
+        return self._collection
+
+    @collection.setter
+    def collection(self, collection: list[NearestNeighbors]):
+        if isinstance(collection, list) and all(
+            isinstance(nearest_neighbors, NearestNeighbors) for nearest_neighbors in collection
+        ):
+            self._collection = collection
+            self.n_communities = len(collection)
+            self.n_edges = int(np.sum([len(nearest_neighbors) for nearest_neighbors in collection]))
+            self.max_neighbors = self.get_max_neighbors(collection)
+        else:
+            raise TypeError(
+                f"Collection must be a list of NearestNeighbors; "
+                f"got variable of type {type(collection)}"
+            )
+
+    def _check_neighbors_collection(self, neighbors_collection):
+        if isinstance(neighbors_collection, np.ndarray):
+            if len(neighbors_collection.shape) > 2:
+                raise ValueError(
+                    f"Neighbors must be an n x m array or a list of n x 1 arrays; "
+                    f"got an array with shape {neighbors_collection.shape}"
+                )
+            elif neighbors_collection.shape[1] > neighbors_collection.shape[0]:
+                raise ValueError(
+                    f"Neighbors array cannot have more neighbors than communities. "
+                    f"got an array with {neighbors_collection.shape[0]} communities and "
+                    f"{neighbors_collection.shape[1]} neighbors."
+                )
+            else:
+                return list(neighbors_collection)
+        elif isinstance(neighbors_collection, list):
+            return neighbors_collection
+        else:
+            raise TypeError(
+                f"Neighbors must be an n x m array or a list of n x 1 arrays; "
+                f"got variable of type {type(neighbors_collection)}"
+            )
+
+    def _check_distances_collection(self, distances_collection):
+        if isinstance(distances_collection, np.ndarray):
+            if len(distances_collection.shape) > 2:
+                raise ValueError(
+                    f"Distances must be an n x m array or a list of n x 1 arrays; "
+                    f"got an array with shape {distances_collection.shape}"
+                )
+            elif distances_collection.shape[1] > distances_collection.shape[0]:
+                raise ValueError(
+                    f"Distances array cannot have more neighbors than communities. "
+                    f"got an array with {distances_collection.shape[0]} communities and "
+                    f"{distances_collection.shape[1]} neighbors."
+                )
+            else:
+                return list(distances_collection)
+        elif isinstance(distances_collection, list):
+            return distances_collection
+        else:
+            raise TypeError(
+                f"Distances must be an n x m array or a list of n x 1 arrays; "
+                f"got variable of type {type(distances_collection)}"
+            )
+
+    def get_max_neighbors(self, collection: list[NearestNeighbors]) -> int:
+        """Given a collection of nearest neighbors, get the maximum value for k.
+
+        Args:
+            collection (list[NearestNeighbors]): a list of ``NearestNeighbors`` objects with the
+                k nearest neighbors for each community, in order of proximity. Note that the
+                value of k can be different for each community.
+
+        Returns:
+            int: Since the value of k can be different for each community in the list of
+                nearest neighbors, return the maximum value of k (the maximum length of arrays).
+                For example, if we have 5 communities:
+
+                .. code-block:: python
+
+                    neighbors_collection = [
+                        np.array([0, 3]),
+                        np.array([1]),
+                        np.array([2, 4, 0]),
+                        np.array([3, 2]),
+                        np.array([4, 2, 3])
+                    ]
+
+                then the maximum value of k would be 3.
+        """
+        max_neighbors = 0
+        for nearest_neighbors in collection:
+            if len(nearest_neighbors) > max_neighbors:
+                max_neighbors = len(nearest_neighbors)
+        return max_neighbors
