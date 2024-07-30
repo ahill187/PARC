@@ -9,6 +9,7 @@ import leidenalg
 import time
 import multiprocessing as mp
 from umap.umap_ import find_ab_params, simplicial_set_embedding
+from parc.k_nearest_neighbors import NearestNeighborsCollection
 from parc.utils import get_mode
 from parc.logger import get_logger
 
@@ -308,7 +309,7 @@ class PARC:
         graph = graph_transpose + graph - prod_matrix
         return graph
 
-    def prune_local(self, neighbor_array, distance_array, l2_std_factor: float | None = None):
+    def prune_local(self, nnc: NearestNeighborsCollection, l2_std_factor: float | None = None):
         """Prune the nearest neighbors array.
 
         If ``do_prune_local = True``, remove any neighbors which are further away than
@@ -319,13 +320,13 @@ class PARC:
         arrays in the ``csr_matrix`` format.
 
         Args:
-            neighbor_array (np.array): An array with dimensions (n_samples, k) listing the
-                k nearest neighbors for each data point.
-            distance_array (np.array): An array with dimensions (n_samples, k) listing the
-                distances to each of the k nearest neighbors for each data point.
+            nnc (NearestNeighborsCollection): A collection of nearest neighbors, listing the
+                k nearest neighbors and distances for each data point.
+            l2_std_factor (float): The multiplier used in calculating the maximum distance.
+
         Returns:
             scipy.sparse.csr_matrix: A compressed sparse row matrix with dimensions
-            (n_samples, n_samples), containing the pruned distances.
+                (n_samples, n_samples), containing the pruned distances.
         """
 
         if l2_std_factor is None:
@@ -338,8 +339,8 @@ class PARC:
         col_list = []
         weight_list = []
 
-        n_neighbors = neighbor_array.shape[1]
-        n_samples = neighbor_array.shape[0]
+        n_neighbors = nnc.max_neighbors
+        n_samples = nnc.n_communities
         discard_count = 0
 
         if self.do_prune_local:
@@ -347,10 +348,12 @@ class PARC:
                 f"Starting local pruning based on Euclidean (L2) distance metric at "
                 f"{l2_std_factor} standard deviations above mean"
             )
-            distance_array = distance_array + 0.1
+            distance_array = nnc.get_distances_array() + 0.1
             bar = Bar("Local pruning...", max=n_samples)
-            for sample_index, neighbors in zip(range(n_samples), neighbor_array):
-                distances = distance_array[sample_index, :]
+
+            for nearest_neighbors in nnc.collection:
+                neighbors = nearest_neighbors.neighbors
+                distances = nearest_neighbors.distances
                 max_distance = np.mean(distances) + l2_std_factor * np.std(distances)
                 to_keep = np.where(distances < max_distance)[0]
                 updated_neighbors = neighbors[np.ix_(to_keep)]
@@ -358,8 +361,8 @@ class PARC:
                 discard_count = discard_count + (n_neighbors - len(to_keep))
 
                 for index in range(len(updated_neighbors)):
-                    if sample_index != neighbors[index]:
-                        row_list.append(sample_index)
+                    if nearest_neighbors.community_id != neighbors[index]:
+                        row_list.append(nearest_neighbors.community_id)
                         col_list.append(updated_neighbors[index])
                         dist = np.sqrt(updated_distances[index])
                         weight_list.append(1 / (dist + 0.1))
@@ -370,7 +373,7 @@ class PARC:
             row_list.extend(
                 list(np.transpose(np.ones((n_neighbors, n_samples)) * range(n_samples)).flatten())
             )
-            col_list = neighbor_array.flatten().tolist()
+            col_list = nnc.get_neighbors_array().flatten().tolist()
             weight_list = (1.0 / (distance_array.flatten() + 0.1)).tolist()
 
         csr_graph = csr_matrix((np.array(weight_list), (np.array(row_list), np.array(col_list))),
@@ -517,7 +520,11 @@ class PARC:
             knn = int(max(5, 0.2 * n_samples))
 
         neighbor_array, distance_array = knn_struct.knn_query(x_data, k=knn)
-        csr_array = self.prune_local(neighbor_array, distance_array)
+        nnc = NearestNeighborsCollection(
+            neighbors_collection=neighbor_array,
+            distances_collection=distance_array
+        )
+        csr_array = self.prune_local(nnc)
 
         graph_pruned = self.prune_global(
             csr_array=csr_array,
@@ -606,7 +613,11 @@ class PARC:
             else:
                 logger.info("knn struct already exists")
             neighbor_array, distance_array = self.knn_struct.knn_query(x_data, k=knn)
-            csr_array = self.prune_local(neighbor_array, distance_array)
+            nnc = NearestNeighborsCollection(
+                neighbors_collection=neighbor_array,
+                distances_collection=distance_array
+            )
+            csr_array = self.prune_local(nnc)
 
         graph_pruned = self.prune_global(
             csr_array=csr_array,

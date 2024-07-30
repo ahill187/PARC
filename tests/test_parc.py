@@ -6,6 +6,7 @@ import scipy
 import hnswlib
 import time
 from parc._parc import PARC
+from parc.k_nearest_neighbors import NearestNeighborsCollection
 from parc.logger import get_logger
 from tests.variables import NEIGHBOR_ARRAY_L2, NEIGHBOR_ARRAY_COSINE
 
@@ -64,7 +65,11 @@ def test_parc_prune_local(
     parc_model = PARC(x_data=x_data, y_data_true=y_data)
     knn_struct = parc_model.make_knn_struct(x_data=x_data)
     neighbor_array, distance_array = knn_struct.knn_query(x_data, k=knn)
-    csr_array = parc_model.prune_local(neighbor_array, distance_array, l2_std_factor)
+    nnc = NearestNeighborsCollection(
+        neighbors_collection=neighbor_array,
+        distances_collection=distance_array
+    )
+    csr_array = parc_model.prune_local(nnc, l2_std_factor)
     input_nodes, output_nodes = csr_array.nonzero()
     edges = list(zip(input_nodes, output_nodes))
     assert isinstance(csr_array, scipy.sparse.csr_matrix)
@@ -85,9 +90,13 @@ def test_parc_prune_global(
 ):
     x_data, y_data = request.getfixturevalue(dataset_name)
     parc_model = PARC(x_data=x_data, y_data_true=y_data)
-    knn_struct = parc_model.make_knn_struct()
+    knn_struct = parc_model.make_knn_struct(x_data=x_data)
     neighbor_array, distance_array = knn_struct.knn_query(x_data, k=knn)
-    csr_array = parc_model.prune_local(neighbor_array, distance_array)
+    nnc = NearestNeighborsCollection(
+        neighbors_collection=neighbor_array,
+        distances_collection=distance_array
+    )
+    csr_array = parc_model.prune_local(nnc)
     graph_pruned = parc_model.prune_global(
         csr_array=csr_array,
         jac_threshold_type=jac_threshold_type,
