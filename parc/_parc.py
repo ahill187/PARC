@@ -341,7 +341,6 @@ class PARC:
 
         n_neighbors = nnc.max_neighbors
         n_samples = nnc.n_communities
-        discard_count = 0
 
         if self.do_prune_local:
             logger.message(
@@ -358,7 +357,6 @@ class PARC:
                 to_keep = np.where(distances < max_distance)[0]
                 updated_neighbors = neighbors[np.ix_(to_keep)]
                 updated_distances = distances[np.ix_(to_keep)]
-                discard_count = discard_count + (n_neighbors - len(to_keep))
 
                 for index in range(len(updated_neighbors)):
                     if nearest_neighbors.community_id != neighbors[index]:
