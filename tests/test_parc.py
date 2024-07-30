@@ -62,7 +62,7 @@ def test_parc_prune_local(
 ):
     x_data, y_data = request.getfixturevalue(dataset_name)
     parc_model = PARC(x_data=x_data, y_data_true=y_data)
-    knn_struct = parc_model.make_knn_struct()
+    knn_struct = parc_model.make_knn_struct(x_data=x_data)
     neighbor_array, distance_array = knn_struct.knn_query(x_data, k=knn)
     csr_array = parc_model.prune_local(neighbor_array, distance_array, l2_std_factor)
     input_nodes, output_nodes = csr_array.nonzero()
