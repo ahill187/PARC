@@ -18,8 +18,8 @@ class PARC:
         data,
         true_label=None,
         dist_std_local=3,
-        jac_std_global='median',
-        keep_all_local_dist='auto',
+        jac_std_global="median",
+        keep_all_local_dist="auto",
         too_big_factor=0.4,
         small_pop=10,
         jac_weighted_edges=True,
@@ -27,7 +27,7 @@ class PARC:
         n_iter_leiden=5,
         random_seed=42,
         num_threads=-1,
-        distance='l2',
+        distance="l2",
         time_smallpop=15,
         partition_type="ModularityVP",
         resolution_parameter=1.0,
@@ -37,7 +37,7 @@ class PARC:
     ):
         # higher dist_std_local means more edges are kept
         # highter jac_std_global means more edges are kept
-        if keep_all_local_dist == 'auto':
+        if keep_all_local_dist == "auto":
             if data.shape[0] > 300000:
                 keep_all_local_dist = True  # skips local pruning to increase speed
             else:
@@ -47,8 +47,8 @@ class PARC:
         self.data = data
         self.true_label = true_label
         self.dist_std_local = dist_std_local   # similar to the jac_std_global parameter. avoid setting local and global pruning to both be below 0.5 as this is very aggresive pruning.
-        self.jac_std_global = jac_std_global  #0.15 is also a recommended value performing empirically similar to 'median'. Generally values between 0-1.5 are reasonable.
-        self.keep_all_local_dist = keep_all_local_dist #decides whether or not to do local pruning. default is 'auto' which omits LOCAL pruning for samples >300,000 cells.
+        self.jac_std_global = jac_std_global  #0.15 is also a recommended value performing empirically similar to "median". Generally values between 0-1.5 are reasonable.
+        self.keep_all_local_dist = keep_all_local_dist #decides whether or not to do local pruning. default is "auto" which omits LOCAL pruning for samples >300,000 cells.
         self.too_big_factor = too_big_factor  #if a cluster exceeds this share of the entire cell population, then the PARC will be run on the large cluster. at 0.4 it does not come into play
         self.small_pop = small_pop  # smallest cluster population to be considered a community
         self.jac_weighted_edges = jac_weighted_edges #boolean. whether to partition using weighted graph
@@ -56,7 +56,7 @@ class PARC:
         self.n_iter_leiden = n_iter_leiden #the default is 5 in PARC
         self.random_seed = random_seed  # enable reproducible Leiden clustering
         self.num_threads = num_threads  # number of threads used in KNN search/construction
-        self.distance = distance  # Euclidean distance 'l2' by default; other options 'ip' and 'cosine'
+        self.distance = distance  # Euclidean distance "l2" by default; other options "ip" and "cosine"
         self.time_smallpop = time_smallpop #number of seconds trying to check an outlier
         self.partition_type = partition_type #default is the simple ModularityVertexPartition where resolution_parameter =1. In order to change resolution_parameter, we switch to RBConfigurationVP
         self.resolution_parameter = resolution_parameter # defaults to 1. expose this parameter in leidenalg
@@ -97,7 +97,7 @@ class PARC:
         if too_big:
             num_dims = big_cluster.shape[1]
             n_elements = big_cluster.shape[0]
-            p = hnswlib.Index(space='l2', dim=num_dims)
+            p = hnswlib.Index(space="l2", dim=num_dims)
             p.init_index(max_elements=n_elements, ef_construction=200, M=30)
             p.add_items(big_cluster)
         p.set_ef(ef_query)  # ef should always be > k
@@ -214,11 +214,11 @@ class PARC:
 
         edgelist = list(zip(sources.tolist(), targets.tolist()))
         edgelist_copy = edgelist.copy()
-        G = ig.Graph(edgelist, edge_attrs={'weight': csr_array.data.tolist()})
+        G = ig.Graph(edgelist, edge_attrs={"weight": csr_array.data.tolist()})
         sim_list = G.similarity_jaccard(pairs=edgelist_copy)  # list of jaccard weights
         new_edgelist = []
         sim_list_array = np.asarray(sim_list)
-        if jac_std_toobig == 'median':
+        if jac_std_toobig == "median":
             threshold = np.median(sim_list)
         else:
             threshold = np.mean(sim_list) - jac_std_toobig * np.std(sim_list)
@@ -237,17 +237,17 @@ class PARC:
             G_sim = ig.Graph(
                 n=n_elements,
                 edges=list(new_edgelist),
-                edge_attrs={'weight': sim_list_new}
+                edge_attrs={"weight": sim_list_new}
             )
         else:
             G_sim = ig.Graph(n=n_elements, edges=list(new_edgelist))
-        G_sim.simplify(combine_edges='sum')
+        G_sim.simplify(combine_edges="sum")
         if jac_weighted_edges:
-            if self.partition_type == 'ModularityVP':
+            if self.partition_type == "ModularityVP":
                 logger.message("partition type MVP")
                 partition = leidenalg.find_partition(
                     G_sim, leidenalg.ModularityVertexPartition,
-                    weights='weight',
+                    weights="weight",
                     n_iterations=self.n_iter_leiden,
                     seed=self.random_seed
                 )
@@ -256,13 +256,13 @@ class PARC:
                 partition = leidenalg.find_partition(
                     G_sim,
                     leidenalg.RBConfigurationVertexPartition,
-                    weights='weight',
+                    weights="weight",
                     n_iterations=self.n_iter_leiden,
                     seed=self.random_seed,
                     resolution_parameter=self.resolution_parameter
                 )
         else:
-            if self.partition_type == 'ModularityVP':
+            if self.partition_type == "ModularityVP":
                 logger.message("partition type MVP")
                 partition = leidenalg.find_partition(
                     G_sim,
@@ -355,7 +355,7 @@ class PARC:
 
         edgelist_copy = edgelist.copy()
 
-        G = ig.Graph(edgelist, edge_attrs={'weight': csr_array.data.tolist()})
+        G = ig.Graph(edgelist, edge_attrs={"weight": csr_array.data.tolist()})
         sim_list = G.similarity_jaccard(pairs=edgelist_copy)
 
         logger.message("Starting global pruning...")
@@ -363,7 +363,7 @@ class PARC:
         sim_list_array = np.asarray(sim_list)
         edge_list_copy_array = np.asarray(edgelist_copy)
 
-        if jac_std_global == 'median':
+        if jac_std_global == "median":
             threshold = np.median(sim_list)
         else:
             threshold = np.mean(sim_list) - jac_std_global * np.std(sim_list)
@@ -374,17 +374,17 @@ class PARC:
         G_sim = ig.Graph(
             n=n_elements,
             edges=list(new_edgelist),
-            edge_attrs={'weight': sim_list_new}
+            edge_attrs={"weight": sim_list_new}
         )
-        G_sim.simplify(combine_edges='sum')  # "first"
+        G_sim.simplify(combine_edges="sum")  # "first"
         logger.message("Starting Leiden community detection...")
         if jac_weighted_edges:
-            if self.partition_type == 'ModularityVP':
+            if self.partition_type == "ModularityVP":
                 logger.message("partition type MVP")
                 partition = leidenalg.find_partition(
                     G_sim,
                     leidenalg.ModularityVertexPartition,
-                    weights='weight',
+                    weights="weight",
                     n_iterations=self.n_iter_leiden,
                     seed=self.random_seed
                 )
@@ -393,14 +393,14 @@ class PARC:
                 partition = leidenalg.find_partition(
                     G_sim,
                     leidenalg.RBConfigurationVertexPartition,
-                    weights='weight',
+                    weights="weight",
                     n_iterations=self.n_iter_leiden,
                     seed=self.random_seed,
                     resolution_parameter=self.resolution_parameter
                 )
 
         else:
-            if self.partition_type == 'ModularityVP':
+            if self.partition_type == "ModularityVP":
                 logger.message("partition type MVP")
                 partition = leidenalg.find_partition(
                     G_sim,
@@ -620,9 +620,9 @@ class PARC:
         self.f1_accumulated = 0
         self.f1_mean = 0
         self.stats_df = pd.DataFrame({
-            'jac_std_global': [self.jac_std_global],
-            'dist_std_local': [self.dist_std_local],
-            'runtime(s)': [run_time]
+            "jac_std_global": [self.jac_std_global],
+            "dist_std_local": [self.dist_std_local],
+            "runtime(s)": [run_time]
         })
         self.majority_truth_labels = []
         if len(targets) > 1:
@@ -652,9 +652,9 @@ class PARC:
             df_accuracy = pd.DataFrame(
                 list_roc,
                 columns=[
-                    'jac_std_global', 'dist_std_local', 'onevsall-target', 'error rate',
-                    'f1-score', 'tnr', 'fnr', 'tpr', 'fpr', 'precision', 'recall', 'num_groups',
-                    'population of target', 'num clusters', 'clustering runtime'
+                    "jac_std_global", "dist_std_local", "onevsall-target", "error rate",
+                    "f1-score", "tnr", "fnr", "tpr", "fpr", "precision", "recall", "num_groups",
+                    "population of target", "num clusters", "clustering runtime"
                 ]
             )
 
