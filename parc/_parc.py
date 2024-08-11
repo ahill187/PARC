@@ -197,8 +197,13 @@ class PARC:
         # If multiple items are maximal, the function returns the first one encountered.
         return max(set(ll), key=ll.count)
 
-    def run_toobig_subPARC(self, X_data, jac_std_toobig=0.3,
-                           jac_weighted_edges=True):
+    def run_toobig_subPARC(
+        self,
+        X_data,
+        jac_std_toobig=0.3,
+        jac_weighted_edges=True
+    ):
+
         n_elements = X_data.shape[0]
         hnsw = self.make_knn_struct(too_big=True, big_cluster=X_data)
         if n_elements <= 10:
