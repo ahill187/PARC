@@ -292,7 +292,7 @@ class PARC:
         small_pop_list = []
         small_cluster_list = []
         small_pop_exist = False
-        dummy, PARC_labels_leiden = np.unique(list(PARC_labels_leiden.flatten()), return_inverse=True)
+        PARC_labels_leiden = np.unique(list(PARC_labels_leiden.flatten()), return_inverse=True)[1]
         for cluster in set(PARC_labels_leiden):
             population = len(np.where(PARC_labels_leiden == cluster)[0])
             if population < small_pop:
@@ -331,7 +331,7 @@ class PARC:
                     best_group = max(set(group_of_old_neighbors), key=group_of_old_neighbors.count)
                     PARC_labels_leiden[single_cell] = best_group
 
-        dummy, PARC_labels_leiden = np.unique(list(PARC_labels_leiden.flatten()), return_inverse=True)
+        PARC_labels_leiden = np.unique(list(PARC_labels_leiden.flatten()), return_inverse=True)[1]
 
         return PARC_labels_leiden
 
@@ -460,7 +460,9 @@ class PARC:
             for j in cluster_big_loc:
                 PARC_labels_leiden[j] = PARC_labels_leiden_big[jj]
                 jj = jj + 1
-            dummy, PARC_labels_leiden = np.unique(list(PARC_labels_leiden.flatten()), return_inverse=True)
+            PARC_labels_leiden = np.unique(
+                list(PARC_labels_leiden.flatten()), return_inverse=True
+            )[1]
             logger.message(f"New set of labels {set(PARC_labels_leiden)}")
             too_big = False
             set_PARC_labels_leiden = set(PARC_labels_leiden)
@@ -482,7 +484,7 @@ class PARC:
                     f"Cluster {cluster_big} is too big and has population {big_pop}."
                     "It will be expanded."
                 )
-        dummy, PARC_labels_leiden = np.unique(list(PARC_labels_leiden.flatten()), return_inverse=True)
+        PARC_labels_leiden = np.unique(list(PARC_labels_leiden.flatten()), return_inverse=True)[1]
         small_pop_list = []
         small_cluster_list = []
         small_pop_exist = False
@@ -526,7 +528,7 @@ class PARC:
                     best_group = max(set(group_of_old_neighbors), key=group_of_old_neighbors.count)
                     PARC_labels_leiden[single_cell] = best_group
 
-        dummy, PARC_labels_leiden = np.unique(list(PARC_labels_leiden.flatten()), return_inverse=True)
+        PARC_labels_leiden = np.unique(list(PARC_labels_leiden.flatten()), return_inverse=True)[1]
         PARC_labels_leiden = list(PARC_labels_leiden.flatten())
         pop_list = []
         for item in set(PARC_labels_leiden):
