@@ -107,7 +107,6 @@ class PARC:
 
     def knngraph_full(self):#, neighbor_array, distance_array):
         k_umap = 15
-        t0 = time.time()
         # neighbors in array are not listed in in any order of proximity
         self.knn_struct.set_ef(k_umap+1)
         neighbor_array, distance_array = self.knn_struct.knn_query(self.data, k=k_umap)
@@ -387,7 +386,6 @@ class PARC:
         G_sim.simplify(combine_edges='sum')  # "first"
         logger.message("Starting Leiden community detection...")
         if jac_weighted_edges:
-            start_leiden = time.time()
             if self.partition_type == 'ModularityVP':
                 logger.message("partition type MVP")
                 partition = leidenalg.find_partition(
@@ -409,7 +407,6 @@ class PARC:
                 )
 
         else:
-            start_leiden = time.time()
             if self.partition_type == 'ModularityVP':
                 logger.message("partition type MVP")
                 partition = leidenalg.find_partition(
@@ -428,7 +425,6 @@ class PARC:
                     resolution_parameter=self.resolution_parameter
                 )
 
-        time_end_PARC = time.time()
         PARC_labels_leiden = np.asarray(partition.membership)
         PARC_labels_leiden = np.reshape(PARC_labels_leiden, (n_elements, 1))
 
@@ -442,7 +438,6 @@ class PARC:
             too_big = True
             cluster_big_loc = cluster_i_loc
             list_pop_too_bigs = [pop_i]
-            cluster_too_big = 0
 
         while too_big:
 
@@ -622,9 +617,6 @@ class PARC:
 
         time_start_total = time.time()
 
-        time_start_knn = time.time()
-
-        time_end_knn_struct = time.time() - time_start_knn
         # Query dataset, k - number of closest elements (returns 2 numpy arrays)
         self.run_subPARC()
         run_time = time.time() - time_start_total
