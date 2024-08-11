@@ -6,6 +6,10 @@ import igraph as ig
 import leidenalg
 import time
 from umap.umap_ import find_ab_params, simplicial_set_embedding
+from parc.logger import get_logger
+
+
+logger = get_logger(__name__)
 
 
 #latest github upload 27-June-2020
@@ -44,7 +48,10 @@ class PARC:
         self.hnsw_param_ef_construction = hnsw_param_ef_construction #set at 150. higher value increases accuracy of index construction. Even for several 100,000s of cells 150-200 is adequate
 
     def make_knn_struct(self, too_big=False, big_cluster=None):
-        if self.knn > 190: print('consider using a lower K_in for KNN graph construction')
+        if self.knn > 190:
+            logger.message(
+                f"knn is {self.knn}, consider using a lower K_in for KNN graph construction"
+            )
         ef_query = max(100, self.knn + 1)  # ef always should be >K. higher ef, more accurate query
         if too_big == False:
             num_dims = self.data.shape[1]
@@ -127,8 +134,10 @@ class PARC:
         discard_count = 0
         if self.keep_all_local_dist == False:  # locally prune based on (squared) l2 distance
 
-            print('commencing local pruning based on Euclidean distance metric at',
-                  self.dist_std_local, 's.dev above mean')
+            logger.message(
+                "Starting local pruning based on Euclidean distance metric at "
+                f"{self.dist_std_local} standard deviations above the mean"
+            )
             distance_array = distance_array + 0.1
             for row in neighbor_array:
                 distlist = distance_array[rowi, :]
@@ -163,7 +172,8 @@ class PARC:
                            jac_weighted_edges=True):
         n_elements = X_data.shape[0]
         hnsw = self.make_knn_struct(too_big=True, big_cluster=X_data)
-        if n_elements <= 10: print('consider increasing the too_big_factor')
+        if n_elements <= 10:
+            logger.message("Consider increasing the too_big_factor")
         if n_elements > self.knn:
             knnbig = self.knn
         else:
@@ -190,9 +200,11 @@ class PARC:
             threshold = np.median(sim_list)
         else:
             threshold = np.mean(sim_list) - jac_std_toobig * np.std(sim_list)
-        print('jac threshold %.3f' % threshold)
-        print('jac std %.3f' % np.std(sim_list))
-        print('jac mean %.3f' % np.mean(sim_list))
+
+        logger.message(f"jac threshold {threshold:.3f}")
+        logger.message(f"jac std {np.std(sim_list):.3f}")
+        logger.message(f"jac mean {np.mean(sim_list):.3f}")
+
         strong_locs = np.where(sim_list_array > threshold)[0]
         for ii in strong_locs: new_edgelist.append(edgelist_copy[ii])
         sim_list_new = list(sim_list_array[strong_locs])
@@ -204,20 +216,20 @@ class PARC:
         G_sim.simplify(combine_edges='sum')
         if jac_weighted_edges == True:
             if self.partition_type =='ModularityVP':
+                logger.message("partition type MVP")
                 partition = leidenalg.find_partition(G_sim, leidenalg.ModularityVertexPartition, weights='weight',
                                                  n_iterations=self.n_iter_leiden, seed=self.random_seed)
-                print('partition type MVP')
             else:
+                logger.message("partition type RBC")
                 partition = leidenalg.find_partition(G_sim, leidenalg.RBConfigurationVertexPartition, weights='weight',
                                                  n_iterations=self.n_iter_leiden, seed=self.random_seed, resolution_parameter=self.resolution_parameter)
-                print('partition type RBC')
         else:
             if self.partition_type == 'ModularityVP':
-                print('partition type MVP')
+                logger.message("partition type MVP")
                 partition = leidenalg.find_partition(G_sim, leidenalg.ModularityVertexPartition,
                                                  n_iterations=self.n_iter_leiden, seed=self.random_seed)
             else:
-                print('partition type RBC')
+                logger.message("partition type RBC")
                 partition = leidenalg.find_partition(G_sim, leidenalg.RBConfigurationVertexPartition,
                                                      n_iterations=self.n_iter_leiden, seed=self.random_seed,
                                                      resolution_parameter=self.resolution_parameter)
@@ -248,7 +260,7 @@ class PARC:
                     PARC_labels_leiden[single_cell] = best_group
 
         time_smallpop_start = time.time()
-        print('handling fragments')
+        logger.message("Handling fragments...")
         while (small_pop_exist) == True & (time.time() - time_smallpop_start < self.time_smallpop):
             small_pop_list = []
             small_pop_exist = False
@@ -287,10 +299,10 @@ class PARC:
             neighbor_array = np.split(csr_array.indices, csr_array.indptr)[1:-1]
         else:
             if self.knn_struct is None:
-                print('knn struct was not available, so making one')
+                logger.message("knn struct was not available, creating new one")
                 self.knn_struct = self.make_knn_struct()
             else:
-                print('knn struct already exists')
+                logger.message("knn struct already exists")
             neighbor_array, distance_array = self.knn_struct.knn_query(X_data, k=knn)
             csr_array = self.make_csrmatrix_noselfloop(neighbor_array, distance_array)
 
@@ -305,7 +317,7 @@ class PARC:
         # print('computing Jaccard metric')
         sim_list = G.similarity_jaccard(pairs=edgelist_copy)
 
-        print('commencing global pruning')
+        logger.message("Starting global pruning...")
 
         sim_list_array = np.asarray(sim_list)
         edge_list_copy_array = np.asarray(edgelist_copy)
@@ -323,28 +335,28 @@ class PARC:
         # print('average degree of graph is %.1f' % (np.mean(G_sim.degree())))
         G_sim.simplify(combine_edges='sum')  # "first"
         # print('average degree of SIMPLE graph is %.1f' % (np.mean(G_sim.degree())))
-        print('commencing community detection')
+        logger.message("Starting Leiden community detection...")
         if jac_weighted_edges == True:
             start_leiden = time.time()
             if self.partition_type =='ModularityVP':
-                print('partition type MVP')
+                logger.message("partition type MVP")
                 partition = leidenalg.find_partition(G_sim, leidenalg.ModularityVertexPartition, weights='weight',
                                                  n_iterations=self.n_iter_leiden, seed=self.random_seed)
             else:
-                print('partition type RBC')
+                logger.message("partition type RBC")
                 partition = leidenalg.find_partition(G_sim, leidenalg.RBConfigurationVertexPartition, weights='weight',
                                                      n_iterations=self.n_iter_leiden, seed=self.random_seed, resolution_parameter = self.resolution_parameter)
             #print(time.time() - start_leiden)
         else:
             start_leiden = time.time()
             if self.partition_type == 'ModularityVP':
+                logger.message("partition type MVP")
                 partition = leidenalg.find_partition(G_sim, leidenalg.ModularityVertexPartition,
                                                  n_iterations=self.n_iter_leiden, seed=self.random_seed)
-                print('partition type MVP')
             else:
+                logger.message("partition type RBC")
                 partition = leidenalg.find_partition(G_sim, leidenalg.RBConfigurationVertexPartition,
                                                      n_iterations=self.n_iter_leiden, seed=self.random_seed, resolution_parameter = self.resolution_parameter)
-                print('partition type RBC')
             # print(time.time() - start_leiden)
         time_end_PARC = time.time()
         # print('Q= %.1f' % (partition.quality()))
@@ -375,14 +387,15 @@ class PARC:
 
             for item in set(list(PARC_labels_leiden_big.flatten())):
                 pop_list.append([item, list(PARC_labels_leiden_big.flatten()).count(item)])
-            print('pop of big clusters', pop_list)
+
+            logger.message(f"pop of big clusters {pop_list}")
             jj = 0
-            print('shape PARC_labels_leiden', PARC_labels_leiden.shape)
+            logger.message(f"shape PARC_labels_leiden {PARC_labels_leiden.shape}")
             for j in cluster_big_loc:
                 PARC_labels_leiden[j] = PARC_labels_leiden_big[jj]
                 jj = jj + 1
             dummy, PARC_labels_leiden = np.unique(list(PARC_labels_leiden.flatten()), return_inverse=True)
-            print('new set of labels ', set(PARC_labels_leiden))
+            logger.message(f"New set of labels {set(PARC_labels_leiden)}")
             too_big = False
             set_PARC_labels_leiden = set(PARC_labels_leiden)
 
@@ -393,13 +406,16 @@ class PARC:
                 not_yet_expanded = pop_ii not in list_pop_too_bigs
                 if pop_ii > too_big_factor * n_elements and not_yet_expanded == True:
                     too_big = True
-                    print('cluster', cluster_ii, 'is too big and has population', pop_ii)
+                    logger.message(f"Cluster {cluster_ii} is too big and has population {pop_ii}.")
                     cluster_big_loc = cluster_ii_loc
                     cluster_big = cluster_ii
                     big_pop = pop_ii
             if too_big == True:
                 list_pop_too_bigs.append(big_pop)
-                print('cluster', cluster_big, 'is too big with population', big_pop, '. It will be expanded')
+                logger.message(
+                    f"Cluster {cluster_big} is too big and has population {big_pop}."
+                    "It will be expanded."
+                )
         dummy, PARC_labels_leiden = np.unique(list(PARC_labels_leiden.flatten()), return_inverse=True)
         small_pop_list = []
         small_cluster_list = []
@@ -434,7 +450,7 @@ class PARC:
                 population = len(np.where(PARC_labels_leiden == cluster)[0])
                 if population < small_pop:
                     small_pop_exist = True
-                    print(cluster, ' has small population of', population, )
+                    logger.message(f"Cluster {cluster} has small population of {population}.")
                     small_pop_list.append(np.where(PARC_labels_leiden == cluster)[0])
             for small_cluster in small_pop_list:
                 for single_cell in small_cluster:
@@ -450,7 +466,7 @@ class PARC:
         pop_list = []
         for item in set(PARC_labels_leiden):
             pop_list.append((item, PARC_labels_leiden.count(item)))
-        print('list of cluster labels and populations', len(pop_list), pop_list)
+        logger.message(f"Cluster labels and populations {len(pop_list)} {pop_list}")
 
         self.labels = PARC_labels_leiden  # list
         return
@@ -476,10 +492,11 @@ class PARC:
         for kk in sorted_keys:
             vals = [t for t in Index_dict[kk]]
             majority_val = self.func_mode(vals)
-            if majority_val == onevsall: print('cluster', kk, ' has majority', onevsall, 'with population', len(vals))
+            if majority_val == onevsall:
+                logger.message(f"Cluster {kk} has majority {onevsall} with population {len(vals)}")
             if kk == -1:
                 len_unknown = len(vals)
-                print('len unknown', len_unknown)
+                logger.message(f"len unknown: {len_unknown}")
             if (majority_val == onevsall) and (kk != -1):
                 thp1_labels.append(kk)
                 fp = fp + len([e for e in vals if e != onevsall])
@@ -527,7 +544,9 @@ class PARC:
         return accuracy_val, predict_class_array, majority_truth_labels, number_clusters_for_target
 
     def run_PARC(self):
-        print('input data has shape', self.data.shape[0], '(samples) x', self.data.shape[1], '(features)')
+        logger.message(
+            f"Input data has shape {self.data.shape[0]} (samples) x {self.data.shape[1]} (features)"
+        )
         if self.true_label is None:
             self.true_label = [1] * self.data.shape[0]
         list_roc = []
@@ -540,7 +559,7 @@ class PARC:
         # Query dataset, k - number of closest elements (returns 2 numpy arrays)
         self.run_subPARC()
         run_time = time.time() - time_start_total
-        print('time elapsed {:.1f} seconds'.format(run_time))
+        logger.message(f"Time elapsed to run PARC: {run_time:.1f} seconds")
 
         targets = list(set(self.true_label))
         N = len(list(self.true_label))
@@ -553,11 +572,11 @@ class PARC:
             f1_accumulated = 0
             f1_acc_noweighting = 0
             for onevsall_val in targets:
-                print('target is', onevsall_val)
+                logger.message(f"Target is {onevsall_val}")
                 vals_roc, predict_class_array, majority_truth_labels, numclusters_targetval = self.accuracy(
                     onevsall=onevsall_val)
                 f1_current = vals_roc[1]
-                print('target', onevsall_val, 'has f1-score of %.2f' % (f1_current * 100))
+                logger.message(f"Target {onevsall_val} has f1-score of {(f1_current * 100):.2f}")
                 f1_accumulated = f1_accumulated + f1_current * (list(self.true_label).count(onevsall_val)) / N
                 f1_acc_noweighting = f1_acc_noweighting + f1_current
 
@@ -566,8 +585,8 @@ class PARC:
                         run_time])
 
             f1_mean = f1_acc_noweighting / len(targets)
-            print("f1-score (unweighted) mean %.2f" % (f1_mean * 100), '%')
-            print('f1-score weighted (by population) %.2f' % (f1_accumulated * 100), '%')
+            logger.message(f"f1-score (unweighted) mean: {(f1_mean * 100):.2f}")
+            logger.message(f"f1-score weighted (by population): {(f1_accumulated * 100):.2f}")
 
             df_accuracy = pd.DataFrame(list_roc,
                                        columns=['jac_std_global', 'dist_std_local', 'onevsall-target', 'error rate',
@@ -633,7 +652,7 @@ class PARC:
         """
 
         a, b = find_ab_params(spread, min_dist)
-        print(f"a: {a}, b: {b}, spread: {spread}, dist: {min_dist}")
+        logger.message(f"a: {a}, b: {b}, spread: {spread}, dist: {min_dist}")
 
         X_umap = simplicial_set_embedding(
             data=X_input,
