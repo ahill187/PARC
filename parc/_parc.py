@@ -86,7 +86,7 @@ class PARC:
                     max_elements=n_elements,
                     ef_construction=ef_construction,
                     M=48
-                )  
+                )
             else:
                 p.init_index(
                     max_elements=n_elements,
@@ -639,7 +639,7 @@ class PARC:
                 f1_acc_noweighting = f1_acc_noweighting + f1_current
 
                 list_roc.append(
-                    [self.jac_std_global, self.dist_std_local, onevsall_val] + 
+                    [self.jac_std_global, self.dist_std_local, onevsall_val] +
                     vals_roc +
                     [numclusters_targetval] +
                     [run_time]
