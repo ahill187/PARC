@@ -12,7 +12,6 @@ from parc.logger import get_logger
 logger = get_logger(__name__)
 
 
-#latest github upload 27-June-2020
 class PARC:
     def __init__(
         self,
@@ -70,12 +69,12 @@ class PARC:
             logger.message(
                 f"knn is {self.knn}, consider using a lower K_in for KNN graph construction"
             )
-        ef_query = max(100, self.knn + 1)  # ef always should be >K. higher ef, more accurate query
+        ef_query = max(100, self.knn + 1)  # ef always should be > k. higher ef, more accurate query
         if not too_big:
             num_dims = self.data.shape[1]
             n_elements = self.data.shape[0]
             p = hnswlib.Index(space=self.distance, dim=num_dims)  # default to Euclidean distance
-            p.set_num_threads(self.num_threads)  # allow user to set threads used in KNN construction
+            p.set_num_threads(self.num_threads)  # set threads used in KNN construction
             if n_elements < 10000:
                 ef_query = min(n_elements - 10, 500)
                 ef_construction = ef_query
@@ -105,7 +104,7 @@ class PARC:
 
         return p
 
-    def knngraph_full(self):#, neighbor_array, distance_array):
+    def knngraph_full(self):
         k_umap = 15
         # neighbors in array are not listed in in any order of proximity
         self.knn_struct.set_ef(k_umap+1)
@@ -167,7 +166,7 @@ class PARC:
                 distlist = distance_array[rowi, :]
                 to_keep = np.where(
                     distlist < np.mean(distlist) + self.dist_std_local * np.std(distlist)
-                )[0]  # 0*std
+                )[0]  # 0 * std
                 updated_nn_ind = row[np.ix_(to_keep)]
                 updated_nn_weights = distlist[np.ix_(to_keep)]
                 discard_count = discard_count + (n_neighbors - len(to_keep))
@@ -181,7 +180,7 @@ class PARC:
 
                 rowi = rowi + 1
 
-        if self.keep_all_local_dist:  # dont prune based on distance
+        if self.keep_all_local_dist:  # don't prune based on distance
             row_list.extend(
                 list(np.transpose(np.ones((n_neighbors, n_cells)) * range(0, n_cells)).flatten())
             )
@@ -212,13 +211,7 @@ class PARC:
         neighbor_array, distance_array = hnsw.knn_query(X_data, k=knnbig)
         csr_array = self.make_csrmatrix_noselfloop(neighbor_array, distance_array)
         sources, targets = csr_array.nonzero()
-        #mask = np.zeros(len(sources), dtype=bool)
 
-        #mask |= (csr_array.data < (np.mean(csr_array.data) - np.std(csr_array.data) * 5))  # weights are 1/dist so bigger weight means closer nodes
-
-        #csr_array.data[mask] = 0
-        #csr_array.eliminate_zeros()
-        #sources, targets = csr_array.nonzero()
         edgelist = list(zip(sources.tolist(), targets.tolist()))
         edgelist_copy = edgelist.copy()
         G = ig.Graph(edgelist, edge_attrs={'weight': csr_array.data.tolist()})
@@ -530,7 +523,7 @@ class PARC:
             pop_list.append((item, PARC_labels_leiden.count(item)))
         logger.message(f"Cluster labels and populations {len(pop_list)} {pop_list}")
 
-        self.labels = PARC_labels_leiden  # list
+        self.labels = PARC_labels_leiden
         return
 
     def accuracy(self, onevsall=1):
