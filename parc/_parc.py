@@ -180,7 +180,6 @@ class PARC:
             knnbig = int(max(5, 0.2 * n_elements))
 
         neighbor_array, distance_array = hnsw.knn_query(X_data, k=knnbig)
-        # print('shapes of neigh and dist array', neighbor_array.shape, distance_array.shape)
         csr_array = self.make_csrmatrix_noselfloop(neighbor_array, distance_array)
         sources, targets = csr_array.nonzero()
         #mask = np.zeros(len(sources), dtype=bool)
@@ -233,7 +232,6 @@ class PARC:
                 partition = leidenalg.find_partition(G_sim, leidenalg.RBConfigurationVertexPartition,
                                                      n_iterations=self.n_iter_leiden, seed=self.random_seed,
                                                      resolution_parameter=self.resolution_parameter)
-        # print('Q= %.2f' % partition.quality())
         PARC_labels_leiden = np.asarray(partition.membership)
         PARC_labels_leiden = np.reshape(PARC_labels_leiden, (n_elements, 1))
         small_pop_list = []
@@ -313,8 +311,6 @@ class PARC:
         edgelist_copy = edgelist.copy()
 
         G = ig.Graph(edgelist, edge_attrs={'weight': csr_array.data.tolist()})
-        # print('average degree of prejacard graph is %.1f'% (np.mean(G.degree())))
-        # print('computing Jaccard metric')
         sim_list = G.similarity_jaccard(pairs=edgelist_copy)
 
         logger.message("Starting global pruning...")
@@ -327,14 +323,11 @@ class PARC:
         else:
             threshold = np.mean(sim_list) - jac_std_global * np.std(sim_list)
         strong_locs = np.where(sim_list_array > threshold)[0]
-        # print('Share of edges kept after Global Pruning %.2f' % (len(strong_locs) / len(sim_list)), '%')
         new_edgelist = list(edge_list_copy_array[strong_locs])
         sim_list_new = list(sim_list_array[strong_locs])
 
         G_sim = ig.Graph(n=n_elements, edges=list(new_edgelist), edge_attrs={'weight': sim_list_new})
-        # print('average degree of graph is %.1f' % (np.mean(G_sim.degree())))
         G_sim.simplify(combine_edges='sum')  # "first"
-        # print('average degree of SIMPLE graph is %.1f' % (np.mean(G_sim.degree())))
         logger.message("Starting Leiden community detection...")
         if jac_weighted_edges == True:
             start_leiden = time.time()
@@ -346,7 +339,7 @@ class PARC:
                 logger.message("partition type RBC")
                 partition = leidenalg.find_partition(G_sim, leidenalg.RBConfigurationVertexPartition, weights='weight',
                                                      n_iterations=self.n_iter_leiden, seed=self.random_seed, resolution_parameter = self.resolution_parameter)
-            #print(time.time() - start_leiden)
+
         else:
             start_leiden = time.time()
             if self.partition_type == 'ModularityVP':
@@ -357,15 +350,12 @@ class PARC:
                 logger.message("partition type RBC")
                 partition = leidenalg.find_partition(G_sim, leidenalg.RBConfigurationVertexPartition,
                                                      n_iterations=self.n_iter_leiden, seed=self.random_seed, resolution_parameter = self.resolution_parameter)
-            # print(time.time() - start_leiden)
+
         time_end_PARC = time.time()
-        # print('Q= %.1f' % (partition.quality()))
         PARC_labels_leiden = np.asarray(partition.membership)
         PARC_labels_leiden = np.reshape(PARC_labels_leiden, (n_elements, 1))
 
         too_big = False
-
-        # print('labels found after Leiden', set(list(PARC_labels_leiden.T)[0])) will have some outlier clusters that need to be added to a cluster if a cluster has members that are KNN
 
         cluster_i_loc = np.where(PARC_labels_leiden == 0)[
             0]  # the 0th cluster is the largest one. so if cluster 0 is not too big, then the others wont be too big either
@@ -380,9 +370,7 @@ class PARC:
 
             X_data_big = X_data[cluster_big_loc, :]
             PARC_labels_leiden_big = self.run_toobig_subPARC(X_data_big)
-            # print('set of new big labels ', set(PARC_labels_leiden_big.flatten()))
             PARC_labels_leiden_big = PARC_labels_leiden_big + 100000
-            # print('set of new big labels +100000 ', set(list(PARC_labels_leiden_big.flatten())))
             pop_list = []
 
             for item in set(list(PARC_labels_leiden_big.flatten())):
@@ -462,7 +450,6 @@ class PARC:
 
         dummy, PARC_labels_leiden = np.unique(list(PARC_labels_leiden.flatten()), return_inverse=True)
         PARC_labels_leiden = list(PARC_labels_leiden.flatten())
-        # print('final labels allocation', set(PARC_labels_leiden))
         pop_list = []
         for item in set(PARC_labels_leiden):
             pop_list.append((item, PARC_labels_leiden.count(item)))
