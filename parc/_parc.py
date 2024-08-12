@@ -452,12 +452,13 @@ class PARC:
             node_communities = np.unique(
                 list(node_communities.flatten()), return_inverse=True
             )[1]
-            logger.message(f"New set of labels {set(node_communities)}")
+
             too_big = False
-            set_PARC_labels_leiden = set(node_communities)
+            set_node_communities = set(node_communities)
+            logger.message(f"New set of labels {set_node_communities}")
 
             node_communities = np.asarray(node_communities)
-            for cluster_ii in set_PARC_labels_leiden:
+            for cluster_ii in set_node_communities:
                 cluster_ii_loc = np.where(node_communities == cluster_ii)[0]
                 pop_ii = len(cluster_ii_loc)
                 not_yet_expanded = pop_ii not in list_pop_too_bigs
