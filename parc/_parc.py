@@ -285,12 +285,12 @@ class PARC:
         PARC_labels_leiden = np.reshape(PARC_labels_leiden, (n_samples, 1))
         small_pop_list = []
         small_cluster_list = []
-        small_pop_exist = False
+        small_community_exists = False
         PARC_labels_leiden = np.unique(list(PARC_labels_leiden.flatten()), return_inverse=True)[1]
         for cluster in set(PARC_labels_leiden):
             population = len(np.where(PARC_labels_leiden == cluster)[0])
             if population < small_community_size:
-                small_pop_exist = True
+                small_community_exists = True
                 small_pop_list.append(list(np.where(PARC_labels_leiden == cluster)[0]))
                 small_cluster_list.append(cluster)
 
@@ -308,13 +308,13 @@ class PARC:
 
         time_start = time.time()
         logger.message("Handling fragments...")
-        while small_pop_exist & (time.time() - time_start < self.small_community_timeout):
+        while small_community_exists & (time.time() - time_start < self.small_community_timeout):
             small_pop_list = []
-            small_pop_exist = False
+            small_community_exists = False
             for cluster in set(list(PARC_labels_leiden.flatten())):
                 population = len(np.where(PARC_labels_leiden == cluster)[0])
                 if population < small_community_size:
-                    small_pop_exist = True
+                    small_community_exists = True
 
                     small_pop_list.append(np.where(PARC_labels_leiden == cluster)[0])
             for small_cluster in small_pop_list:
@@ -477,13 +477,13 @@ class PARC:
         PARC_labels_leiden = np.unique(list(PARC_labels_leiden.flatten()), return_inverse=True)[1]
         small_pop_list = []
         small_cluster_list = []
-        small_pop_exist = False
+        small_community_exists = False
 
         for cluster in set(PARC_labels_leiden):
             population = len(np.where(PARC_labels_leiden == cluster)[0])
 
             if population < small_community_size:  # 10
-                small_pop_exist = True
+                small_community_exists = True
 
                 small_pop_list.append(list(np.where(PARC_labels_leiden == cluster)[0]))
                 small_cluster_list.append(cluster)
@@ -501,13 +501,13 @@ class PARC:
                     best_group = max(available_neighbours_list, key=available_neighbours_list.count)
                     PARC_labels_leiden[single_cell] = best_group
         time_start = time.time()
-        while small_pop_exist & ((time.time() - time_start) < self.small_community_timeout):
+        while small_community_exists & ((time.time() - time_start) < self.small_community_timeout):
             small_pop_list = []
-            small_pop_exist = False
+            small_community_exists = False
             for cluster in set(list(PARC_labels_leiden.flatten())):
                 population = len(np.where(PARC_labels_leiden == cluster)[0])
                 if population < small_community_size:
-                    small_pop_exist = True
+                    small_community_exists = True
                     logger.message(f"Cluster {cluster} has small population of {population}.")
                     small_pop_list.append(np.where(PARC_labels_leiden == cluster)[0])
             for small_cluster in small_pop_list:
