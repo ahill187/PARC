@@ -453,15 +453,20 @@ class PARC:
 
         return node_communities
 
-    def run_subPARC(self):
-
+    def run_PARC(self):
+        time_start = time.time()
         x_data = self.x_data
+        n_samples = x_data.shape[0]
+        n_features = x_data.shape[1]
+        logger.message(
+            f"Input data has shape {n_samples} (samples) x {n_features} (features)"
+        )
+
         large_community_factor = self.large_community_factor
         small_community_size = self.small_community_size
         jac_std_factor = self.jac_std_factor
         jac_weighted_edges = self.jac_weighted_edges
         knn = self.knn
-        n_samples = x_data.shape[0]
 
         if self.neighbor_graph is not None:
             csr_array = self.neighbor_graph
@@ -626,8 +631,8 @@ class PARC:
                                                  value in list(available_neighbours)]
                     best_group = max(available_neighbours_list, key=available_neighbours_list.count)
                     node_communities[single_cell] = best_group
-        time_start = time.time()
-        while small_community_exists & ((time.time() - time_start) < self.small_community_timeout):
+        time_start_sc = time.time()
+        while small_community_exists & (time.time() - time_start_sc) < self.small_community_timeout:
             small_pop_list = []
             small_community_exists = False
             for cluster in set(list(node_communities.flatten())):
@@ -652,7 +657,9 @@ class PARC:
         logger.message(f"Cluster labels and populations {len(pop_list)} {pop_list}")
 
         self.y_data_pred = node_communities
-        return
+        run_time = time.time() - time_start
+        logger.message(f"Time elapsed to run PARC: {run_time:.1f} seconds")
+        self.compute_performance_metrics(run_time)
 
     def accuracy(self, target=1):
 
@@ -728,19 +735,13 @@ class PARC:
 
         return accuracy_val, predict_class_array, majority_truth_labels, number_clusters_for_target
 
-    def run_PARC(self):
-        logger.message(
-            f"Input data has shape {self.x_data.shape[0]} (samples) x {self.x_data.shape[1]} (features)"
-        )
+    def compute_performance_metrics(self, run_time: float):
+        """Compute performance metrics for the PARC algorithm.
+
+        Args:
+            run_time: (float) the time taken to run the PARC algorithm.
+        """
         list_roc = []
-
-        time_start_total = time.time()
-
-        # Query dataset, k - number of closest elements (returns 2 numpy arrays)
-        self.run_subPARC()
-        run_time = time.time() - time_start_total
-        logger.message(f"Time elapsed to run PARC: {run_time:.1f} seconds")
-
         targets = list(set(self.y_data_true))
         n_samples = len(list(self.y_data_true))
         self.f1_accumulated = 0
@@ -788,7 +789,6 @@ class PARC:
             self.f1_mean = f1_mean
             self.stats_df = df_accuracy
             self.majority_truth_labels = majority_truth_labels
-        return
 
     def run_umap_hnsw(
             self,
