@@ -18,7 +18,7 @@ class PARC:
         self,
         x_data,
         y_data_true=None,
-        dist_std_local=3,
+        l2_std_factor=3,
         jac_std_global="median",
         keep_all_local_dist="auto",
         large_community_factor=0.4,
@@ -36,7 +36,7 @@ class PARC:
         neighbor_graph=None,
         hnsw_param_ef_construction=150
     ):
-        # higher dist_std_local means more edges are kept
+        # higher l2_std_factor means more edges are kept
         # highter jac_std_global means more edges are kept
         if keep_all_local_dist == "auto":
             if x_data.shape[0] > 300000:
@@ -47,7 +47,7 @@ class PARC:
             partition_type = "RBVP" # Reichardt and Bornholdt’s Potts model. Note that this is the same as ModularityVertexPartition when setting 𝛾 = 1 and normalising by 2m
         self.x_data = x_data
         self.y_data_true = y_data_true
-        self.dist_std_local = dist_std_local   # similar to the jac_std_global parameter. avoid setting local and global pruning to both be below 0.5 as this is very aggresive pruning.
+        self.l2_std_factor = l2_std_factor   # similar to the jac_std_global parameter. avoid setting local and global pruning to both be below 0.5 as this is very aggresive pruning.
         self.jac_std_global = jac_std_global  #0.15 is also a recommended value performing empirically similar to "median". Generally values between 0-1.5 are reasonable.
         self.keep_all_local_dist = keep_all_local_dist #decides whether or not to do local pruning. default is "auto" which omits LOCAL pruning for samples >300,000 cells.
         self.large_community_factor = large_community_factor  #if a cluster exceeds this share of the entire cell population, then the PARC will be run on the large cluster. at 0.4 it does not come into play
@@ -160,13 +160,13 @@ class PARC:
 
             logger.message(
                 "Starting local pruning based on Euclidean distance metric at "
-                f"{self.dist_std_local} standard deviations above the mean"
+                f"{self.l2_std_factor} standard deviations above the mean"
             )
             distance_array = distance_array + 0.1
             for row in neighbor_array:
                 distlist = distance_array[rowi, :]
                 to_keep = np.where(
-                    distlist < np.mean(distlist) + self.dist_std_local * np.std(distlist)
+                    distlist < np.mean(distlist) + self.l2_std_factor * np.std(distlist)
                 )[0]  # 0 * std
                 updated_nn_ind = row[np.ix_(to_keep)]
                 updated_nn_weights = distlist[np.ix_(to_keep)]
@@ -623,7 +623,7 @@ class PARC:
         self.f1_mean = 0
         self.stats_df = pd.DataFrame({
             "jac_std_global": [self.jac_std_global],
-            "dist_std_local": [self.dist_std_local],
+            "l2_std_factor": [self.l2_std_factor],
             "runtime(s)": [run_time]
         })
         self.majority_truth_labels = []
@@ -641,7 +641,7 @@ class PARC:
                 f1_acc_noweighting = f1_acc_noweighting + f1_current
 
                 list_roc.append(
-                    [self.jac_std_global, self.dist_std_local, onevsall_val] +
+                    [self.jac_std_global, self.l2_std_factor, onevsall_val] +
                     vals_roc +
                     [numclusters_targetval] +
                     [run_time]
@@ -654,7 +654,7 @@ class PARC:
             df_accuracy = pd.DataFrame(
                 list_roc,
                 columns=[
-                    "jac_std_global", "dist_std_local", "onevsall-target", "error rate",
+                    "jac_std_global", "l2_std_factor", "onevsall-target", "error rate",
                     "f1-score", "tnr", "fnr", "tpr", "fpr", "precision", "recall", "num_groups",
                     "population of target", "num clusters", "clustering runtime"
                 ]
