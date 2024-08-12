@@ -14,56 +14,180 @@ logger = get_logger(__name__)
 
 
 class PARC:
+    """``PARC``: ``P``henotyping by ``A``ccelerated ``R``efined ``C``ommunity-partitioning.
+
+    Attributes:
+        x_data:
+            An array of the input x data, with dimensions ``(n_samples, n_features)``.
+        y_data_true:
+            An array of the true output y labels.
+        y_data_pred:
+            An array of the predicted output y labels.
+        knn:
+            The number of nearest neighbors k for the k-nearest neighbours algorithm.
+            Larger k means more neighbors in a cluster and therefore less clusters.
+        n_iter_leiden:
+            The number of iterations for the Leiden algorithm.
+        random_seed:
+            The random seed to enable reproducible Leiden clustering.
+        distance_metric:
+            The distance metric to be used in the KNN algorithm:
+
+                * ``l2``: Euclidean distance L^2 norm:
+
+                  .. code-block:: python
+
+                    d = np.sum((x_i - y_i)**2)
+                * ``cosine``: cosine similarity:
+
+                  .. code-block:: python
+
+                    d = 1.0 - np.sum(x_i*y_i) / np.sqrt(sum(x_i*x_i) * np.sum(y_i*y_i))
+                * ``ip``: inner product distance:
+
+                  .. code-block:: python
+
+                    d = 1.0 - np.sum(x_i*y_i)
+        n_threads:
+            The number of threads used in the KNN algorithm.
+        hnsw_param_ef_construction:
+            A higher value increases accuracy of index construction.
+            Even for O(100 000) cells, 150-200 is adequate.
+        neighbor_graph:
+            A sparse matrix with dimensions ``(n_samples, n_samples)``, containing the
+            distances between nodes.
+        knn_struct:
+            The HNSW index of the KNN graph on which we perform queries.
+        l2_std_factor:
+            The multiplier used in calculating the Euclidean distance threshold for the distance
+            between two nodes during local pruning:
+
+            .. code-block:: python
+
+                max_distance = np.mean(distances) + l2_std_factor * np.std(distances)
+
+            Avoid setting both the ``jac_std_factor`` (global) and the ``l2_std_factor`` (local)
+            to < 0.5 as this is very aggressive pruning.
+            Higher ``l2_std_factor`` means more edges are kept.
+        keep_all_local_dist:
+            Whether or not to do local pruning.
+            If ``None`` (default), set to ``True`` if the number of samples is > 300 000,
+            and set to ``False`` otherwise.
+        jac_std_factor:
+            The multiplier used in calculating the Jaccard similarity threshold for the similarity
+            between two nodes during global pruning for ``jac_threshold_type = "mean"``:
+
+            .. code-block:: python
+
+                threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
+
+            Setting ``jac_std_factor = 0.15`` and ``jac_threshold_type="mean"`` performs empirically
+            similar to ``jac_threshold_type="median"``, which does not use the ``jac_std_factor``.
+            Generally values between 0-1.5 are reasonable. Higher ``jac_std_factor`` means more
+            edges are kept.
+        jac_weighted_edges:
+            Whether to partition using the weighted graph.
+        resolution_parameter:
+            The resolution parameter to be used in the Leiden algorithm.
+            In order to change ``resolution_parameter``, we switch to ``RBVP``.
+        partition_type:
+            The partition type to be used in the Leiden algorithm:
+
+            * ``ModularityVP``: ModularityVertexPartition, ``resolution_parameter=1``
+            * ``RBVP``: RBConfigurationVP, Reichardt and Bornholdt’s Potts model. Note that this
+                is the same as ``ModularityVP`` when setting 𝛾 = 1 and normalising by 2m.
+        large_community_factor:
+            A factor used to determine if a community is too large.
+            If the community size is greater than ``large_community_factor * n_samples``,
+            then the community is too large and the ``PARC`` algorithm will be run on the single
+            community to split it up. The default value of ``0.4`` ensures that all communities
+            will be less than the cutoff size.
+        small_community_size:
+            The smallest population size to be considered a community.
+        small_community_timeout:
+            The maximum number of seconds trying to check an outlying small community.
+    """
     def __init__(
         self,
-        x_data,
-        y_data_true=None,
-        l2_std_factor=3,
-        jac_std_factor="median",
-        keep_all_local_dist="auto",
-        large_community_factor=0.4,
-        small_community_size=10,
-        jac_weighted_edges=True,
-        knn=30,
-        n_iter_leiden=5,
-        random_seed=42,
-        n_threads=-1,
-        distance_metric="l2",
-        small_community_timeout=15,
-        partition_type="ModularityVP",
-        resolution_parameter=1.0,
-        knn_struct=None,
-        neighbor_graph=None,
-        hnsw_param_ef_construction=150
+        x_data: np.ndarray,
+        y_data_true: np.ndarray | None = None,
+        l2_std_factor: float = 3,
+        jac_std_factor: float | str = "median",
+        keep_all_local_dist: bool | None = None,
+        large_community_factor: float = 0.4,
+        small_community_size: int = 10,
+        jac_weighted_edges: bool = True,
+        knn: int = 30,
+        n_iter_leiden: int = 5,
+        random_seed: int = 42,
+        n_threads: int = -1,
+        distance_metric: str = "l2",
+        small_community_timeout: float = 15,
+        partition_type: str = "ModularityVP",
+        resolution_parameter: float = 1.0,
+        knn_struct: hnswlib.Index | None = None,
+        neighbor_graph: csr_matrix | None = None,
+        hnsw_param_ef_construction: int = 150
     ):
-        # higher l2_std_factor means more edges are kept
-        # highter jac_std_factor means more edges are kept
-        if keep_all_local_dist == "auto":
-            if x_data.shape[0] > 300000:
-                keep_all_local_dist = True  # skips local pruning to increase speed
-            else:
-                keep_all_local_dist = False
-        if resolution_parameter != 1:
-            partition_type = "RBVP" # Reichardt and Bornholdt’s Potts model. Note that this is the same as ModularityVertexPartition when setting 𝛾 = 1 and normalising by 2m
         self.x_data = x_data
         self.y_data_true = y_data_true
-        self.l2_std_factor = l2_std_factor   # similar to the jac_std_factor parameter. avoid setting local and global pruning to both be below 0.5 as this is very aggresive pruning.
-        self.jac_std_factor = jac_std_factor  #0.15 is also a recommended value performing empirically similar to "median". Generally values between 0-1.5 are reasonable.
-        self.keep_all_local_dist = keep_all_local_dist #decides whether or not to do local pruning. default is "auto" which omits LOCAL pruning for samples >300,000 cells.
-        self.large_community_factor = large_community_factor  #if a cluster exceeds this share of the entire cell population, then the PARC will be run on the large cluster. at 0.4 it does not come into play
-        self.small_community_size = small_community_size  # smallest cluster population to be considered a community
-        self.jac_weighted_edges = jac_weighted_edges #boolean. whether to partition using weighted graph
+        self.y_data_pred = None
         self.knn = knn
-        self.n_iter_leiden = n_iter_leiden #the default is 5 in PARC
-        self.random_seed = random_seed  # enable reproducible Leiden clustering
-        self.n_threads = n_threads  # number of threads used in KNN search/construction
-        self.distance_metric = distance_metric  # Euclidean distance "l2" by default; other options "ip" and "cosine"
-        self.small_community_timeout = small_community_timeout #number of seconds trying to check an outlier
-        self.partition_type = partition_type #default is the simple ModularityVertexPartition where resolution_parameter =1. In order to change resolution_parameter, we switch to RBConfigurationVP
-        self.resolution_parameter = resolution_parameter # defaults to 1. expose this parameter in leidenalg
-        self.knn_struct = knn_struct #the hnsw index of the KNN graph on which we perform queries
-        self.neighbor_graph = neighbor_graph # CSR affinity matrix for pre-computed nearest neighbors
-        self.hnsw_param_ef_construction = hnsw_param_ef_construction #set at 150. higher value increases accuracy of index construction. Even for several 100,000s of cells 150-200 is adequate
+        self.n_iter_leiden = n_iter_leiden
+        self.random_seed = random_seed
+        self.distance_metric = distance_metric
+        self.n_threads = n_threads
+        self.hnsw_param_ef_construction = hnsw_param_ef_construction
+        self.neighbor_graph = neighbor_graph
+        self.knn_struct = knn_struct
+        self.l2_std_factor = l2_std_factor
+        self.jac_std_factor = jac_std_factor
+        self.jac_weighted_edges = jac_weighted_edges
+        self.keep_all_local_dist = keep_all_local_dist
+        self.large_community_factor = large_community_factor
+        self.small_community_size = small_community_size
+        self.small_community_timeout = small_community_timeout
+        self.resolution_parameter = resolution_parameter
+        self.partition_type = partition_type
+
+    @property
+    def y_data_true(self) -> np.ndarray:
+        return self._y_data_true
+
+    @y_data_true.setter
+    def y_data_true(self, y_data_true: np.ndarray | None):
+        if y_data_true is None:
+            y_data_true = [1] * self.x_data.shape[0]
+        self._y_data_true = y_data_true
+
+    @property
+    def keep_all_local_dist(self) -> bool:
+        return self._keep_all_local_dist
+
+    @keep_all_local_dist.setter
+    def keep_all_local_dist(self, keep_all_local_dist: bool | None):
+        if keep_all_local_dist is None:
+            if self.x_data.shape[0] > 300000:
+                logger.message(
+                    f"Sample size is {self.x_data.shape[0]}, setting keep_all_local_dist "
+                    f"to True so that local pruning will be skipped and algorithm will be faster."
+                )
+                keep_all_local_dist = True
+            else:
+                keep_all_local_dist = False
+
+        self._keep_all_local_dist = keep_all_local_dist
+
+    @property
+    def partition_type(self) -> str:
+        return self._partition_type
+
+    @partition_type.setter
+    def partition_type(self, partition_type: str):
+        if self.resolution_parameter != 1:
+            self._partition_type = "RBVP"
+        else:
+            self._partition_type = partition_type
 
     def make_knn_struct(self, too_big=False, big_cluster=None):
         if self.knn > 190:
@@ -608,8 +732,6 @@ class PARC:
         logger.message(
             f"Input data has shape {self.x_data.shape[0]} (samples) x {self.x_data.shape[1]} (features)"
         )
-        if self.y_data_true is None:
-            self.y_data_true = [1] * self.x_data.shape[0]
         list_roc = []
 
         time_start_total = time.time()
