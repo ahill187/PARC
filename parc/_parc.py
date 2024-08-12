@@ -525,20 +525,20 @@ class PARC:
             pop_list.append((item, PARC_labels_leiden.count(item)))
         logger.message(f"Cluster labels and populations {len(pop_list)} {pop_list}")
 
-        self.labels = PARC_labels_leiden
+        self.y_data_pred = PARC_labels_leiden
         return
 
     def accuracy(self, onevsall=1):
 
         y_data_true = self.y_data_true
         Index_dict = {}
-        PARC_labels = self.labels
-        N = len(PARC_labels)
+        y_data_pred = self.y_data_pred
+        N = len(y_data_pred)
         n_cancer = list(y_data_true).count(onevsall)
         n_pbmc = N - n_cancer
 
         for k in range(N):
-            Index_dict.setdefault(PARC_labels[k], []).append(y_data_true[k])
+            Index_dict.setdefault(y_data_pred[k], []).append(y_data_true[k])
         num_groups = len(Index_dict)
         sorted_keys = list(sorted(Index_dict.keys()))
         error_count = []
@@ -567,8 +567,8 @@ class PARC:
                 fn = fn + len([e for e in vals if e == onevsall])
                 error_count.append(len([e for e in vals if e != majority_val]))
 
-        predict_class_array = np.array(PARC_labels)
-        PARC_labels_array = np.array(PARC_labels)
+        predict_class_array = np.array(y_data_pred)
+        PARC_labels_array = np.array(y_data_pred)
         number_clusters_for_target = len(thp1_labels)
         for cancer_class in thp1_labels:
             predict_class_array[PARC_labels_array == cancer_class] = 1
@@ -590,8 +590,8 @@ class PARC:
             f1_score = precision * recall * 2 / (precision + recall)
         majority_truth_labels = np.empty((len(y_data_true), 1), dtype=object)
 
-        for cluster_i in set(PARC_labels):
-            cluster_i_loc = np.where(np.asarray(PARC_labels) == cluster_i)[0]
+        for cluster_i in set(y_data_pred):
+            cluster_i_loc = np.where(np.asarray(y_data_pred) == cluster_i)[0]
             y_data_true = np.asarray(y_data_true)
             majority_truth = get_mode(list(y_data_true[cluster_i_loc]))
             majority_truth_labels[cluster_i_loc] = majority_truth
