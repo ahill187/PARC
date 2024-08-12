@@ -212,9 +212,9 @@ class PARC:
 
         neighbor_array, distance_array = hnsw.knn_query(x_data, k=knnbig)
         csr_array = self.make_csrmatrix_noselfloop(neighbor_array, distance_array)
-        sources, targets = csr_array.nonzero()
+        input_nodes, targets = csr_array.nonzero()
 
-        edges = list(zip(sources.tolist(), targets.tolist()))
+        edges = list(zip(input_nodes.tolist(), targets.tolist()))
         edges_copy = edges.copy()
         graph = ig.Graph(edges, edge_attrs={"weight": csr_array.data.tolist()})
         similarities = graph.similarity_jaccard(pairs=edges_copy)  # list of jaccard weights
@@ -351,9 +351,9 @@ class PARC:
             neighbor_array, distance_array = self.knn_struct.knn_query(x_data, k=knn)
             csr_array = self.make_csrmatrix_noselfloop(neighbor_array, distance_array)
 
-        sources, targets = csr_array.nonzero()
+        input_nodes, targets = csr_array.nonzero()
 
-        edges = list(zip(sources, targets))
+        edges = list(zip(input_nodes, targets))
 
         edges_copy = edges.copy()
 
