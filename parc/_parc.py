@@ -458,15 +458,15 @@ class PARC:
             logger.message(f"New set of labels {set_node_communities}")
 
             node_communities = np.asarray(node_communities)
-            for cluster_ii in set_node_communities:
-                cluster_ii_loc = np.where(node_communities == cluster_ii)[0]
+            for community_id in set_node_communities:
+                cluster_ii_loc = np.where(node_communities == community_id)[0]
                 pop_ii = len(cluster_ii_loc)
                 not_yet_expanded = pop_ii not in list_pop_too_bigs
                 if pop_ii > large_community_factor * n_samples and not_yet_expanded:
                     too_big = True
-                    logger.message(f"Cluster {cluster_ii} is too big and has population {pop_ii}.")
+                    logger.message(f"Cluster {community_id} is too big and has population {pop_ii}.")
                     cluster_big_loc = cluster_ii_loc
-                    cluster_big = cluster_ii
+                    cluster_big = community_id
                     big_pop = pop_ii
             if too_big:
                 list_pop_too_bigs.append(big_pop)
