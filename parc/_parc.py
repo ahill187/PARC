@@ -237,11 +237,11 @@ class PARC:
             containing the pruned distances.
         """
 
-        k_umap = 15
+        knn = 15
 
         # neighbors in array are not listed in in any order of proximity
-        self.knn_struct.set_ef(k_umap + 1)
-        neighbor_array, distance_array = self.knn_struct.knn_query(self.x_data, k=k_umap)
+        self.knn_struct.set_ef(knn + 1)
+        neighbor_array, distance_array = self.knn_struct.knn_query(self.x_data, k=knn)
 
         row_list = []
         n_neighbors = neighbor_array.shape[1]
