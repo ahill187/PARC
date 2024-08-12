@@ -545,7 +545,7 @@ class PARC:
         sorted_keys = list(sorted(Index_dict.keys()))
         error_count = []
         negative_labels = []
-        thp1_labels = []
+        positive_labels = []
         fp, fn, tp, tn, precision, recall, f1_score = 0, 0, 0, 0, 0, 0, 0
 
         for kk in sorted_keys:
@@ -557,7 +557,7 @@ class PARC:
                 len_unknown = len(vals)
                 logger.message(f"len unknown: {len_unknown}")
             if (majority_val == onevsall) and (kk != -1):
-                thp1_labels.append(kk)
+                positive_labels.append(kk)
                 fp = fp + len([e for e in vals if e != onevsall])
                 tp = tp + len([e for e in vals if e == onevsall])
                 list_error = [e for e in vals if e != majority_val]
@@ -571,8 +571,8 @@ class PARC:
 
         predict_class_array = np.array(y_data_pred)
         y_data_pred_array = np.array(y_data_pred)
-        number_clusters_for_target = len(thp1_labels)
-        for cancer_class in thp1_labels:
+        number_clusters_for_target = len(positive_labels)
+        for cancer_class in positive_labels:
             predict_class_array[y_data_pred_array == cancer_class] = 1
         for benign_class in negative_labels:
             predict_class_array[y_data_pred_array == benign_class] = 0
