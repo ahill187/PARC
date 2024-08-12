@@ -83,25 +83,25 @@ class PARC:
     """
     def __init__(
         self,
-        x_data,
-        y_data_true=None,
-        l2_std_factor=3,
-        jac_std_factor="median",
-        keep_all_local_dist=None,
-        large_community_factor=0.4,
-        small_community_size=10,
-        jac_weighted_edges=True,
-        knn=30,
-        n_iter_leiden=5,
-        random_seed=42,
-        n_threads=-1,
-        distance_metric="l2",
-        small_community_timeout=15,
-        partition_type="ModularityVP",
-        resolution_parameter=1.0,
-        knn_struct=None,
-        neighbor_graph=None,
-        hnsw_param_ef_construction=150
+        x_data: np.ndarray,
+        y_data_true: np.ndarray | None = None,
+        l2_std_factor: float = 3,
+        jac_std_factor: float | str = "median",
+        keep_all_local_dist: bool | None = None,
+        large_community_factor: float = 0.4,
+        small_community_size: int = 10,
+        jac_weighted_edges: bool = True,
+        knn: int = 30,
+        n_iter_leiden: int = 5,
+        random_seed: int = 42,
+        n_threads: int = -1,
+        distance_metric: str = "l2",
+        small_community_timeout: float = 15,
+        partition_type: str = "ModularityVP",
+        resolution_parameter: float = 1.0,
+        knn_struct: hnswlib.Index | None = None,
+        neighbor_graph: csr_matrix | None = None,
+        hnsw_param_ef_construction: int = 150
     ):
         self.x_data = x_data
         self.y_data_true = y_data_true
@@ -125,21 +125,21 @@ class PARC:
         self.partition_type = partition_type
 
     @property
-    def y_data_true(self):
+    def y_data_true(self) -> np.ndarray:
         return self._y_data_true
 
     @y_data_true.setter
-    def y_data_true(self, y_data_true):
+    def y_data_true(self, y_data_true: np.ndarray | None):
         if y_data_true is None:
             y_data_true = [1] * self.x_data.shape[0]
         self._y_data_true = y_data_true
 
     @property
-    def keep_all_local_dist(self):
+    def keep_all_local_dist(self) -> bool:
         return self._keep_all_local_dist
 
     @keep_all_local_dist.setter
-    def keep_all_local_dist(self, keep_all_local_dist):
+    def keep_all_local_dist(self, keep_all_local_dist: bool | None):
         if keep_all_local_dist is None:
             if self.x_data.shape[0] > 300000:
                 logger.message(
@@ -153,11 +153,11 @@ class PARC:
         self._keep_all_local_dist = keep_all_local_dist
 
     @property
-    def partition_type(self):
+    def partition_type(self) -> str:
         return self._partition_type
 
     @partition_type.setter
-    def partition_type(self, partition_type):
+    def partition_type(self, partition_type: str):
         if self.resolution_parameter != 1:
             self._partition_type = "RBVP"
         else:
