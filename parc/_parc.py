@@ -103,8 +103,6 @@ class PARC:
         neighbor_graph=None,
         hnsw_param_ef_construction=150
     ):
-        if resolution_parameter != 1:
-            partition_type = "RBVP"
         self.x_data = x_data
         self.y_data_true = y_data_true
         self.y_data_pred = None
@@ -143,6 +141,17 @@ class PARC:
                 keep_all_local_dist = False
 
         self._keep_all_local_dist = keep_all_local_dist
+
+    @property
+    def partition_type(self):
+        return self._partition_type
+
+    @partition_type.setter
+    def partition_type(self, partition_type):
+        if self.resolution_parameter != 1:
+            self._partition_type = "RBVP"
+        else:
+            self._partition_type = partition_type
 
     def make_knn_struct(self, too_big=False, big_cluster=None):
         if self.knn > 190:
