@@ -732,11 +732,11 @@ class PARC:
         logger.message(
             f"Input data has shape {self.x_data.shape[0]} (samples) x {self.x_data.shape[1]} (features)"
         )
-        time_start_total = time.time()
+        time_start = time.time()
 
         # Query dataset, k - number of closest elements (returns 2 numpy arrays)
         self.run_subPARC()
-        run_time = time.time() - time_start_total
+        run_time = time.time() - time_start
         logger.message(f"Time elapsed to run PARC: {run_time:.1f} seconds")
         self.compute_performance_metrics(run_time)
 
