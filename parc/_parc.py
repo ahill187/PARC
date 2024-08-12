@@ -592,8 +592,8 @@ class PARC:
             f1_score = precision * recall * 2 / (precision + recall)
         majority_truth_labels = np.empty((len(y_data_true), 1), dtype=object)
 
-        for cluster_i in set(y_data_pred):
-            community_indices = np.where(np.asarray(y_data_pred) == cluster_i)[0]
+        for community_id in set(y_data_pred):
+            community_indices = np.where(np.asarray(y_data_pred) == community_id)[0]
             y_data_true = np.asarray(y_data_true)
             majority_truth = get_mode(list(y_data_true[community_indices]))
             majority_truth_labels[community_indices] = majority_truth
