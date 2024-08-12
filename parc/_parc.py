@@ -233,13 +233,13 @@ class PARC:
         for ii in strong_locs:
             new_edgelist.append(edgelist_copy[ii])
 
-        sim_list_new = list(sim_list_array[strong_locs])
+        similarities_new = list(sim_list_array[strong_locs])
 
         if jac_weighted_edges:
             graph_pruned = ig.Graph(
                 n=n_samples,
                 edges=list(new_edgelist),
-                edge_attrs={"weight": sim_list_new}
+                edge_attrs={"weight": similarities_new}
             )
         else:
             graph_pruned = ig.Graph(n=n_samples, edges=list(new_edgelist))
@@ -371,12 +371,12 @@ class PARC:
             threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
         strong_locs = np.where(sim_list_array > threshold)[0]
         new_edgelist = list(edge_list_copy_array[strong_locs])
-        sim_list_new = list(sim_list_array[strong_locs])
+        similarities_new = list(sim_list_array[strong_locs])
 
         graph_pruned = ig.Graph(
             n=n_samples,
             edges=list(new_edgelist),
-            edge_attrs={"weight": sim_list_new}
+            edge_attrs={"weight": similarities_new}
         )
         graph_pruned.simplify(combine_edges="sum")  # "first"
         logger.message("Starting Leiden community detection...")
