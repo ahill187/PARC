@@ -436,18 +436,18 @@ class PARC:
         while too_big:
 
             X_data_big = x_data[cluster_big_loc, :]
-            PARC_labels_leiden_big = self.run_toobig_subPARC(X_data_big)
-            PARC_labels_leiden_big = PARC_labels_leiden_big + 100000
+            node_communities_big = self.run_toobig_subPARC(X_data_big)
+            node_communities_big = node_communities_big + 100000
             pop_list = []
 
-            for item in set(list(PARC_labels_leiden_big.flatten())):
-                pop_list.append([item, list(PARC_labels_leiden_big.flatten()).count(item)])
+            for item in set(list(node_communities_big.flatten())):
+                pop_list.append([item, list(node_communities_big.flatten()).count(item)])
 
             logger.message(f"pop of big clusters {pop_list}")
             jj = 0
             logger.message(f"shape node_communities {node_communities.shape}")
             for j in cluster_big_loc:
-                node_communities[j] = PARC_labels_leiden_big[jj]
+                node_communities[j] = node_communities_big[jj]
                 jj = jj + 1
             node_communities = np.unique(
                 list(node_communities.flatten()), return_inverse=True
