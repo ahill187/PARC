@@ -306,9 +306,9 @@ class PARC:
                     best_group = max(available_neighbours_list, key=available_neighbours_list.count)
                     PARC_labels_leiden[single_cell] = best_group
 
-        time_smallpop_start = time.time()
+        time_start = time.time()
         logger.message("Handling fragments...")
-        while small_pop_exist & (time.time() - time_smallpop_start < self.small_community_timeout):
+        while small_pop_exist & (time.time() - time_start < self.small_community_timeout):
             small_pop_list = []
             small_pop_exist = False
             for cluster in set(list(PARC_labels_leiden.flatten())):
@@ -500,8 +500,8 @@ class PARC:
                                                  value in list(available_neighbours)]
                     best_group = max(available_neighbours_list, key=available_neighbours_list.count)
                     PARC_labels_leiden[single_cell] = best_group
-        time_smallpop_start = time.time()
-        while small_pop_exist & ((time.time() - time_smallpop_start) < self.small_community_timeout):
+        time_start = time.time()
+        while small_pop_exist & ((time.time() - time_start) < self.small_community_timeout):
             small_pop_list = []
             small_pop_exist = False
             for cluster in set(list(PARC_labels_leiden.flatten())):
