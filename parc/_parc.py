@@ -426,11 +426,11 @@ class PARC:
 
         # The 0th cluster is the largest one.
         # So, if cluster 0 is not too big, then the others won't be too big either
-        cluster_i_loc = np.where(node_communities == 0)[0]
-        community_size = len(cluster_i_loc)
+        community_indices = np.where(node_communities == 0)[0]
+        community_size = len(community_indices)
         if community_size > large_community_factor * n_samples:  # 0.4
             too_big = True
-            cluster_big_loc = cluster_i_loc
+            cluster_big_loc = community_indices
             list_pop_too_bigs = [community_size]
 
         while too_big:
@@ -459,15 +459,15 @@ class PARC:
 
             node_communities = np.asarray(node_communities)
             for community_id in set_node_communities:
-                cluster_ii_loc = np.where(node_communities == community_id)[0]
-                community_size = len(cluster_ii_loc)
+                community_indices = np.where(node_communities == community_id)[0]
+                community_size = len(community_indices)
                 not_yet_expanded = community_size not in list_pop_too_bigs
                 if community_size > large_community_factor * n_samples and not_yet_expanded:
                     too_big = True
                     logger.message(
                         f"Cluster {community_id} is too big and has population {community_size}."
                     )
-                    cluster_big_loc = cluster_ii_loc
+                    cluster_big_loc = community_indices
                     cluster_big = community_id
                     big_pop = community_size
             if too_big:
@@ -593,10 +593,10 @@ class PARC:
         majority_truth_labels = np.empty((len(y_data_true), 1), dtype=object)
 
         for cluster_i in set(y_data_pred):
-            cluster_i_loc = np.where(np.asarray(y_data_pred) == cluster_i)[0]
+            community_indices = np.where(np.asarray(y_data_pred) == cluster_i)[0]
             y_data_true = np.asarray(y_data_true)
-            majority_truth = get_mode(list(y_data_true[cluster_i_loc]))
-            majority_truth_labels[cluster_i_loc] = majority_truth
+            majority_truth = get_mode(list(y_data_true[community_indices]))
+            majority_truth_labels[community_indices] = majority_truth
 
         majority_truth_labels = list(majority_truth_labels.flatten())
         accuracy_val = [error_rate, f1_score, tnr, fnr, tpr, fpr, precision,
