@@ -14,72 +14,98 @@ logger = get_logger(__name__)
 
 
 class PARC:
-    """Phenotyping by Accelerated Refined Community-partitioning.
+    """``PARC``: ``P``henotyping by ``A``ccelerated ``R``efined ``C``ommunity-partitioning.
 
     Attributes:
-        x_data: a Numpy array of the input x data, with dimensions
-            (n_samples, n_features).
-        y_data_true: a Numpy array of the true output y labels.
-        y_data_pred: a Numpy array of the predicted output y labels.
-        knn: the number of nearest neighbors k for the k-nearest neighbours algorithm.
+        x_data:
+            An array of the input x data, with dimensions ``(n_samples, n_features)``.
+        y_data_true:
+            An array of the true output y labels.
+        y_data_pred:
+            An array of the predicted output y labels.
+        knn:
+            The number of nearest neighbors k for the k-nearest neighbours algorithm.
             Larger k means more neighbors in a cluster and therefore less clusters.
-        n_iter_leiden: the number of iterations for the Leiden algorithm.
-        random_seed: the random seed to enable reproducible Leiden clustering.
-        distance_metric: the distance metric to be used in the KNN algorithm:
-            - ``l2``: Euclidean distance L^2 norm:
-                .. code-block:: python
-                d = sum((x_i - y_i)^2)
-            - ``cosine``: cosine similarity
-                .. code-block:: python
-                d = 1.0 - sum(x_i*y_i) / sqrt(sum(x_i*x_i) * sum(y_i*y_i))
-            - ``ip``: inner product distance
-                .. code-block:: python
-                d = 1.0 - sum(x_i*y_i)
-        n_threads: the number of threads used in the KNN algorithm.
-        hnsw_param_ef_construction: a higher value increases accuracy of index construction.
+        n_iter_leiden:
+            The number of iterations for the Leiden algorithm.
+        random_seed:
+            The random seed to enable reproducible Leiden clustering.
+        distance_metric:
+            The distance metric to be used in the KNN algorithm:
+
+                * ``l2``: Euclidean distance L^2 norm:
+
+                  .. code-block:: python
+
+                    d = np.sum((x_i - y_i)**2)
+                * ``cosine``: cosine similarity:
+
+                  .. code-block:: python
+
+                    d = 1.0 - np.sum(x_i*y_i) / np.sqrt(sum(x_i*x_i) * np.sum(y_i*y_i))
+                * ``ip``: inner product distance:
+
+                  .. code-block:: python
+
+                    d = 1.0 - np.sum(x_i*y_i)
+        n_threads:
+            The number of threads used in the KNN algorithm.
+        hnsw_param_ef_construction:
+            A higher value increases accuracy of index construction.
             Even for O(100 000) cells, 150-200 is adequate.
-        neighbor_graph: A sparse matrix with dimensions
-            (n_samples, n_samples), containing the distances between nodes.
-        knn_struct: the HNSW index of the KNN graph on which we perform queries.
-        l2_std_factor: The multiplier used in calculating the Euclidean distance threshold
-            for the distance between two nodes during local pruning:
+        neighbor_graph:
+            A sparse matrix with dimensions ``(n_samples, n_samples)``, containing the
+            distances between nodes.
+        knn_struct:
+            The HNSW index of the KNN graph on which we perform queries.
+        l2_std_factor:
+            The multiplier used in calculating the Euclidean distance threshold for the distance
+            between two nodes during local pruning:
+
             .. code-block:: python
+
                 max_distance = np.mean(distances) + l2_std_factor * np.std(distances)
+
             Avoid setting both the ``jac_std_factor`` (global) and the ``l2_std_factor`` (local)
             to < 0.5 as this is very aggressive pruning.
             Higher ``l2_std_factor`` means more edges are kept.
-        keep_all_local_dist: whether or not to do local pruning.
+        keep_all_local_dist:
+            Whether or not to do local pruning.
             If ``None`` (default), set to ``True`` if the number of samples is > 300 000,
             and set to ``False`` otherwise.
-        jac_std_factor: The multiplier used in calculating the Jaccard similarity
-            threshold for the similarity between two nodes during global pruning for
-            ``jac_threshold_type = "mean"``:
+        jac_std_factor:
+            The multiplier used in calculating the Jaccard similarity threshold for the similarity
+            between two nodes during global pruning for ``jac_threshold_type = "mean"``:
 
             .. code-block:: python
 
                 threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
 
-            Setting ``jac_std_factor = 0.15`` and ``jac_threshold_type="mean"``
-            performs empirically similar to ``jac_threshold_type="median"``, which does not use
-            the ``jac_std_factor``.
-            Generally values between 0-1.5 are reasonable.
-            Higher ``jac_std_factor`` means more edges are kept.
-        jac_weighted_edges: whether to partition using the weighted graph.
-        resolution_parameter: the resolution parameter to be used in the Leiden algorithm.
+            Setting ``jac_std_factor = 0.15`` and ``jac_threshold_type="mean"`` performs empirically
+            similar to ``jac_threshold_type="median"``, which does not use the ``jac_std_factor``.
+            Generally values between 0-1.5 are reasonable. Higher ``jac_std_factor`` means more
+            edges are kept.
+        jac_weighted_edges:
+            Whether to partition using the weighted graph.
+        resolution_parameter:
+            The resolution parameter to be used in the Leiden algorithm.
             In order to change ``resolution_parameter``, we switch to ``RBVP``.
-        partition_type: the partition type to be used in the Leiden algorithm:
+        partition_type:
+            The partition type to be used in the Leiden algorithm:
 
             * ``ModularityVP``: ModularityVertexPartition, ``resolution_parameter=1``
             * ``RBVP``: RBConfigurationVP, Reichardt and Bornholdt’s Potts model. Note that this
                 is the same as ``ModularityVP`` when setting 𝛾 = 1 and normalising by 2m.
-        large_community_factor: A factor used to determine if a community is too large.
+        large_community_factor:
+            A factor used to determine if a community is too large.
             If the community size is greater than ``large_community_factor * n_samples``,
-            then the community is too large and the PARC algorithm will be run on the single
+            then the community is too large and the ``PARC`` algorithm will be run on the single
             community to split it up. The default value of ``0.4`` ensures that all communities
             will be less than the cutoff size.
-        small_community_size: the smallest population size to be considered a community.
-        small_community_timeout: the maximum number of seconds trying to check an outlying
-            small community.
+        small_community_size:
+            The smallest population size to be considered a community.
+        small_community_timeout:
+            The maximum number of seconds trying to check an outlying small community.
     """
     def __init__(
         self,
