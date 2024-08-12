@@ -29,7 +29,7 @@ class PARC:
         random_seed=42,
         n_threads=-1,
         distance="l2",
-        time_smallpop=15,
+        small_community_timeout=15,
         partition_type="ModularityVP",
         resolution_parameter=1.0,
         knn_struct=None,
@@ -58,7 +58,7 @@ class PARC:
         self.random_seed = random_seed  # enable reproducible Leiden clustering
         self.n_threads = n_threads  # number of threads used in KNN search/construction
         self.distance = distance  # Euclidean distance "l2" by default; other options "ip" and "cosine"
-        self.time_smallpop = time_smallpop #number of seconds trying to check an outlier
+        self.small_community_timeout = small_community_timeout #number of seconds trying to check an outlier
         self.partition_type = partition_type #default is the simple ModularityVertexPartition where resolution_parameter =1. In order to change resolution_parameter, we switch to RBConfigurationVP
         self.resolution_parameter = resolution_parameter # defaults to 1. expose this parameter in leidenalg
         self.knn_struct = knn_struct #the hnsw index of the KNN graph on which we perform queries
@@ -308,7 +308,7 @@ class PARC:
 
         time_smallpop_start = time.time()
         logger.message("Handling fragments...")
-        while small_pop_exist & (time.time() - time_smallpop_start < self.time_smallpop):
+        while small_pop_exist & (time.time() - time_smallpop_start < self.small_community_timeout):
             small_pop_list = []
             small_pop_exist = False
             for cluster in set(list(PARC_labels_leiden.flatten())):
@@ -501,7 +501,7 @@ class PARC:
                     best_group = max(available_neighbours_list, key=available_neighbours_list.count)
                     PARC_labels_leiden[single_cell] = best_group
         time_smallpop_start = time.time()
-        while small_pop_exist & ((time.time() - time_smallpop_start) < self.time_smallpop):
+        while small_pop_exist & ((time.time() - time_smallpop_start) < self.small_community_timeout):
             small_pop_list = []
             small_pop_exist = False
             for cluster in set(list(PARC_labels_leiden.flatten())):
