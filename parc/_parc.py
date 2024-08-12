@@ -17,7 +17,7 @@ class PARC:
     def __init__(
         self,
         x_data,
-        true_label=None,
+        y_data_true=None,
         dist_std_local=3,
         jac_std_global="median",
         keep_all_local_dist="auto",
@@ -46,7 +46,7 @@ class PARC:
         if resolution_parameter != 1:
             partition_type = "RBVP" # Reichardt and Bornholdt’s Potts model. Note that this is the same as ModularityVertexPartition when setting 𝛾 = 1 and normalising by 2m
         self.x_data = x_data
-        self.true_label = true_label
+        self.y_data_true = y_data_true
         self.dist_std_local = dist_std_local   # similar to the jac_std_global parameter. avoid setting local and global pruning to both be below 0.5 as this is very aggresive pruning.
         self.jac_std_global = jac_std_global  #0.15 is also a recommended value performing empirically similar to "median". Generally values between 0-1.5 are reasonable.
         self.keep_all_local_dist = keep_all_local_dist #decides whether or not to do local pruning. default is "auto" which omits LOCAL pruning for samples >300,000 cells.
@@ -530,15 +530,15 @@ class PARC:
 
     def accuracy(self, onevsall=1):
 
-        true_labels = self.true_label
+        y_data_true = self.y_data_true
         Index_dict = {}
         PARC_labels = self.labels
         N = len(PARC_labels)
-        n_cancer = list(true_labels).count(onevsall)
+        n_cancer = list(y_data_true).count(onevsall)
         n_pbmc = N - n_cancer
 
         for k in range(N):
-            Index_dict.setdefault(PARC_labels[k], []).append(true_labels[k])
+            Index_dict.setdefault(PARC_labels[k], []).append(y_data_true[k])
         num_groups = len(Index_dict)
         sorted_keys = list(sorted(Index_dict.keys()))
         error_count = []
@@ -588,12 +588,12 @@ class PARC:
             precision = tp / (tp + fp)  # ability to not misclassify negatives as positives
         if precision != 0 or recall != 0:
             f1_score = precision * recall * 2 / (precision + recall)
-        majority_truth_labels = np.empty((len(true_labels), 1), dtype=object)
+        majority_truth_labels = np.empty((len(y_data_true), 1), dtype=object)
 
         for cluster_i in set(PARC_labels):
             cluster_i_loc = np.where(np.asarray(PARC_labels) == cluster_i)[0]
-            true_labels = np.asarray(true_labels)
-            majority_truth = get_mode(list(true_labels[cluster_i_loc]))
+            y_data_true = np.asarray(y_data_true)
+            majority_truth = get_mode(list(y_data_true[cluster_i_loc]))
             majority_truth_labels[cluster_i_loc] = majority_truth
 
         majority_truth_labels = list(majority_truth_labels.flatten())
@@ -606,8 +606,8 @@ class PARC:
         logger.message(
             f"Input data has shape {self.x_data.shape[0]} (samples) x {self.x_data.shape[1]} (features)"
         )
-        if self.true_label is None:
-            self.true_label = [1] * self.x_data.shape[0]
+        if self.y_data_true is None:
+            self.y_data_true = [1] * self.x_data.shape[0]
         list_roc = []
 
         time_start_total = time.time()
@@ -617,8 +617,8 @@ class PARC:
         run_time = time.time() - time_start_total
         logger.message(f"Time elapsed to run PARC: {run_time:.1f} seconds")
 
-        targets = list(set(self.true_label))
-        N = len(list(self.true_label))
+        targets = list(set(self.y_data_true))
+        N = len(list(self.y_data_true))
         self.f1_accumulated = 0
         self.f1_mean = 0
         self.stats_df = pd.DataFrame({
@@ -637,7 +637,7 @@ class PARC:
                 f1_current = vals_roc[1]
                 logger.message(f"Target {onevsall_val} has f1-score of {(f1_current * 100):.2f}")
                 f1_accumulated = f1_accumulated + \
-                    f1_current * (list(self.true_label).count(onevsall_val)) / N
+                    f1_current * (list(self.y_data_true).count(onevsall_val)) / N
                 f1_acc_noweighting = f1_acc_noweighting + f1_current
 
                 list_roc.append(
