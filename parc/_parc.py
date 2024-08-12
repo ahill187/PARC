@@ -363,14 +363,13 @@ class PARC:
         logger.message("Starting global pruning...")
 
         similarities_array = np.asarray(similarities)
-        edge_list_copy_array = np.asarray(edges_copy)
 
         if jac_std_factor == "median":
             threshold = np.median(similarities)
         else:
             threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
         strong_locs = np.where(similarities_array > threshold)[0]
-        new_edges = list(edge_list_copy_array[strong_locs])
+        new_edges = list(np.asarray(edges_copy)[strong_locs])
         similarities_new = list(similarities_array[strong_locs])
 
         graph_pruned = ig.Graph(
