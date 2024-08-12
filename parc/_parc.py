@@ -103,11 +103,6 @@ class PARC:
         neighbor_graph=None,
         hnsw_param_ef_construction=150
     ):
-        if keep_all_local_dist is None:
-            if x_data.shape[0] > 300000:
-                keep_all_local_dist = True  # skips local pruning to increase speed
-            else:
-                keep_all_local_dist = False
         if resolution_parameter != 1:
             partition_type = "RBVP"
         self.x_data = x_data
@@ -130,6 +125,22 @@ class PARC:
         self.small_community_timeout = small_community_timeout
         self.resolution_parameter = resolution_parameter
         self.partition_type = partition_type
+
+    @property
+    def keep_all_local_dist(self):
+        return self._keep_all_local_dist
+
+    @keep_all_local_dist.setter
+    def keep_all_local_dist(self, keep_all_local_dist):
+        if keep_all_local_dist is None:
+            if self.x_data.shape[0] > 300000:
+                logger.message(
+                    f"Sample size is {self.x_data.shape[0]}, setting keep_all_local_dist "
+                    f"to True so that local pruning will be skipped and algorithm will be faster."
+                )
+                keep_all_local_dist = True
+            else:
+                keep_all_local_dist = False
 
     def make_knn_struct(self, too_big=False, big_cluster=None):
         if self.knn > 190:
