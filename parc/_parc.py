@@ -536,8 +536,8 @@ class PARC:
         Index_dict = {}
         y_data_pred = self.y_data_pred
         n_samples = len(y_data_pred)
-        n_cancer = list(y_data_true).count(onevsall)
-        n_pbmc = n_samples - n_cancer
+        n_target = list(y_data_true).count(onevsall)
+        n_pbmc = n_samples - n_target
 
         for k in range(n_samples):
             Index_dict.setdefault(y_data_pred[k], []).append(y_data_true[k])
@@ -580,8 +580,8 @@ class PARC:
         error_rate = sum(error_count) / n_samples
         n_target = tp + fn
         tnr = tn / n_pbmc
-        fnr = fn / n_cancer
-        tpr = tp / n_cancer
+        fnr = fn / n_target
+        tpr = tp / n_target
         fpr = fp / n_pbmc
 
         if tp != 0 or fn != 0:
