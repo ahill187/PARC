@@ -375,7 +375,9 @@ class PARC:
             weights = None
 
         if self.partition_type == "ModularityVP":
-            logger.message("partition type MVP")
+            logger.message(
+                "Leiden algorithm find partition: partition type = ModularityVertexPartition"
+            )
             partition = leidenalg.find_partition(
                 graph_pruned,
                 leidenalg.ModularityVertexPartition,
@@ -384,7 +386,9 @@ class PARC:
                 seed=self.random_seed
             )
         else:
-            logger.message("partition type RBC")
+            logger.message(
+                "Leiden algorithm find partition: partition type = RBConfigurationVertexPartition"
+            )
             partition = leidenalg.find_partition(
                 graph_pruned,
                 leidenalg.RBConfigurationVertexPartition,
@@ -505,7 +509,9 @@ class PARC:
             weights = None
 
         if self.partition_type == "ModularityVP":
-            logger.message("partition type MVP")
+            logger.message(
+                "Leiden algorithm find partition: partition type = ModularityVertexPartition"
+            )
             partition = leidenalg.find_partition(
                 graph_pruned,
                 leidenalg.ModularityVertexPartition,
@@ -514,7 +520,9 @@ class PARC:
                 seed=self.random_seed
             )
         else:
-            logger.message("partition type RBC")
+            logger.message(
+                "Leiden algorithm find partition: partition type = RBConfigurationVertexPartition"
+            )
             partition = leidenalg.find_partition(
                 graph_pruned,
                 leidenalg.RBConfigurationVertexPartition,
