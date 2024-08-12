@@ -73,33 +73,33 @@ class PARC:
         ef_query = max(100, self.knn + 1)  # ef always should be > k. higher ef, more accurate query
         if not too_big:
             num_dims = self.x_data.shape[1]
-            n_elements = self.x_data.shape[0]
+            n_samples = self.x_data.shape[0]
             p = hnswlib.Index(space=self.distance, dim=num_dims)  # default to Euclidean distance
             p.set_num_threads(self.n_threads)  # set threads used in KNN construction
-            if n_elements < 10000:
-                ef_query = min(n_elements - 10, 500)
+            if n_samples < 10000:
+                ef_query = min(n_samples - 10, 500)
                 ef_construction = ef_query
             else:
                 ef_construction = self.hnsw_param_ef_construction
-            if (num_dims > 30) & (n_elements <= 50000):
+            if (num_dims > 30) & (n_samples <= 50000):
                 # good for scRNA seq where dimensionality is high
                 p.init_index(
-                    max_elements=n_elements,
+                    max_elements=n_samples,
                     ef_construction=ef_construction,
                     M=48
                 )
             else:
                 p.init_index(
-                    max_elements=n_elements,
+                    max_elements=n_samples,
                     ef_construction=ef_construction,
                     M=24  # 30
                 )
             p.add_items(self.x_data)
         if too_big:
             num_dims = big_cluster.shape[1]
-            n_elements = big_cluster.shape[0]
+            n_samples = big_cluster.shape[0]
             p = hnswlib.Index(space="l2", dim=num_dims)
-            p.init_index(max_elements=n_elements, ef_construction=200, M=30)
+            p.init_index(max_elements=n_samples, ef_construction=200, M=30)
             p.add_items(big_cluster)
         p.set_ef(ef_query)  # ef should always be > k
 
@@ -113,10 +113,10 @@ class PARC:
 
         row_list = []
         n_neighbors = neighbor_array.shape[1]
-        n_cells = neighbor_array.shape[0]
+        n_samples = neighbor_array.shape[0]
 
         row_list.extend(
-            list(np.transpose(np.ones((n_neighbors, n_cells)) * range(0, n_cells)).flatten())
+            list(np.transpose(np.ones((n_neighbors, n_samples)) * range(0, n_samples)).flatten())
         )
 
         row_min = np.min(distance_array, axis=1)
@@ -138,7 +138,7 @@ class PARC:
         weight_list = weight_list.tolist()
 
         graph = csr_matrix((np.array(weight_list), (np.array(row_list), np.array(col_list))),
-                           shape=(n_cells, n_cells))
+                           shape=(n_samples, n_samples))
 
         graph_transpose = graph.T
         prod_matrix = graph.multiply(graph_transpose)
@@ -153,7 +153,7 @@ class PARC:
         weight_list = []
 
         n_neighbors = neighbor_array.shape[1]
-        n_cells = neighbor_array.shape[0]
+        n_samples = neighbor_array.shape[0]
         rowi = 0
         discard_count = 0
         if not self.keep_all_local_dist:  # locally prune based on (squared) l2 distance
@@ -183,14 +183,14 @@ class PARC:
 
         if self.keep_all_local_dist:  # don't prune based on distance
             row_list.extend(
-                list(np.transpose(np.ones((n_neighbors, n_cells)) * range(0, n_cells)).flatten())
+                list(np.transpose(np.ones((n_neighbors, n_samples)) * range(0, n_samples)).flatten())
             )
             col_list = neighbor_array.flatten().tolist()
             weight_list = (1. / (distance_array.flatten() + 0.1)).tolist()
 
         csr_graph = csr_matrix(
             (np.array(weight_list), (np.array(row_list), np.array(col_list))),
-            shape=(n_cells, n_cells)
+            shape=(n_samples, n_samples)
         )
         return csr_graph
 
@@ -201,14 +201,14 @@ class PARC:
         jac_weighted_edges=True
     ):
 
-        n_elements = x_data.shape[0]
+        n_samples = x_data.shape[0]
         hnsw = self.make_knn_struct(too_big=True, big_cluster=x_data)
-        if n_elements <= 10:
+        if n_samples <= 10:
             logger.message("Consider increasing the too_big_factor")
-        if n_elements > self.knn:
+        if n_samples > self.knn:
             knnbig = self.knn
         else:
-            knnbig = int(max(5, 0.2 * n_elements))
+            knnbig = int(max(5, 0.2 * n_samples))
 
         neighbor_array, distance_array = hnsw.knn_query(x_data, k=knnbig)
         csr_array = self.make_csrmatrix_noselfloop(neighbor_array, distance_array)
@@ -237,12 +237,12 @@ class PARC:
 
         if jac_weighted_edges:
             G_sim = ig.Graph(
-                n=n_elements,
+                n=n_samples,
                 edges=list(new_edgelist),
                 edge_attrs={"weight": sim_list_new}
             )
         else:
-            G_sim = ig.Graph(n=n_elements, edges=list(new_edgelist))
+            G_sim = ig.Graph(n=n_samples, edges=list(new_edgelist))
         G_sim.simplify(combine_edges="sum")
         if jac_weighted_edges:
             if self.partition_type == "ModularityVP":
@@ -282,7 +282,7 @@ class PARC:
                     resolution_parameter=self.resolution_parameter
                 )
         PARC_labels_leiden = np.asarray(partition.membership)
-        PARC_labels_leiden = np.reshape(PARC_labels_leiden, (n_elements, 1))
+        PARC_labels_leiden = np.reshape(PARC_labels_leiden, (n_samples, 1))
         small_pop_list = []
         small_cluster_list = []
         small_pop_exist = False
@@ -337,7 +337,7 @@ class PARC:
         jac_std_global = self.jac_std_global
         jac_weighted_edges = self.jac_weighted_edges
         knn = self.knn
-        n_elements = x_data.shape[0]
+        n_samples = x_data.shape[0]
 
         if self.neighbor_graph is not None:
             csr_array = self.neighbor_graph
@@ -374,7 +374,7 @@ class PARC:
         sim_list_new = list(sim_list_array[strong_locs])
 
         G_sim = ig.Graph(
-            n=n_elements,
+            n=n_samples,
             edges=list(new_edgelist),
             edge_attrs={"weight": sim_list_new}
         )
@@ -421,7 +421,7 @@ class PARC:
                 )
 
         PARC_labels_leiden = np.asarray(partition.membership)
-        PARC_labels_leiden = np.reshape(PARC_labels_leiden, (n_elements, 1))
+        PARC_labels_leiden = np.reshape(PARC_labels_leiden, (n_samples, 1))
 
         too_big = False
 
@@ -429,7 +429,7 @@ class PARC:
         # So, if cluster 0 is not too big, then the others won't be too big either
         cluster_i_loc = np.where(PARC_labels_leiden == 0)[0]
         pop_i = len(cluster_i_loc)
-        if pop_i > too_big_factor * n_elements:  # 0.4
+        if pop_i > too_big_factor * n_samples:  # 0.4
             too_big = True
             cluster_big_loc = cluster_i_loc
             list_pop_too_bigs = [pop_i]
@@ -462,7 +462,7 @@ class PARC:
                 cluster_ii_loc = np.where(PARC_labels_leiden == cluster_ii)[0]
                 pop_ii = len(cluster_ii_loc)
                 not_yet_expanded = pop_ii not in list_pop_too_bigs
-                if pop_ii > too_big_factor * n_elements and not_yet_expanded:
+                if pop_ii > too_big_factor * n_samples and not_yet_expanded:
                     too_big = True
                     logger.message(f"Cluster {cluster_ii} is too big and has population {pop_ii}.")
                     cluster_big_loc = cluster_ii_loc
@@ -533,11 +533,11 @@ class PARC:
         y_data_true = self.y_data_true
         Index_dict = {}
         y_data_pred = self.y_data_pred
-        N = len(y_data_pred)
+        n_samples = len(y_data_pred)
         n_cancer = list(y_data_true).count(onevsall)
-        n_pbmc = N - n_cancer
+        n_pbmc = n_samples - n_cancer
 
-        for k in range(N):
+        for k in range(n_samples):
             Index_dict.setdefault(y_data_pred[k], []).append(y_data_true[k])
         num_groups = len(Index_dict)
         sorted_keys = list(sorted(Index_dict.keys()))
@@ -575,7 +575,7 @@ class PARC:
         for benign_class in pbmc_labels:
             predict_class_array[y_data_pred_array == benign_class] = 0
         predict_class_array.reshape((predict_class_array.shape[0], -1))
-        error_rate = sum(error_count) / N
+        error_rate = sum(error_count) / n_samples
         n_target = tp + fn
         tnr = tn / n_pbmc
         fnr = fn / n_cancer
@@ -618,7 +618,7 @@ class PARC:
         logger.message(f"Time elapsed to run PARC: {run_time:.1f} seconds")
 
         targets = list(set(self.y_data_true))
-        N = len(list(self.y_data_true))
+        n_samples = len(list(self.y_data_true))
         self.f1_accumulated = 0
         self.f1_mean = 0
         self.stats_df = pd.DataFrame({
@@ -637,7 +637,7 @@ class PARC:
                 f1_current = vals_roc[1]
                 logger.message(f"Target {onevsall_val} has f1-score of {(f1_current * 100):.2f}")
                 f1_accumulated = f1_accumulated + \
-                    f1_current * (list(self.y_data_true).count(onevsall_val)) / N
+                    f1_current * (list(self.y_data_true).count(onevsall_val)) / n_samples
                 f1_acc_noweighting = f1_acc_noweighting + f1_current
 
                 list_roc.append(
