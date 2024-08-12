@@ -453,7 +453,7 @@ class PARC:
 
         return node_communities
 
-    def run_PARC(self):
+    def run_parc(self):
         time_start = time.time()
         x_data = self.x_data
         n_samples = x_data.shape[0]
