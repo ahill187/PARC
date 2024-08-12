@@ -368,43 +368,32 @@ class PARC:
         else:
             graph_pruned = ig.Graph(n=n_samples, edges=list(new_edges))
         graph_pruned.simplify(combine_edges="sum")
+
         if jac_weighted_edges:
-            if self.partition_type == "ModularityVP":
-                logger.message("partition type MVP")
-                partition = leidenalg.find_partition(
-                    graph_pruned, leidenalg.ModularityVertexPartition,
-                    weights="weight",
-                    n_iterations=self.n_iter_leiden,
-                    seed=self.random_seed
-                )
-            else:
-                logger.message("partition type RBC")
-                partition = leidenalg.find_partition(
-                    graph_pruned,
-                    leidenalg.RBConfigurationVertexPartition,
-                    weights="weight",
-                    n_iterations=self.n_iter_leiden,
-                    seed=self.random_seed,
-                    resolution_parameter=self.resolution_parameter
-                )
+            weights = "weight"
         else:
-            if self.partition_type == "ModularityVP":
-                logger.message("partition type MVP")
-                partition = leidenalg.find_partition(
-                    graph_pruned,
-                    leidenalg.ModularityVertexPartition,
-                    n_iterations=self.n_iter_leiden,
-                    seed=self.random_seed
-                )
-            else:
-                logger.message("partition type RBC")
-                partition = leidenalg.find_partition(
-                    graph_pruned,
-                    leidenalg.RBConfigurationVertexPartition,
-                    n_iterations=self.n_iter_leiden,
-                    seed=self.random_seed,
-                    resolution_parameter=self.resolution_parameter
-                )
+            weights = None
+
+        if self.partition_type == "ModularityVP":
+            logger.message("partition type MVP")
+            partition = leidenalg.find_partition(
+                graph_pruned,
+                leidenalg.ModularityVertexPartition,
+                weights=weights,
+                n_iterations=self.n_iter_leiden,
+                seed=self.random_seed
+            )
+        else:
+            logger.message("partition type RBC")
+            partition = leidenalg.find_partition(
+                graph_pruned,
+                leidenalg.RBConfigurationVertexPartition,
+                weights=weights,
+                n_iterations=self.n_iter_leiden,
+                seed=self.random_seed,
+                resolution_parameter=self.resolution_parameter
+            )
+
         node_communities = np.asarray(partition.membership)
         node_communities = np.reshape(node_communities, (n_samples, 1))
         small_pop_list = []
@@ -507,46 +496,33 @@ class PARC:
             edge_attrs={"weight": similarities_new}
         )
         graph_pruned.simplify(combine_edges="sum")  # "first"
-        logger.message("Starting Leiden community detection...")
-        if jac_weighted_edges:
-            if self.partition_type == "ModularityVP":
-                logger.message("partition type MVP")
-                partition = leidenalg.find_partition(
-                    graph_pruned,
-                    leidenalg.ModularityVertexPartition,
-                    weights="weight",
-                    n_iterations=self.n_iter_leiden,
-                    seed=self.random_seed
-                )
-            else:
-                logger.message("partition type RBC")
-                partition = leidenalg.find_partition(
-                    graph_pruned,
-                    leidenalg.RBConfigurationVertexPartition,
-                    weights="weight",
-                    n_iterations=self.n_iter_leiden,
-                    seed=self.random_seed,
-                    resolution_parameter=self.resolution_parameter
-                )
 
+        logger.message("Starting Leiden community detection...")
+
+        if jac_weighted_edges:
+            weights = "weight"
         else:
-            if self.partition_type == "ModularityVP":
-                logger.message("partition type MVP")
-                partition = leidenalg.find_partition(
-                    graph_pruned,
-                    leidenalg.ModularityVertexPartition,
-                    n_iterations=self.n_iter_leiden,
-                    seed=self.random_seed
-                )
-            else:
-                logger.message("partition type RBC")
-                partition = leidenalg.find_partition(
-                    graph_pruned,
-                    leidenalg.RBConfigurationVertexPartition,
-                    n_iterations=self.n_iter_leiden,
-                    seed=self.random_seed,
-                    resolution_parameter=self.resolution_parameter
-                )
+            weights = None
+
+        if self.partition_type == "ModularityVP":
+            logger.message("partition type MVP")
+            partition = leidenalg.find_partition(
+                graph_pruned,
+                leidenalg.ModularityVertexPartition,
+                weights=weights,
+                n_iterations=self.n_iter_leiden,
+                seed=self.random_seed
+            )
+        else:
+            logger.message("partition type RBC")
+            partition = leidenalg.find_partition(
+                graph_pruned,
+                leidenalg.RBConfigurationVertexPartition,
+                weights=weights,
+                n_iterations=self.n_iter_leiden,
+                seed=self.random_seed,
+                resolution_parameter=self.resolution_parameter
+            )
 
         node_communities = np.asarray(partition.membership)
         node_communities = np.reshape(node_communities, (n_samples, 1))
