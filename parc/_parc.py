@@ -318,6 +318,55 @@ class PARC:
         )
         return csr_graph
 
+    def get_leiden_partition(
+        self,
+        graph: ig.Graph,
+        jac_weighted_edges: bool = True
+    ) -> leidenalg.VertexPartition:
+        """Partition the graph using the Leiden algorithm.
+
+        A partition is a set of communities.
+
+        Args:
+            graph: A ``Graph`` object which has been locally and globally pruned.
+            jac_weighted_edges: Whether to partition using the weighted graph.
+
+        Returns:
+            A partition object.
+            See `leidenalg.VertexPartition on GitHub
+            <https://github.com/vtraag/leidenalg/blob/main/src/leidenalg/VertexPartition.py>`_.
+        """
+
+        if jac_weighted_edges:
+            weights = "weight"
+        else:
+            weights = None
+
+        if self.partition_type == "ModularityVP":
+            logger.message(
+                "Leiden algorithm find partition: partition type = ModularityVertexPartition"
+            )
+            partition = leidenalg.find_partition(
+                graph=graph,
+                partition_type=leidenalg.ModularityVertexPartition,
+                weights=weights,
+                n_iterations=self.n_iter_leiden,
+                seed=self.random_seed
+            )
+        else:
+            logger.message(
+                "Leiden algorithm find partition: partition type = RBConfigurationVertexPartition"
+            )
+            partition = leidenalg.find_partition(
+                graph=graph,
+                partition_type=leidenalg.RBConfigurationVertexPartition,
+                weights=weights,
+                n_iterations=self.n_iter_leiden,
+                seed=self.random_seed,
+                resolution_parameter=self.resolution_parameter
+            )
+        return partition
+
     def run_toobig_subPARC(
         self,
         x_data,
@@ -368,43 +417,12 @@ class PARC:
         else:
             graph_pruned = ig.Graph(n=n_samples, edges=list(new_edges))
         graph_pruned.simplify(combine_edges="sum")
-        if jac_weighted_edges:
-            if self.partition_type == "ModularityVP":
-                logger.message("partition type MVP")
-                partition = leidenalg.find_partition(
-                    graph_pruned, leidenalg.ModularityVertexPartition,
-                    weights="weight",
-                    n_iterations=self.n_iter_leiden,
-                    seed=self.random_seed
-                )
-            else:
-                logger.message("partition type RBC")
-                partition = leidenalg.find_partition(
-                    graph_pruned,
-                    leidenalg.RBConfigurationVertexPartition,
-                    weights="weight",
-                    n_iterations=self.n_iter_leiden,
-                    seed=self.random_seed,
-                    resolution_parameter=self.resolution_parameter
-                )
-        else:
-            if self.partition_type == "ModularityVP":
-                logger.message("partition type MVP")
-                partition = leidenalg.find_partition(
-                    graph_pruned,
-                    leidenalg.ModularityVertexPartition,
-                    n_iterations=self.n_iter_leiden,
-                    seed=self.random_seed
-                )
-            else:
-                logger.message("partition type RBC")
-                partition = leidenalg.find_partition(
-                    graph_pruned,
-                    leidenalg.RBConfigurationVertexPartition,
-                    n_iterations=self.n_iter_leiden,
-                    seed=self.random_seed,
-                    resolution_parameter=self.resolution_parameter
-                )
+
+        partition = self.get_leiden_partition(
+            graph=graph_pruned,
+            jac_weighted_edges=jac_weighted_edges
+        )
+
         node_communities = np.asarray(partition.membership)
         node_communities = np.reshape(node_communities, (n_samples, 1))
         small_pop_list = []
@@ -507,46 +525,13 @@ class PARC:
             edge_attrs={"weight": similarities_new}
         )
         graph_pruned.simplify(combine_edges="sum")  # "first"
-        logger.message("Starting Leiden community detection...")
-        if jac_weighted_edges:
-            if self.partition_type == "ModularityVP":
-                logger.message("partition type MVP")
-                partition = leidenalg.find_partition(
-                    graph_pruned,
-                    leidenalg.ModularityVertexPartition,
-                    weights="weight",
-                    n_iterations=self.n_iter_leiden,
-                    seed=self.random_seed
-                )
-            else:
-                logger.message("partition type RBC")
-                partition = leidenalg.find_partition(
-                    graph_pruned,
-                    leidenalg.RBConfigurationVertexPartition,
-                    weights="weight",
-                    n_iterations=self.n_iter_leiden,
-                    seed=self.random_seed,
-                    resolution_parameter=self.resolution_parameter
-                )
 
-        else:
-            if self.partition_type == "ModularityVP":
-                logger.message("partition type MVP")
-                partition = leidenalg.find_partition(
-                    graph_pruned,
-                    leidenalg.ModularityVertexPartition,
-                    n_iterations=self.n_iter_leiden,
-                    seed=self.random_seed
-                )
-            else:
-                logger.message("partition type RBC")
-                partition = leidenalg.find_partition(
-                    graph_pruned,
-                    leidenalg.RBConfigurationVertexPartition,
-                    n_iterations=self.n_iter_leiden,
-                    seed=self.random_seed,
-                    resolution_parameter=self.resolution_parameter
-                )
+        logger.message("Starting Leiden community detection...")
+
+        partition = self.get_leiden_partition(
+            graph=graph_pruned,
+            jac_weighted_edges=jac_weighted_edges
+        )
 
         node_communities = np.asarray(partition.membership)
         node_communities = np.reshape(node_communities, (n_samples, 1))
