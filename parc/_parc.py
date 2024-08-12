@@ -216,8 +216,8 @@ class PARC:
 
         edgelist = list(zip(sources.tolist(), targets.tolist()))
         edgelist_copy = edgelist.copy()
-        G = ig.Graph(edgelist, edge_attrs={"weight": csr_array.data.tolist()})
-        sim_list = G.similarity_jaccard(pairs=edgelist_copy)  # list of jaccard weights
+        graph = ig.Graph(edgelist, edge_attrs={"weight": csr_array.data.tolist()})
+        sim_list = graph.similarity_jaccard(pairs=edgelist_copy)  # list of jaccard weights
         new_edgelist = []
         sim_list_array = np.asarray(sim_list)
         if jac_std_factor == "median":
@@ -357,8 +357,8 @@ class PARC:
 
         edgelist_copy = edgelist.copy()
 
-        G = ig.Graph(edgelist, edge_attrs={"weight": csr_array.data.tolist()})
-        sim_list = G.similarity_jaccard(pairs=edgelist_copy)
+        graph = ig.Graph(edgelist, edge_attrs={"weight": csr_array.data.tolist()})
+        sim_list = graph.similarity_jaccard(pairs=edgelist_copy)
 
         logger.message("Starting global pruning...")
 
