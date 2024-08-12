@@ -19,7 +19,7 @@ class PARC:
         x_data,
         y_data_true=None,
         l2_std_factor=3,
-        jac_std_global="median",
+        jac_std_factor="median",
         keep_all_local_dist="auto",
         large_community_factor=0.4,
         small_community_size=10,
@@ -37,7 +37,7 @@ class PARC:
         hnsw_param_ef_construction=150
     ):
         # higher l2_std_factor means more edges are kept
-        # highter jac_std_global means more edges are kept
+        # highter jac_std_factor means more edges are kept
         if keep_all_local_dist == "auto":
             if x_data.shape[0] > 300000:
                 keep_all_local_dist = True  # skips local pruning to increase speed
@@ -47,8 +47,8 @@ class PARC:
             partition_type = "RBVP" # Reichardt and Bornholdt’s Potts model. Note that this is the same as ModularityVertexPartition when setting 𝛾 = 1 and normalising by 2m
         self.x_data = x_data
         self.y_data_true = y_data_true
-        self.l2_std_factor = l2_std_factor   # similar to the jac_std_global parameter. avoid setting local and global pruning to both be below 0.5 as this is very aggresive pruning.
-        self.jac_std_global = jac_std_global  #0.15 is also a recommended value performing empirically similar to "median". Generally values between 0-1.5 are reasonable.
+        self.l2_std_factor = l2_std_factor   # similar to the jac_std_factor parameter. avoid setting local and global pruning to both be below 0.5 as this is very aggresive pruning.
+        self.jac_std_factor = jac_std_factor  #0.15 is also a recommended value performing empirically similar to "median". Generally values between 0-1.5 are reasonable.
         self.keep_all_local_dist = keep_all_local_dist #decides whether or not to do local pruning. default is "auto" which omits LOCAL pruning for samples >300,000 cells.
         self.large_community_factor = large_community_factor  #if a cluster exceeds this share of the entire cell population, then the PARC will be run on the large cluster. at 0.4 it does not come into play
         self.small_community_size = small_community_size  # smallest cluster population to be considered a community
@@ -197,7 +197,7 @@ class PARC:
     def run_toobig_subPARC(
         self,
         x_data,
-        jac_std_toobig=0.3,
+        jac_std_factor=0.3,
         jac_weighted_edges=True
     ):
 
@@ -220,10 +220,10 @@ class PARC:
         sim_list = G.similarity_jaccard(pairs=edgelist_copy)  # list of jaccard weights
         new_edgelist = []
         sim_list_array = np.asarray(sim_list)
-        if jac_std_toobig == "median":
+        if jac_std_factor == "median":
             threshold = np.median(sim_list)
         else:
-            threshold = np.mean(sim_list) - jac_std_toobig * np.std(sim_list)
+            threshold = np.mean(sim_list) - jac_std_factor * np.std(sim_list)
 
         logger.message(f"jac threshold {threshold:.3f}")
         logger.message(f"jac std {np.std(sim_list):.3f}")
@@ -334,7 +334,7 @@ class PARC:
         x_data = self.x_data
         large_community_factor = self.large_community_factor
         small_community_size = self.small_community_size
-        jac_std_global = self.jac_std_global
+        jac_std_factor = self.jac_std_factor
         jac_weighted_edges = self.jac_weighted_edges
         knn = self.knn
         n_samples = x_data.shape[0]
@@ -365,10 +365,10 @@ class PARC:
         sim_list_array = np.asarray(sim_list)
         edge_list_copy_array = np.asarray(edgelist_copy)
 
-        if jac_std_global == "median":
+        if jac_std_factor == "median":
             threshold = np.median(sim_list)
         else:
-            threshold = np.mean(sim_list) - jac_std_global * np.std(sim_list)
+            threshold = np.mean(sim_list) - jac_std_factor * np.std(sim_list)
         strong_locs = np.where(sim_list_array > threshold)[0]
         new_edgelist = list(edge_list_copy_array[strong_locs])
         sim_list_new = list(sim_list_array[strong_locs])
@@ -622,7 +622,7 @@ class PARC:
         self.f1_accumulated = 0
         self.f1_mean = 0
         self.stats_df = pd.DataFrame({
-            "jac_std_global": [self.jac_std_global],
+            "jac_std_factor": [self.jac_std_factor],
             "l2_std_factor": [self.l2_std_factor],
             "runtime(s)": [run_time]
         })
@@ -641,7 +641,7 @@ class PARC:
                 f1_acc_noweighting = f1_acc_noweighting + f1_current
 
                 list_roc.append(
-                    [self.jac_std_global, self.l2_std_factor, onevsall_val] +
+                    [self.jac_std_factor, self.l2_std_factor, onevsall_val] +
                     vals_roc +
                     [numclusters_targetval] +
                     [run_time]
@@ -654,7 +654,7 @@ class PARC:
             df_accuracy = pd.DataFrame(
                 list_roc,
                 columns=[
-                    "jac_std_global", "l2_std_factor", "onevsall-target", "error rate",
+                    "jac_std_factor", "l2_std_factor", "onevsall-target", "error rate",
                     "f1-score", "tnr", "fnr", "tpr", "fpr", "precision", "recall", "num_groups",
                     "population of target", "num clusters", "clustering runtime"
                 ]
