@@ -732,15 +732,21 @@ class PARC:
         logger.message(
             f"Input data has shape {self.x_data.shape[0]} (samples) x {self.x_data.shape[1]} (features)"
         )
-        list_roc = []
-
         time_start_total = time.time()
 
         # Query dataset, k - number of closest elements (returns 2 numpy arrays)
         self.run_subPARC()
         run_time = time.time() - time_start_total
         logger.message(f"Time elapsed to run PARC: {run_time:.1f} seconds")
+        self.compute_performance_metrics(run_time)
 
+    def compute_performance_metrics(self, run_time: float):
+        """Compute performance metrics for the PARC algorithm.
+
+        Args:
+            run_time: (float) the time taken to run the PARC algorithm.
+        """
+        list_roc = []
         targets = list(set(self.y_data_true))
         n_samples = len(list(self.y_data_true))
         self.f1_accumulated = 0
@@ -788,7 +794,6 @@ class PARC:
             self.f1_mean = f1_mean
             self.stats_df = df_accuracy
             self.majority_truth_labels = majority_truth_labels
-        return
 
     def run_umap_hnsw(
             self,
