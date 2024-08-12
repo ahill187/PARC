@@ -218,7 +218,7 @@ class PARC:
         edges_copy = edges.copy()
         graph = ig.Graph(edges, edge_attrs={"weight": csr_array.data.tolist()})
         similarities = graph.similarity_jaccard(pairs=edges_copy)  # list of jaccard weights
-        new_edgelist = []
+        new_edges = []
         similarities_array = np.asarray(similarities)
         if jac_std_factor == "median":
             threshold = np.median(similarities)
@@ -231,18 +231,18 @@ class PARC:
 
         strong_locs = np.where(similarities_array > threshold)[0]
         for ii in strong_locs:
-            new_edgelist.append(edges_copy[ii])
+            new_edges.append(edges_copy[ii])
 
         similarities_new = list(similarities_array[strong_locs])
 
         if jac_weighted_edges:
             graph_pruned = ig.Graph(
                 n=n_samples,
-                edges=list(new_edgelist),
+                edges=list(new_edges),
                 edge_attrs={"weight": similarities_new}
             )
         else:
-            graph_pruned = ig.Graph(n=n_samples, edges=list(new_edgelist))
+            graph_pruned = ig.Graph(n=n_samples, edges=list(new_edges))
         graph_pruned.simplify(combine_edges="sum")
         if jac_weighted_edges:
             if self.partition_type == "ModularityVP":
@@ -370,12 +370,12 @@ class PARC:
         else:
             threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
         strong_locs = np.where(similarities_array > threshold)[0]
-        new_edgelist = list(edge_list_copy_array[strong_locs])
+        new_edges = list(edge_list_copy_array[strong_locs])
         similarities_new = list(similarities_array[strong_locs])
 
         graph_pruned = ig.Graph(
             n=n_samples,
-            edges=list(new_edgelist),
+            edges=list(new_edges),
             edge_attrs={"weight": similarities_new}
         )
         graph_pruned.simplify(combine_edges="sum")  # "first"
