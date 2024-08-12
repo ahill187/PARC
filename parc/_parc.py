@@ -87,7 +87,7 @@ class PARC:
         y_data_true=None,
         l2_std_factor=3,
         jac_std_factor="median",
-        keep_all_local_dist="auto",
+        keep_all_local_dist=None,
         large_community_factor=0.4,
         small_community_size=10,
         jac_weighted_edges=True,
@@ -103,7 +103,7 @@ class PARC:
         neighbor_graph=None,
         hnsw_param_ef_construction=150
     ):
-        if keep_all_local_dist == "auto":
+        if keep_all_local_dist is None:
             if x_data.shape[0] > 300000:
                 keep_all_local_dist = True  # skips local pruning to increase speed
             else:
