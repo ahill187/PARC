@@ -568,12 +568,12 @@ class PARC:
                 error_count.append(len([e for e in vals if e != majority_val]))
 
         predict_class_array = np.array(y_data_pred)
-        PARC_labels_array = np.array(y_data_pred)
+        y_data_pred_array = np.array(y_data_pred)
         number_clusters_for_target = len(thp1_labels)
         for cancer_class in thp1_labels:
-            predict_class_array[PARC_labels_array == cancer_class] = 1
+            predict_class_array[y_data_pred_array == cancer_class] = 1
         for benign_class in pbmc_labels:
-            predict_class_array[PARC_labels_array == benign_class] = 0
+            predict_class_array[y_data_pred_array == benign_class] = 0
         predict_class_array.reshape((predict_class_array.shape[0], -1))
         error_rate = sum(error_count) / N
         n_target = tp + fn
