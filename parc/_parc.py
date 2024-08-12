@@ -229,11 +229,11 @@ class PARC:
         logger.message(f"jac std {np.std(similarities):.3f}")
         logger.message(f"jac mean {np.mean(similarities):.3f}")
 
-        strong_locs = np.where(similarities_array > threshold)[0]
-        for ii in strong_locs:
+        indices_similar = np.where(similarities_array > threshold)[0]
+        for ii in indices_similar:
             new_edges.append(edges_copy[ii])
 
-        similarities_new = list(similarities_array[strong_locs])
+        similarities_new = list(similarities_array[indices_similar])
 
         if jac_weighted_edges:
             graph_pruned = ig.Graph(
@@ -368,9 +368,9 @@ class PARC:
             threshold = np.median(similarities)
         else:
             threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
-        strong_locs = np.where(similarities_array > threshold)[0]
-        new_edges = list(np.asarray(edges_copy)[strong_locs])
-        similarities_new = list(similarities_array[strong_locs])
+        indices_similar = np.where(similarities_array > threshold)[0]
+        new_edges = list(np.asarray(edges_copy)[indices_similar])
+        similarities_new = list(similarities_array[indices_similar])
 
         graph_pruned = ig.Graph(
             n=n_samples,
