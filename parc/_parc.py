@@ -28,7 +28,7 @@ class PARC:
         n_iter_leiden=5,
         random_seed=42,
         n_threads=-1,
-        distance="l2",
+        distance_metric="l2",
         small_community_timeout=15,
         partition_type="ModularityVP",
         resolution_parameter=1.0,
@@ -57,7 +57,7 @@ class PARC:
         self.n_iter_leiden = n_iter_leiden #the default is 5 in PARC
         self.random_seed = random_seed  # enable reproducible Leiden clustering
         self.n_threads = n_threads  # number of threads used in KNN search/construction
-        self.distance = distance  # Euclidean distance "l2" by default; other options "ip" and "cosine"
+        self.distance_metric = distance_metric  # Euclidean distance "l2" by default; other options "ip" and "cosine"
         self.small_community_timeout = small_community_timeout #number of seconds trying to check an outlier
         self.partition_type = partition_type #default is the simple ModularityVertexPartition where resolution_parameter =1. In order to change resolution_parameter, we switch to RBConfigurationVP
         self.resolution_parameter = resolution_parameter # defaults to 1. expose this parameter in leidenalg
@@ -74,7 +74,7 @@ class PARC:
         if not too_big:
             num_dims = self.x_data.shape[1]
             n_samples = self.x_data.shape[0]
-            p = hnswlib.Index(space=self.distance, dim=num_dims)  # default to Euclidean distance
+            p = hnswlib.Index(space=self.distance_metric, dim=num_dims)  # default to Euclidean distance
             p.set_num_threads(self.n_threads)  # set threads used in KNN construction
             if n_samples < 10000:
                 ef_query = min(n_samples - 10, 500)
