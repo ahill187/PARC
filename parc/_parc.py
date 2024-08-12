@@ -214,9 +214,9 @@ class PARC:
         csr_array = self.make_csrmatrix_noselfloop(neighbor_array, distance_array)
         sources, targets = csr_array.nonzero()
 
-        edgelist = list(zip(sources.tolist(), targets.tolist()))
-        edgelist_copy = edgelist.copy()
-        graph = ig.Graph(edgelist, edge_attrs={"weight": csr_array.data.tolist()})
+        edges = list(zip(sources.tolist(), targets.tolist()))
+        edgelist_copy = edges.copy()
+        graph = ig.Graph(edges, edge_attrs={"weight": csr_array.data.tolist()})
         similarities = graph.similarity_jaccard(pairs=edgelist_copy)  # list of jaccard weights
         new_edgelist = []
         similarities_array = np.asarray(similarities)
@@ -353,11 +353,11 @@ class PARC:
 
         sources, targets = csr_array.nonzero()
 
-        edgelist = list(zip(sources, targets))
+        edges = list(zip(sources, targets))
 
-        edgelist_copy = edgelist.copy()
+        edgelist_copy = edges.copy()
 
-        graph = ig.Graph(edgelist, edge_attrs={"weight": csr_array.data.tolist()})
+        graph = ig.Graph(edges, edge_attrs={"weight": csr_array.data.tolist()})
         similarities = graph.similarity_jaccard(pairs=edgelist_copy)
 
         logger.message("Starting global pruning...")
