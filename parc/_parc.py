@@ -219,7 +219,7 @@ class PARC:
         graph = ig.Graph(edgelist, edge_attrs={"weight": csr_array.data.tolist()})
         similarities = graph.similarity_jaccard(pairs=edgelist_copy)  # list of jaccard weights
         new_edgelist = []
-        sim_list_array = np.asarray(similarities)
+        similarities_array = np.asarray(similarities)
         if jac_std_factor == "median":
             threshold = np.median(similarities)
         else:
@@ -229,11 +229,11 @@ class PARC:
         logger.message(f"jac std {np.std(similarities):.3f}")
         logger.message(f"jac mean {np.mean(similarities):.3f}")
 
-        strong_locs = np.where(sim_list_array > threshold)[0]
+        strong_locs = np.where(similarities_array > threshold)[0]
         for ii in strong_locs:
             new_edgelist.append(edgelist_copy[ii])
 
-        similarities_new = list(sim_list_array[strong_locs])
+        similarities_new = list(similarities_array[strong_locs])
 
         if jac_weighted_edges:
             graph_pruned = ig.Graph(
@@ -362,16 +362,16 @@ class PARC:
 
         logger.message("Starting global pruning...")
 
-        sim_list_array = np.asarray(similarities)
+        similarities_array = np.asarray(similarities)
         edge_list_copy_array = np.asarray(edgelist_copy)
 
         if jac_std_factor == "median":
             threshold = np.median(similarities)
         else:
             threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
-        strong_locs = np.where(sim_list_array > threshold)[0]
+        strong_locs = np.where(similarities_array > threshold)[0]
         new_edgelist = list(edge_list_copy_array[strong_locs])
-        similarities_new = list(sim_list_array[strong_locs])
+        similarities_new = list(similarities_array[strong_locs])
 
         graph_pruned = ig.Graph(
             n=n_samples,
