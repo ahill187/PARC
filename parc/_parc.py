@@ -142,6 +142,8 @@ class PARC:
             else:
                 keep_all_local_dist = False
 
+        self._keep_all_local_dist = keep_all_local_dist
+
     def make_knn_struct(self, too_big=False, big_cluster=None):
         if self.knn > 190:
             logger.message(
