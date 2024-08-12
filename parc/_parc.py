@@ -125,6 +125,16 @@ class PARC:
         self.partition_type = partition_type
 
     @property
+    def y_data_true(self):
+        return self._y_data_true
+
+    @y_data_true.setter
+    def y_data_true(self, y_data_true):
+        if y_data_true is None:
+            y_data_true = [1] * self.x_data.shape[0]
+        self._y_data_true = y_data_true
+
+    @property
     def keep_all_local_dist(self):
         return self._keep_all_local_dist
 
@@ -696,8 +706,6 @@ class PARC:
         logger.message(
             f"Input data has shape {self.x_data.shape[0]} (samples) x {self.x_data.shape[1]} (features)"
         )
-        if self.y_data_true is None:
-            self.y_data_true = [1] * self.x_data.shape[0]
         list_roc = []
 
         time_start_total = time.time()
