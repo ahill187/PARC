@@ -21,7 +21,7 @@ class PARC:
         dist_std_local=3,
         jac_std_global="median",
         keep_all_local_dist="auto",
-        too_big_factor=0.4,
+        large_community_factor=0.4,
         small_community_size=10,
         jac_weighted_edges=True,
         knn=30,
@@ -50,7 +50,7 @@ class PARC:
         self.dist_std_local = dist_std_local   # similar to the jac_std_global parameter. avoid setting local and global pruning to both be below 0.5 as this is very aggresive pruning.
         self.jac_std_global = jac_std_global  #0.15 is also a recommended value performing empirically similar to "median". Generally values between 0-1.5 are reasonable.
         self.keep_all_local_dist = keep_all_local_dist #decides whether or not to do local pruning. default is "auto" which omits LOCAL pruning for samples >300,000 cells.
-        self.too_big_factor = too_big_factor  #if a cluster exceeds this share of the entire cell population, then the PARC will be run on the large cluster. at 0.4 it does not come into play
+        self.large_community_factor = large_community_factor  #if a cluster exceeds this share of the entire cell population, then the PARC will be run on the large cluster. at 0.4 it does not come into play
         self.small_community_size = small_community_size  # smallest cluster population to be considered a community
         self.jac_weighted_edges = jac_weighted_edges #boolean. whether to partition using weighted graph
         self.knn = knn
@@ -204,7 +204,7 @@ class PARC:
         n_samples = x_data.shape[0]
         hnsw = self.make_knn_struct(too_big=True, big_cluster=x_data)
         if n_samples <= 10:
-            logger.message("Consider increasing the too_big_factor")
+            logger.message("Consider increasing the large_community_factor")
         if n_samples > self.knn:
             knnbig = self.knn
         else:
@@ -332,7 +332,7 @@ class PARC:
     def run_subPARC(self):
 
         x_data = self.x_data
-        too_big_factor = self.too_big_factor
+        large_community_factor = self.large_community_factor
         small_community_size = self.small_community_size
         jac_std_global = self.jac_std_global
         jac_weighted_edges = self.jac_weighted_edges
@@ -429,7 +429,7 @@ class PARC:
         # So, if cluster 0 is not too big, then the others won't be too big either
         cluster_i_loc = np.where(PARC_labels_leiden == 0)[0]
         pop_i = len(cluster_i_loc)
-        if pop_i > too_big_factor * n_samples:  # 0.4
+        if pop_i > large_community_factor * n_samples:  # 0.4
             too_big = True
             cluster_big_loc = cluster_i_loc
             list_pop_too_bigs = [pop_i]
@@ -462,7 +462,7 @@ class PARC:
                 cluster_ii_loc = np.where(PARC_labels_leiden == cluster_ii)[0]
                 pop_ii = len(cluster_ii_loc)
                 not_yet_expanded = pop_ii not in list_pop_too_bigs
-                if pop_ii > too_big_factor * n_samples and not_yet_expanded:
+                if pop_ii > large_community_factor * n_samples and not_yet_expanded:
                     too_big = True
                     logger.message(f"Cluster {cluster_ii} is too big and has population {pop_ii}.")
                     cluster_big_loc = cluster_ii_loc
