@@ -430,12 +430,12 @@ class PARC:
         community_size = len(community_indices)
         if community_size > large_community_factor * n_samples:  # 0.4
             too_big = True
-            cluster_big_loc = community_indices
+            large_community_indices = community_indices
             list_pop_too_bigs = [community_size]
 
         while too_big:
 
-            X_data_big = x_data[cluster_big_loc, :]
+            X_data_big = x_data[large_community_indices, :]
             node_communities_big = self.run_toobig_subPARC(X_data_big)
             node_communities_big = node_communities_big + 100000
             pop_list = []
@@ -446,7 +446,7 @@ class PARC:
             logger.message(f"pop of big clusters {pop_list}")
             jj = 0
             logger.message(f"shape node_communities {node_communities.shape}")
-            for j in cluster_big_loc:
+            for j in large_community_indices:
                 node_communities[j] = node_communities_big[jj]
                 jj = jj + 1
             node_communities = np.unique(
@@ -467,7 +467,7 @@ class PARC:
                     logger.message(
                         f"Cluster {community_id} is too big and has population {community_size}."
                     )
-                    cluster_big_loc = community_indices
+                    large_community_indices = community_indices
                     cluster_big = community_id
                     big_pop = community_size
             if too_big:
