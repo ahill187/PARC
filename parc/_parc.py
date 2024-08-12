@@ -434,9 +434,9 @@ class PARC:
             list_pop_too_bigs = [community_size]
 
         while too_big:
-
-            X_data_big = x_data[large_community_indices, :]
-            node_communities_big = self.run_toobig_subPARC(X_data_big)
+            node_communities_big = self.run_toobig_subPARC(
+                x_data=x_data[large_community_indices, :]
+            )
             node_communities_big = node_communities_big + 100000
             pop_list = []
 
