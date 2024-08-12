@@ -229,7 +229,13 @@ class PARC:
 
         return p
 
-    def knngraph_full(self):
+    def create_knn_graph(self) -> csr_matrix:
+        """Create a full k-nearest neighbors graph using the HNSW algorithm.
+
+        Returns:
+            A compressed sparse row matrix with dimensions ``(n_samples, n_samples)``,
+            containing the pruned distances.
+        """
         k_umap = 15
         # neighbors in array are not listed in in any order of proximity
         self.knn_struct.set_ef(k_umap+1)
