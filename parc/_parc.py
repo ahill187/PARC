@@ -469,12 +469,12 @@ class PARC:
                     )
                     large_community_indices = community_indices
                     large_community_id = community_id
-                    big_pop = community_size
+                    large_community_size = community_size
             if too_big:
-                list_pop_too_bigs.append(big_pop)
+                list_pop_too_bigs.append(large_community_size)
                 logger.message(
-                    f"Cluster {large_community_id} is too big and has population {big_pop}."
-                    "It will be expanded."
+                    f"Cluster {large_community_id} is too big and has population "
+                    f"{large_community_size}. It will be expanded."
                 )
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
         small_pop_list = []
