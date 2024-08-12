@@ -281,53 +281,53 @@ class PARC:
                     seed=self.random_seed,
                     resolution_parameter=self.resolution_parameter
                 )
-        PARC_labels_leiden = np.asarray(partition.membership)
-        PARC_labels_leiden = np.reshape(PARC_labels_leiden, (n_samples, 1))
+        node_communities = np.asarray(partition.membership)
+        node_communities = np.reshape(node_communities, (n_samples, 1))
         small_pop_list = []
         small_cluster_list = []
         small_community_exists = False
-        PARC_labels_leiden = np.unique(list(PARC_labels_leiden.flatten()), return_inverse=True)[1]
-        for cluster in set(PARC_labels_leiden):
-            population = len(np.where(PARC_labels_leiden == cluster)[0])
+        node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
+        for cluster in set(node_communities):
+            population = len(np.where(node_communities == cluster)[0])
             if population < small_community_size:
                 small_community_exists = True
-                small_pop_list.append(list(np.where(PARC_labels_leiden == cluster)[0]))
+                small_pop_list.append(list(np.where(node_communities == cluster)[0]))
                 small_cluster_list.append(cluster)
 
         for small_cluster in small_pop_list:
             for single_cell in small_cluster:
                 old_neighbors = neighbor_array[single_cell, :]
-                group_of_old_neighbors = PARC_labels_leiden[old_neighbors]
+                group_of_old_neighbors = node_communities[old_neighbors]
                 group_of_old_neighbors = list(group_of_old_neighbors.flatten())
                 available_neighbours = set(group_of_old_neighbors) - set(small_cluster_list)
                 if len(available_neighbours) > 0:
                     available_neighbours_list = [value for value in group_of_old_neighbors if
                                                  value in list(available_neighbours)]
                     best_group = max(available_neighbours_list, key=available_neighbours_list.count)
-                    PARC_labels_leiden[single_cell] = best_group
+                    node_communities[single_cell] = best_group
 
         time_start = time.time()
         logger.message("Handling fragments...")
         while small_community_exists & (time.time() - time_start < self.small_community_timeout):
             small_pop_list = []
             small_community_exists = False
-            for cluster in set(list(PARC_labels_leiden.flatten())):
-                population = len(np.where(PARC_labels_leiden == cluster)[0])
+            for cluster in set(list(node_communities.flatten())):
+                population = len(np.where(node_communities == cluster)[0])
                 if population < small_community_size:
                     small_community_exists = True
 
-                    small_pop_list.append(np.where(PARC_labels_leiden == cluster)[0])
+                    small_pop_list.append(np.where(node_communities == cluster)[0])
             for small_cluster in small_pop_list:
                 for single_cell in small_cluster:
                     old_neighbors = neighbor_array[single_cell, :]
-                    group_of_old_neighbors = PARC_labels_leiden[old_neighbors]
+                    group_of_old_neighbors = node_communities[old_neighbors]
                     group_of_old_neighbors = list(group_of_old_neighbors.flatten())
                     best_group = max(set(group_of_old_neighbors), key=group_of_old_neighbors.count)
-                    PARC_labels_leiden[single_cell] = best_group
+                    node_communities[single_cell] = best_group
 
-        PARC_labels_leiden = np.unique(list(PARC_labels_leiden.flatten()), return_inverse=True)[1]
+        node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
 
-        return PARC_labels_leiden
+        return node_communities
 
     def run_subPARC(self):
 
@@ -419,14 +419,14 @@ class PARC:
                     resolution_parameter=self.resolution_parameter
                 )
 
-        PARC_labels_leiden = np.asarray(partition.membership)
-        PARC_labels_leiden = np.reshape(PARC_labels_leiden, (n_samples, 1))
+        node_communities = np.asarray(partition.membership)
+        node_communities = np.reshape(node_communities, (n_samples, 1))
 
         too_big = False
 
         # The 0th cluster is the largest one.
         # So, if cluster 0 is not too big, then the others won't be too big either
-        cluster_i_loc = np.where(PARC_labels_leiden == 0)[0]
+        cluster_i_loc = np.where(node_communities == 0)[0]
         pop_i = len(cluster_i_loc)
         if pop_i > large_community_factor * n_samples:  # 0.4
             too_big = True
@@ -445,20 +445,20 @@ class PARC:
 
             logger.message(f"pop of big clusters {pop_list}")
             jj = 0
-            logger.message(f"shape PARC_labels_leiden {PARC_labels_leiden.shape}")
+            logger.message(f"shape node_communities {node_communities.shape}")
             for j in cluster_big_loc:
-                PARC_labels_leiden[j] = PARC_labels_leiden_big[jj]
+                node_communities[j] = PARC_labels_leiden_big[jj]
                 jj = jj + 1
-            PARC_labels_leiden = np.unique(
-                list(PARC_labels_leiden.flatten()), return_inverse=True
+            node_communities = np.unique(
+                list(node_communities.flatten()), return_inverse=True
             )[1]
-            logger.message(f"New set of labels {set(PARC_labels_leiden)}")
+            logger.message(f"New set of labels {set(node_communities)}")
             too_big = False
-            set_PARC_labels_leiden = set(PARC_labels_leiden)
+            set_PARC_labels_leiden = set(node_communities)
 
-            PARC_labels_leiden = np.asarray(PARC_labels_leiden)
+            node_communities = np.asarray(node_communities)
             for cluster_ii in set_PARC_labels_leiden:
-                cluster_ii_loc = np.where(PARC_labels_leiden == cluster_ii)[0]
+                cluster_ii_loc = np.where(node_communities == cluster_ii)[0]
                 pop_ii = len(cluster_ii_loc)
                 not_yet_expanded = pop_ii not in list_pop_too_bigs
                 if pop_ii > large_community_factor * n_samples and not_yet_expanded:
@@ -473,58 +473,58 @@ class PARC:
                     f"Cluster {cluster_big} is too big and has population {big_pop}."
                     "It will be expanded."
                 )
-        PARC_labels_leiden = np.unique(list(PARC_labels_leiden.flatten()), return_inverse=True)[1]
+        node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
         small_pop_list = []
         small_cluster_list = []
         small_community_exists = False
 
-        for cluster in set(PARC_labels_leiden):
-            population = len(np.where(PARC_labels_leiden == cluster)[0])
+        for cluster in set(node_communities):
+            population = len(np.where(node_communities == cluster)[0])
 
             if population < small_community_size:  # 10
                 small_community_exists = True
 
-                small_pop_list.append(list(np.where(PARC_labels_leiden == cluster)[0]))
+                small_pop_list.append(list(np.where(node_communities == cluster)[0]))
                 small_cluster_list.append(cluster)
 
         for small_cluster in small_pop_list:
 
             for single_cell in small_cluster:
                 old_neighbors = neighbor_array[single_cell]
-                group_of_old_neighbors = PARC_labels_leiden[old_neighbors]
+                group_of_old_neighbors = node_communities[old_neighbors]
                 group_of_old_neighbors = list(group_of_old_neighbors.flatten())
                 available_neighbours = set(group_of_old_neighbors) - set(small_cluster_list)
                 if len(available_neighbours) > 0:
                     available_neighbours_list = [value for value in group_of_old_neighbors if
                                                  value in list(available_neighbours)]
                     best_group = max(available_neighbours_list, key=available_neighbours_list.count)
-                    PARC_labels_leiden[single_cell] = best_group
+                    node_communities[single_cell] = best_group
         time_start = time.time()
         while small_community_exists & ((time.time() - time_start) < self.small_community_timeout):
             small_pop_list = []
             small_community_exists = False
-            for cluster in set(list(PARC_labels_leiden.flatten())):
-                population = len(np.where(PARC_labels_leiden == cluster)[0])
+            for cluster in set(list(node_communities.flatten())):
+                population = len(np.where(node_communities == cluster)[0])
                 if population < small_community_size:
                     small_community_exists = True
                     logger.message(f"Cluster {cluster} has small population of {population}.")
-                    small_pop_list.append(np.where(PARC_labels_leiden == cluster)[0])
+                    small_pop_list.append(np.where(node_communities == cluster)[0])
             for small_cluster in small_pop_list:
                 for single_cell in small_cluster:
                     old_neighbors = neighbor_array[single_cell]
-                    group_of_old_neighbors = PARC_labels_leiden[old_neighbors]
+                    group_of_old_neighbors = node_communities[old_neighbors]
                     group_of_old_neighbors = list(group_of_old_neighbors.flatten())
                     best_group = max(set(group_of_old_neighbors), key=group_of_old_neighbors.count)
-                    PARC_labels_leiden[single_cell] = best_group
+                    node_communities[single_cell] = best_group
 
-        PARC_labels_leiden = np.unique(list(PARC_labels_leiden.flatten()), return_inverse=True)[1]
-        PARC_labels_leiden = list(PARC_labels_leiden.flatten())
+        node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
+        node_communities = list(node_communities.flatten())
         pop_list = []
-        for item in set(PARC_labels_leiden):
-            pop_list.append((item, PARC_labels_leiden.count(item)))
+        for item in set(node_communities):
+            pop_list.append((item, node_communities.count(item)))
         logger.message(f"Cluster labels and populations {len(pop_list)} {pop_list}")
 
-        self.y_data_pred = PARC_labels_leiden
+        self.y_data_pred = node_communities
         return
 
     def accuracy(self, onevsall=1):
