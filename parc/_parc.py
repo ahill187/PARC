@@ -393,15 +393,16 @@ class PARC:
             A ``Graph`` object which has now been locally and globally pruned.
         """
 
+        logger.message("Starting global pruning...")
+
         input_nodes, output_nodes = csr_array.nonzero()
         edges = list(zip(input_nodes.tolist(), output_nodes.tolist()))
         edges_copy = edges.copy()
 
+        logger.info(f"Creating graph with {len(edges)} edges and {n_samples} nodes...")
+
         graph = ig.Graph(edges, edge_attrs={"weight": csr_array.data.tolist()})
         similarities = graph.similarity_jaccard(pairs=edges_copy)
-
-        logger.message("Starting global pruning...")
-
         similarities_array = np.asarray(similarities)
 
         if jac_threshold_type == "median":
@@ -409,11 +410,15 @@ class PARC:
         else:
             threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
 
-        logger.info(f"Jaccard threshold: {threshold:.3f}")
-        logger.info(f"Jaccard standard devaition: {np.std(similarities):.3f}")
-        logger.info(f"Jaccard mean: {np.mean(similarities):.3f}")
-
         indices_similar = np.where(similarities_array > threshold)[0]
+
+        logger.info(
+            f"Pruning {len(edges) - len(indices_similar)} edges based on Jaccard similarity "
+            f"threshold of {threshold:.3f} "
+            f"(mean = {np.mean(similarities):.3f}, std = {np.std(similarities):.3f}) "
+        )
+        logger.message(f"Creating graph with {len(indices_similar)} edges and {n_samples} nodes...")
+
         new_edges = list(np.asarray(edges_copy)[indices_similar])
         similarities_new = list(similarities_array[indices_similar])
 
