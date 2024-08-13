@@ -312,9 +312,8 @@ class PARC:
             distance_array = distance_array + 0.1
             for row in neighbor_array:
                 distances = distance_array[rowi, :]
-                to_keep = np.where(
-                    distances < np.mean(distances) + self.l2_std_factor * np.std(distances)
-                )[0]  # 0 * std
+                max_distance = np.mean(distances) + self.l2_std_factor * np.std(distances)
+                to_keep = np.where(distances < max_distance)[0]  # 0 * std
                 updated_nn_ind = row[np.ix_(to_keep)]
                 updated_nn_weights = distances[np.ix_(to_keep)]
 
