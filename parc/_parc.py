@@ -253,7 +253,7 @@ class PARC:
         knn_struct = hnswlib.Index(space=distance_metric, dim=n_features)
 
         if n_threads is not None:
-            knn_struct.set_num_threads(n_threads)  # set threads used in KNN construction
+            knn_struct.set_num_threads(n_threads)
 
         if hnsw_param_m is None:
             if n_features > 30 and n_samples <= 50000:
