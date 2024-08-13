@@ -310,15 +310,15 @@ class PARC:
                 f"{self.l2_std_factor} standard deviations above the mean"
             )
             distance_array = distance_array + 0.1
-            for row in neighbor_array:
+            for neighbors in neighbor_array:
                 distances = distance_array[rowi, :]
                 max_distance = np.mean(distances) + self.l2_std_factor * np.std(distances)
                 to_keep = np.where(distances < max_distance)[0]  # 0 * std
-                updated_nn_ind = row[np.ix_(to_keep)]
+                updated_nn_ind = neighbors[np.ix_(to_keep)]
                 updated_nn_weights = distances[np.ix_(to_keep)]
 
                 for ik in range(len(updated_nn_ind)):
-                    if rowi != row[ik]:  # remove self-loops
+                    if rowi != neighbors[ik]:  # remove self-loops
                         row_list.append(rowi)
                         col_list.append(updated_nn_ind[ik])
                         dist = np.sqrt(updated_nn_weights[ik])
