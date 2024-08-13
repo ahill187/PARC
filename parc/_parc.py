@@ -196,6 +196,7 @@ class PARC:
     def make_knn_struct(
         self,
         x_data: np.ndarray,
+        hnsw_param_m: int | None = None,
         distance_metric: str = "l2",
         n_threads: int | None = None,
         too_big=False
@@ -212,24 +213,25 @@ class PARC:
         if n_threads is not None:
             p.set_num_threads(n_threads)  # set threads used in KNN construction
 
+        if hnsw_param_m is None:
+            if n_features > 30 and n_samples <= 50000:
+                hnsw_param_m = 48  # good for scRNA seq where dimensionality is high
+            else:
+                hnsw_param_m = 24  # 30
+
         if not too_big:
             if n_samples < 10000:
                 ef_query = min(n_samples - 10, 500)
                 ef_construction = ef_query
             else:
                 ef_construction = self.hnsw_param_ef_construction
-            if (n_features > 30) & (n_samples <= 50000):
-                M = 48  # good for scRNA seq where dimensionality is high
-            else:
-                M = 24  # 30
         else:
-            M = 30
             ef_construction = 200
 
         p.init_index(
             max_elements=n_samples,
             ef_construction=ef_construction,
-            M=M
+            M=hnsw_param_m
         )
         p.add_items(x_data)
         p.set_ef(ef_query)  # ef should always be > k
@@ -496,6 +498,7 @@ class PARC:
         n_samples = x_data.shape[0]
         knn_struct = self.make_knn_struct(
             x_data=x_data,
+            hnsw_param_m=30,
             distance_metric="l2",
             too_big=True
         )
