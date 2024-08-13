@@ -206,9 +206,9 @@ class PARC:
         ef_query = max(100, self.knn + 1)  # ef always should be > k. higher ef, more accurate query
         n_features = x_data.shape[1]
         n_samples = x_data.shape[0]
+        p = hnswlib.Index(space=distance_metric, dim=n_features)
 
         if not too_big:
-            p = hnswlib.Index(space=distance_metric, dim=n_features)  # default to Euclidean distance
             p.set_num_threads(self.n_threads)  # set threads used in KNN construction
             if n_samples < 10000:
                 ef_query = min(n_samples - 10, 500)
@@ -229,7 +229,6 @@ class PARC:
                     M=24  # 30
                 )
         else:
-            p = hnswlib.Index(space=distance_metric, dim=n_features)
             p.init_index(max_elements=n_samples, ef_construction=200, M=30)
 
         p.add_items(x_data)
