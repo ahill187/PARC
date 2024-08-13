@@ -329,11 +329,11 @@ class PARC:
             col_list = neighbor_array.flatten().tolist()
             weight_list = (1. / (distance_array.flatten() + 0.1)).tolist()
 
-        csr_graph = csr_matrix(
+        csr_array = csr_matrix(
             (np.array(weight_list), (np.array(row_list), np.array(col_list))),
             shape=(n_samples, n_samples)
         )
-        return csr_graph
+        return csr_array
 
     def get_leiden_partition(
         self,
