@@ -274,7 +274,8 @@ class PARC:
     def prune_local(
         self,
         neighbor_array: np.ndarray,
-        distance_array: np.ndarray
+        distance_array: np.ndarray,
+        l2_std_factor: float | None = None
     ) -> csr_matrix:
         """Prune the nearest neighbors array.
 
@@ -294,6 +295,9 @@ class PARC:
 
             distance_array: An array with dimensions ``(n_samples, k)`` listing the
                 distances to each of the k nearest neighbors for each data point.
+            l2_std_factor: The multiplier used in calculating the Euclidean distance threshold
+                for the distance between two nodes during local pruning. If ``None`` (default),
+                then the value is set to the value of ``self.l2_std_factor``.
 
         Returns:
             A compressed sparse row matrix with dimensions ``(n_samples, n_samples)``,
@@ -306,6 +310,11 @@ class PARC:
 
         n_neighbors = neighbor_array.shape[1]
         n_samples = neighbor_array.shape[0]
+
+        if l2_std_factor is None:
+            l2_std_factor = self.l2_std_factor
+        else:
+            self.l2_std_factor = l2_std_factor
 
         if self.do_prune_local:
             logger.message(
