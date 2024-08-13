@@ -209,17 +209,46 @@ class PARC:
         <https://github.com/nmslib/hnswlib/blob/master/python_bindings/LazyIndex.py>`__.
 
         Args:
-            x_data: The input data.
-            knn: The number of nearest neighbors k for the k-nearest neighbors algorithm.
-            ef_query: The size of the dynamic list for the nearest neighbors
+            x_data:
+                An array of the input x data, with dimensions ``(n_samples, n_features)``.
+            knn:
+                The number of nearest neighbors k for the k-nearest neighbors algorithm.
+            ef_query:
+                The ``ef_query`` parameter corresponds to the ``hnswlib.Index`` parameter ``ef``.
+                It determines the size of the dynamic list for the nearest neighbors
                 (used during the search). Higher ``ef`` leads to more accurate but slower search.
                 Must be a value in the interval ``(k, n_samples]``.
-            hnsw_param_m: The number of bi-directional links created for every new element
-                during the ``hnswlib.Index`` construction.
-            hnsw_param_ef_construction: The number of candidates to be considered when adding
-                a new element to the ``hnswlib.Index``. Higher values lead to higher accuracy.
-                Even for ``O(100 000)`` cells, ``150-200`` is adequate.
-            distance_metric: The distance metric to be used in the KNN algorithm:
+            hnsw_param_m:
+                The ``hnsw_param_m`` parameter corresponds to the ``hnswlib.Index`` parameter ``M``.
+                It corresponds to the number of bi-directional links created for every new element
+                during the ``hnswlib.Index`` construction. Reasonable range for ``M`` is ``2-100``.
+                Higher ``M`` works better on datasets with high intrinsic dimensionality and/or
+                high recall, while lower ``M`` works better for datasets with low intrinsic
+                dimensionality and/or low recall. The parameter also determines the algorithm's
+                memory consumption, which is roughly ``M * 8-10 bytes`` per stored element.
+
+                For example, for ``n_features=4`` random vectors, the optimal ``M`` for search
+                is somewhere around ``6``, while for high dimensional datasets
+                (word embeddings, good face descriptors, scRNA seq), higher values of ``M``
+                are required (e.g. ``M=48-64``) for optimal performance at high recall.
+                The range ``M=12-48`` is adequate for the most of the use cases.
+                When ``M`` is changed, one has to update the other parameters.
+                Nonetheless, ``ef`` and ``ef_construction`` parameters can be roughly estimated
+                by assuming that ``M*ef_construction`` is a constant.
+            hnsw_param_ef_construction:
+                The ``hnsw_param_ef_construction`` parameter corresponds to the ``hnswlib.Index``
+                parameter ``ef_construction``. It has the same meaning as ``ef_query``,
+                but controls the index_time/index_accuracy. Higher values lead to longer
+                construction, but better index quality. Even for ``O(100 000)`` cells,
+                ``ef_construction ~ 150-200`` is adequate.
+
+                At some point, increasing ``ef_construction`` does not improve the quality of
+                the index. One way to check if the selection of ``ef_construction`` is
+                appropriate is to measure a recall for ``M`` nearest neighbor search when
+                ``ef = ef_construction``: if the recall is lower than ``0.9``, then there is room
+                for improvement.
+            distance_metric:
+                The distance metric to be used in the KNN algorithm:
 
                 * ``l2``: Euclidean distance L^2 norm:
 
@@ -233,7 +262,8 @@ class PARC:
 
                     d = 1.0 - np.sum(x_i*y_i) / np.sqrt(np.sum(x_i*x_i) * np.sum(y_i*y_i))
 
-            n_threads: The number of threads used in the KNN algorithm.
+            n_threads:
+                The number of threads used in the KNN algorithm.
 
         Returns:
             The HNSW index of the k-nearest neighbors graph.
@@ -257,9 +287,9 @@ class PARC:
 
         if hnsw_param_m is None:
             if n_features > 30 and n_samples <= 50000:
-                hnsw_param_m = 48  # good for scRNA seq where dimensionality is high
+                hnsw_param_m = 48
             else:
-                hnsw_param_m = 24  # 30
+                hnsw_param_m = 24
 
         if hnsw_param_ef_construction is None:
             if n_samples < 10000:
