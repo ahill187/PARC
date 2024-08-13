@@ -72,6 +72,9 @@ class PARC:
         do_prune_local:
             Whether or not to do local pruning. If ``None`` (default), set to ``False`` if the
             number of samples is > 300 000, and set to ``True`` otherwise.
+        jac_threshold_type:
+            One of ``"median"`` or ``"mean"``. Determines how the Jaccard similarity threshold is
+            calculated during global pruning.
         jac_std_factor:
             The multiplier used in calculating the Jaccard similarity threshold for the similarity
             between two nodes during global pruning for ``jac_threshold_type = "mean"``:
@@ -111,7 +114,8 @@ class PARC:
         x_data: np.ndarray,
         y_data_true: np.ndarray | None = None,
         l2_std_factor: float = 3,
-        jac_std_factor: float | str = "median",
+        jac_threshold_type: str = "median",
+        jac_std_factor: float = 0.15,
         do_prune_local: bool | None = None,
         large_community_factor: float = 0.4,
         small_community_size: int = 10,
@@ -140,6 +144,7 @@ class PARC:
         self.neighbor_graph = neighbor_graph
         self.knn_struct = knn_struct
         self.l2_std_factor = l2_std_factor
+        self.jac_threshold_type = jac_threshold_type
         self.jac_std_factor = jac_std_factor
         self.jac_weighted_edges = jac_weighted_edges
         self.do_prune_local = do_prune_local
@@ -401,7 +406,8 @@ class PARC:
     def run_toobig_subPARC(
         self,
         x_data,
-        jac_std_factor=0.3,
+        jac_threshold_type: str = "mean",
+        jac_std_factor: float = 0.3,
         jac_weighted_edges=True
     ):
 
@@ -424,7 +430,7 @@ class PARC:
         similarities = graph.similarity_jaccard(pairs=edges_copy)  # list of jaccard weights
         new_edges = []
         similarities_array = np.asarray(similarities)
-        if jac_std_factor == "median":
+        if jac_threshold_type == "median":
             threshold = np.median(similarities)
         else:
             threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
@@ -513,6 +519,7 @@ class PARC:
 
         large_community_factor = self.large_community_factor
         small_community_size = self.small_community_size
+        jac_threshold_type = self.jac_threshold_type
         jac_std_factor = self.jac_std_factor
         jac_weighted_edges = self.jac_weighted_edges
         knn = self.knn
@@ -542,7 +549,7 @@ class PARC:
 
         similarities_array = np.asarray(similarities)
 
-        if jac_std_factor == "median":
+        if jac_threshold_type == "median":
             threshold = np.median(similarities)
         else:
             threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
