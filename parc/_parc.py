@@ -229,11 +229,20 @@ class PARC:
 
         return p
 
-    def knngraph_full(self):
-        k_umap = 15
+    def create_knn_graph(self, knn: int = 15) -> csr_matrix:
+        """Create a full k-nearest neighbors graph using the HNSW algorithm.
+
+        Args:
+            knn: The number of nearest neighbors k for the k-nearest neighbours algorithm.
+
+        Returns:
+            A compressed sparse row matrix with dimensions ``(n_samples, n_samples)``,
+            containing the pruned distances.
+        """
+
         # neighbors in array are not listed in in any order of proximity
-        self.knn_struct.set_ef(k_umap+1)
-        neighbor_array, distance_array = self.knn_struct.knn_query(self.x_data, k=k_umap)
+        self.knn_struct.set_ef(knn + 1)
+        neighbor_array, distance_array = self.knn_struct.knn_query(self.x_data, k=knn)
 
         row_list = []
         n_neighbors = neighbor_array.shape[1]
@@ -246,29 +255,22 @@ class PARC:
         row_min = np.min(distance_array, axis=1)
         row_sigma = np.std(distance_array, axis=1)
 
-        distance_array = (distance_array - row_min[:, np.newaxis])/row_sigma[:, np.newaxis]
+        distance_array = (distance_array - row_min[:, np.newaxis]) / row_sigma[:, np.newaxis]
+        distance_array = np.sqrt(distance_array.flatten()) * -1
 
         col_list = neighbor_array.flatten().tolist()
-        distance_array = distance_array.flatten()
-        distance_array = np.sqrt(distance_array)
-        distance_array = distance_array * -1
 
         weight_list = np.exp(distance_array)
-
         threshold = np.mean(weight_list) + 2 * np.std(weight_list)
-
         weight_list[weight_list >= threshold] = threshold
 
-        weight_list = weight_list.tolist()
-
-        graph = csr_matrix((np.array(weight_list), (np.array(row_list), np.array(col_list))),
-                           shape=(n_samples, n_samples))
-
-        graph_transpose = graph.T
-        prod_matrix = graph.multiply(graph_transpose)
-
-        graph = graph_transpose + graph - prod_matrix
-        return graph
+        csr_array = csr_matrix(
+            (weight_list, (np.array(row_list), np.array(col_list))),
+            shape=(n_samples, n_samples)
+        )
+        prod_matrix = csr_array.multiply(csr_array.T)
+        csr_array = csr_array.T + csr_array - prod_matrix
+        return csr_array
 
     def make_csrmatrix_noselfloop(self, neighbor_array, distance_array):
         # neighbor array not listed in in any order of proximity
