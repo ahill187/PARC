@@ -196,6 +196,7 @@ class PARC:
     def make_knn_struct(
         self,
         x_data: np.ndarray,
+        distance_metric: str = "l2",
         too_big=False
     ):
         if self.knn > 190:
@@ -207,7 +208,7 @@ class PARC:
         n_samples = x_data.shape[0]
 
         if not too_big:
-            p = hnswlib.Index(space=self.distance_metric, dim=n_features)  # default to Euclidean distance
+            p = hnswlib.Index(space=distance_metric, dim=n_features)  # default to Euclidean distance
             p.set_num_threads(self.n_threads)  # set threads used in KNN construction
             if n_samples < 10000:
                 ef_query = min(n_samples - 10, 500)
@@ -228,7 +229,7 @@ class PARC:
                     M=24  # 30
                 )
         else:
-            p = hnswlib.Index(space="l2", dim=n_features)
+            p = hnswlib.Index(space=distance_metric, dim=n_features)
             p.init_index(max_elements=n_samples, ef_construction=200, M=30)
 
         p.add_items(x_data)
@@ -494,7 +495,11 @@ class PARC:
     ):
 
         n_samples = x_data.shape[0]
-        knn_struct = self.make_knn_struct(x_data=x_data, too_big=True)
+        knn_struct = self.make_knn_struct(
+            x_data=x_data,
+            distance_metric="l2",
+            too_big=True
+        )
         if n_samples <= 10:
             logger.message("Consider increasing the large_community_factor")
         if n_samples > self.knn:
@@ -588,7 +593,10 @@ class PARC:
         else:
             if self.knn_struct is None:
                 logger.message("knn struct was not available, creating new one")
-                self.knn_struct = self.make_knn_struct(x_data=x_data)
+                self.knn_struct = self.make_knn_struct(
+                    x_data=x_data,
+                    distance_metric=self.distance_metric
+                )
             else:
                 logger.message("knn struct already exists")
             neighbor_array, distance_array = self.knn_struct.knn_query(x_data, k=knn)
