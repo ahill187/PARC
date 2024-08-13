@@ -600,36 +600,14 @@ class PARC:
             neighbor_array, distance_array = self.knn_struct.knn_query(x_data, k=knn)
             csr_array = self.prune_local(neighbor_array, distance_array)
 
-        input_nodes, output_nodes = csr_array.nonzero()
-
-        edges = list(zip(input_nodes, output_nodes))
-
-        edges_copy = edges.copy()
-
-        graph = ig.Graph(edges, edge_attrs={"weight": csr_array.data.tolist()})
-        similarities = graph.similarity_jaccard(pairs=edges_copy)
-
-        logger.message("Starting global pruning...")
-
-        similarities_array = np.asarray(similarities)
-
-        if jac_threshold_type == "median":
-            threshold = np.median(similarities)
-        else:
-            threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
-        indices_similar = np.where(similarities_array > threshold)[0]
-        new_edges = list(np.asarray(edges_copy)[indices_similar])
-        similarities_new = list(similarities_array[indices_similar])
-
-        graph_pruned = ig.Graph(
-            n=n_samples,
-            edges=list(new_edges),
-            edge_attrs={"weight": similarities_new}
+        graph_pruned = self.prune_global(
+            csr_array=csr_array,
+            jac_threshold_type=jac_threshold_type,
+            jac_std_factor=jac_std_factor,
+            n_samples=n_samples
         )
-        graph_pruned.simplify(combine_edges="sum")  # "first"
 
         logger.message("Starting Leiden community detection...")
-
         partition = self.get_leiden_partition(
             graph=graph_pruned,
             jac_weighted_edges=jac_weighted_edges
