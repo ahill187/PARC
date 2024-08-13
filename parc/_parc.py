@@ -69,10 +69,9 @@ class PARC:
             Avoid setting both the ``jac_std_factor`` (global) and the ``l2_std_factor`` (local)
             to < 0.5 as this is very aggressive pruning.
             Higher ``l2_std_factor`` means more edges are kept.
-        keep_all_local_dist:
-            Whether or not to do local pruning.
-            If ``None`` (default), set to ``True`` if the number of samples is > 300 000,
-            and set to ``False`` otherwise.
+        do_prune_local:
+            Whether or not to do local pruning. If ``None`` (default), set to ``False`` if the
+            number of samples is > 300 000, and set to ``True`` otherwise.
         jac_std_factor:
             The multiplier used in calculating the Jaccard similarity threshold for the similarity
             between two nodes during global pruning for ``jac_threshold_type = "mean"``:
@@ -113,7 +112,7 @@ class PARC:
         y_data_true: np.ndarray | None = None,
         l2_std_factor: float = 3,
         jac_std_factor: float | str = "median",
-        keep_all_local_dist: bool | None = None,
+        do_prune_local: bool | None = None,
         large_community_factor: float = 0.4,
         small_community_size: int = 10,
         jac_weighted_edges: bool = True,
@@ -143,7 +142,7 @@ class PARC:
         self.l2_std_factor = l2_std_factor
         self.jac_std_factor = jac_std_factor
         self.jac_weighted_edges = jac_weighted_edges
-        self.keep_all_local_dist = keep_all_local_dist
+        self.do_prune_local = do_prune_local
         self.large_community_factor = large_community_factor
         self.small_community_size = small_community_size
         self.small_community_timeout = small_community_timeout
@@ -161,22 +160,22 @@ class PARC:
         self._y_data_true = y_data_true
 
     @property
-    def keep_all_local_dist(self) -> bool:
-        return self._keep_all_local_dist
+    def do_prune_local(self) -> bool:
+        return self._do_prune_local
 
-    @keep_all_local_dist.setter
-    def keep_all_local_dist(self, keep_all_local_dist: bool | None):
-        if keep_all_local_dist is None:
+    @do_prune_local.setter
+    def do_prune_local(self, do_prune_local: bool | None):
+        if do_prune_local is None:
             if self.x_data.shape[0] > 300000:
                 logger.message(
-                    f"Sample size is {self.x_data.shape[0]}, setting keep_all_local_dist "
-                    f"to True so that local pruning will be skipped and algorithm will be faster."
+                    f"Sample size is {self.x_data.shape[0]}, setting do_prune_local "
+                    f"to False so that local pruning will be skipped and algorithm will be faster."
                 )
-                keep_all_local_dist = True
+                do_prune_local = False
             else:
-                keep_all_local_dist = False
+                do_prune_local = True
 
-        self._keep_all_local_dist = keep_all_local_dist
+        self._do_prune_local = do_prune_local
 
     @property
     def partition_type(self) -> str:
@@ -279,11 +278,11 @@ class PARC:
     ) -> csr_matrix:
         """Prune the nearest neighbors array.
 
-        If ``keep_all_local_dist=False``, remove any neighbors which are further away than
+        If ``do_prune_local==True``, remove any neighbors which are further away than
         the specified cutoff distance. Also, remove any self-loops. Return in the ``csr_matrix``
         format.
 
-        If ``keep_all_local_dist=True``, then don't perform any pruning and return the original
+        If ``do_prune_local==False``, then don't perform any pruning and return the original
         arrays in the ``csr_matrix`` format.
 
         Args:
@@ -305,8 +304,7 @@ class PARC:
         n_samples = neighbor_array.shape[0]
         rowi = 0
         discard_count = 0
-        if not self.keep_all_local_dist:  # locally prune based on (squared) l2 distance
-
+        if self.do_prune_local:  # locally prune based on (squared) l2 distance
             logger.message(
                 "Starting local pruning based on Euclidean distance metric at "
                 f"{self.l2_std_factor} standard deviations above the mean"
@@ -329,8 +327,7 @@ class PARC:
                         weight_list.append(1/(dist+0.1))
 
                 rowi = rowi + 1
-
-        if self.keep_all_local_dist:  # don't prune based on distance
+        else:  # don't prune based on distance
             row_list.extend(
                 list(np.transpose(np.ones((n_neighbors, n_samples)) * range(0, n_samples)).flatten())
             )
