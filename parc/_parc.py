@@ -196,17 +196,18 @@ class PARC:
     def make_knn_struct(
         self,
         x_data: np.ndarray,
+        knn: int,
         hnsw_param_m: int | None = None,
         hnsw_param_ef_construction: int | None = None,
         distance_metric: str = "l2",
         n_threads: int | None = None,
         too_big=False
     ):
-        if self.knn > 190:
+        if knn > 190:
             logger.message(
-                f"knn is {self.knn}, consider using a lower K_in for KNN graph construction"
+                f"knn is {knn}, consider using a lower K_in for KNN graph construction"
             )
-        ef_query = max(100, self.knn + 1)  # ef always should be > k. higher ef, more accurate query
+        ef_query = max(100, knn + 1)  # ef always should be > k. higher ef, more accurate query
         n_features = x_data.shape[1]
         n_samples = x_data.shape[0]
         knn_struct = hnswlib.Index(space=distance_metric, dim=n_features)
@@ -500,6 +501,7 @@ class PARC:
         n_samples = x_data.shape[0]
         knn_struct = self.make_knn_struct(
             x_data=x_data,
+            knn=self.knn,
             hnsw_param_m=30,
             hnsw_param_ef_construction=200,
             distance_metric="l2",
@@ -600,6 +602,7 @@ class PARC:
                 logger.message("knn struct was not available, creating new one")
                 self.knn_struct = self.make_knn_struct(
                     x_data=x_data,
+                    knn=knn,
                     distance_metric=self.distance_metric,
                     n_threads=self.n_threads
                 )
