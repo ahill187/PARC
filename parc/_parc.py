@@ -420,13 +420,12 @@ class PARC:
         logger.message(f"Creating graph with {len(indices_similar)} edges and {n_samples} nodes...")
 
         new_edges = list(np.asarray(edges_copy)[indices_similar])
-        similarities_new = list(similarities_array[indices_similar])
 
         if jac_weighted_edges:
             graph_pruned = ig.Graph(
                 n=n_samples,
                 edges=list(new_edges),
-                edge_attrs={"weight": similarities_new}
+                edge_attrs={"weight": list(similarities_array[indices_similar])}
             )
         else:
             graph_pruned = ig.Graph(
