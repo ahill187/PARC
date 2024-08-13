@@ -311,12 +311,12 @@ class PARC:
             )
             distance_array = distance_array + 0.1
             for row in neighbor_array:
-                distlist = distance_array[rowi, :]
+                distances = distance_array[rowi, :]
                 to_keep = np.where(
-                    distlist < np.mean(distlist) + self.l2_std_factor * np.std(distlist)
+                    distances < np.mean(distances) + self.l2_std_factor * np.std(distances)
                 )[0]  # 0 * std
                 updated_nn_ind = row[np.ix_(to_keep)]
-                updated_nn_weights = distlist[np.ix_(to_keep)]
+                updated_nn_weights = distances[np.ix_(to_keep)]
 
                 for ik in range(len(updated_nn_ind)):
                     if rowi != row[ik]:  # remove self-loops
