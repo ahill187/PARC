@@ -369,8 +369,8 @@ class PARC:
         remove any edges from the graph that do not meet a minimum similarity threshold.
 
         Args:
-            csr_array: A sparse matrix with dimensions
-                (n_samples, n_samples), containing the locally-pruned pair-wise distances.
+            csr_array: A sparse matrix with dimensions ``(n_samples, n_samples)``,
+                containing the locally-pruned pair-wise distances.
             jac_threshold_type: One of ``"median"`` or ``"mean"``. Determines how the
                 Jaccard similarity threshold is calculated during global pruning.
             jac_std_factor: The multiplier used in calculating the Jaccard similarity
@@ -386,7 +386,7 @@ class PARC:
                 ``jac_std_factor``. Generally values between 0-1.5 are reasonable. Higher
                 ``jac_std_factor`` means more edges are kept.
             jac_weighted_edges: Whether to weight the pruned graph. This is always ``True`` for
-                the top-level PARC run, but can be changed when pruning the large communities.
+                the top-level ``PARC`` run, but can be changed when pruning the large communities.
             n_samples: The number of samples in the data.
 
         Returns:
