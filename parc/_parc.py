@@ -491,7 +491,7 @@ class PARC:
     ):
 
         n_samples = x_data.shape[0]
-        hnsw = self.make_knn_struct(too_big=True, big_cluster=x_data)
+        knn_struct = self.make_knn_struct(too_big=True, big_cluster=x_data)
         if n_samples <= 10:
             logger.message("Consider increasing the large_community_factor")
         if n_samples > self.knn:
@@ -499,7 +499,7 @@ class PARC:
         else:
             knnbig = int(max(5, 0.2 * n_samples))
 
-        neighbor_array, distance_array = hnsw.knn_query(x_data, k=knnbig)
+        neighbor_array, distance_array = knn_struct.knn_query(x_data, k=knnbig)
         csr_array = self.prune_local(neighbor_array, distance_array)
 
         graph_pruned = self.prune_global(
