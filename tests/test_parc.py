@@ -2,6 +2,7 @@ import pytest
 from sklearn import datasets
 import igraph as ig
 import numpy as np
+import scipy
 from parc._parc import PARC
 from parc.logger import get_logger
 
@@ -65,3 +66,26 @@ def test_parc_create_knn_graph(iris_data, knn):
     csr_array = parc_model.create_knn_graph(knn=knn)
     nn_collection = np.split(csr_array.indices, csr_array.indptr)[1:-1]
     assert len(nn_collection) == y_data.shape[0]
+
+
+@pytest.mark.parametrize(
+    "knn, l2_std_factor, n_edges",
+    [
+        (100, 3.0, 14625),
+        (100, 100.0, 14850),
+        (100, -100.0, 0)
+    ]
+)
+def test_parc_prune_local(
+    iris_data, knn, l2_std_factor, n_edges
+):
+    x_data = iris_data[0]
+    y_data = iris_data[1]
+    parc_model = PARC(x_data=x_data, y_data_true=y_data)
+    knn_struct = parc_model.make_knn_struct()
+    neighbor_array, distance_array = knn_struct.knn_query(x_data, k=knn)
+    csr_array = parc_model.prune_local(neighbor_array, distance_array, l2_std_factor)
+    input_nodes, output_nodes = csr_array.nonzero()
+    edges = list(zip(input_nodes, output_nodes))
+    assert isinstance(csr_array, scipy.sparse.csr_matrix)
+    assert len(edges) == n_edges
