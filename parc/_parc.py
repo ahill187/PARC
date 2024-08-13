@@ -197,11 +197,11 @@ class PARC:
         self,
         x_data: np.ndarray,
         knn: int,
+        ef_query: int = 100,
         hnsw_param_m: int | None = None,
         hnsw_param_ef_construction: int | None = None,
         distance_metric: str = "l2",
-        n_threads: int | None = None,
-        too_big=False
+        n_threads: int | None = None
     ) -> hnswlib.Index:
         """Create a KNN graph using the Hierarchical Navigable Small Worlds (HNSW) algorithm.
 
@@ -211,6 +211,9 @@ class PARC:
         Args:
             x_data: The input data.
             knn: The number of nearest neighbors k for the k-nearest neighbors algorithm.
+            ef_query: The size of the dynamic list for the nearest neighbors
+                (used during the search). Higher ``ef`` leads to more accurate but slower search.
+                Must be a value in the interval ``(k, n_samples]``.
             hnsw_param_m: The number of bi-directional links created for every new element
                 during the ``hnswlib.Index`` construction.
             hnsw_param_ef_construction: The number of candidates to be considered when adding
@@ -240,9 +243,13 @@ class PARC:
             logger.message(
                 f"knn is {knn}, consider using a lower K_in for KNN graph construction"
             )
-        ef_query = max(100, knn + 1)  # ef always should be > k. higher ef, more accurate query
+
         n_features = x_data.shape[1]
         n_samples = x_data.shape[0]
+
+        ef_query = min(max(ef_query, knn + 1), n_samples)
+        logger.info(f"Setting ef_query to {ef_query}")
+
         knn_struct = hnswlib.Index(space=distance_metric, dim=n_features)
 
         if n_threads is not None:
@@ -260,17 +267,13 @@ class PARC:
             else:
                 hnsw_param_ef_construction = self.hnsw_param_ef_construction
 
-        if not too_big:
-            if n_samples < 10000:
-                ef_query = min(n_samples - 10, 500)
-
         knn_struct.init_index(
             max_elements=n_samples,
             ef_construction=hnsw_param_ef_construction,
             M=hnsw_param_m
         )
         knn_struct.add_items(x_data)
-        knn_struct.set_ef(ef_query)  # ef should always be > k
+        knn_struct.set_ef(ef_query)
 
         return knn_struct
 
@@ -537,8 +540,7 @@ class PARC:
             knn=self.knn,
             hnsw_param_m=30,
             hnsw_param_ef_construction=200,
-            distance_metric="l2",
-            too_big=True
+            distance_metric="l2"
         )
         if n_samples <= 10:
             logger.message("Consider increasing the large_community_factor")
@@ -633,9 +635,14 @@ class PARC:
         else:
             if self.knn_struct is None:
                 logger.message("knn struct was not available, creating new one")
+                if n_samples < 10000:
+                    ef_query = min(n_samples - 10, 500)
+                else:
+                    ef_query = 100
                 self.knn_struct = self.make_knn_struct(
                     x_data=x_data,
                     knn=knn,
+                    ef_query=ef_query,
                     distance_metric=self.distance_metric,
                     n_threads=self.n_threads
                 )
