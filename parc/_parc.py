@@ -264,14 +264,13 @@ class PARC:
         threshold = np.mean(weight_list) + 2 * np.std(weight_list)
         weight_list[weight_list >= threshold] = threshold
 
-        graph = csr_matrix(
+        csr_array = csr_matrix(
             (weight_list, (np.array(row_list), np.array(col_list))),
             shape=(n_samples, n_samples)
         )
-        graph_transpose = graph.T
-        prod_matrix = graph.multiply(graph_transpose)
-        graph = graph_transpose + graph - prod_matrix
-        return graph
+        prod_matrix = csr_array.multiply(csr_array.T)
+        csr_array = csr_array.T + csr_array - prod_matrix
+        return csr_array
 
     def make_csrmatrix_noselfloop(self, neighbor_array, distance_array):
         # neighbor array not listed in in any order of proximity
