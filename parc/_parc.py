@@ -209,10 +209,10 @@ class PARC:
         ef_query = max(100, self.knn + 1)  # ef always should be > k. higher ef, more accurate query
         n_features = x_data.shape[1]
         n_samples = x_data.shape[0]
-        p = hnswlib.Index(space=distance_metric, dim=n_features)
+        knn_struct = hnswlib.Index(space=distance_metric, dim=n_features)
 
         if n_threads is not None:
-            p.set_num_threads(n_threads)  # set threads used in KNN construction
+            knn_struct.set_num_threads(n_threads)  # set threads used in KNN construction
 
         if hnsw_param_m is None:
             if n_features > 30 and n_samples <= 50000:
@@ -230,15 +230,15 @@ class PARC:
             if n_samples < 10000:
                 ef_query = min(n_samples - 10, 500)
 
-        p.init_index(
+        knn_struct.init_index(
             max_elements=n_samples,
             ef_construction=hnsw_param_ef_construction,
             M=hnsw_param_m
         )
-        p.add_items(x_data)
-        p.set_ef(ef_query)  # ef should always be > k
+        knn_struct.add_items(x_data)
+        knn_struct.set_ef(ef_query)  # ef should always be > k
 
-        return p
+        return knn_struct
 
     def create_knn_graph(self, knn: int = 15) -> csr_matrix:
         """Create a full k-nearest neighbors graph using the HNSW algorithm.
