@@ -4,8 +4,10 @@ import igraph as ig
 import numpy as np
 import scipy
 import igraph
+import hnswlib
 from parc._parc import PARC
 from parc.logger import get_logger
+from tests.variables import NEIGHBOR_ARRAY_L2, NEIGHBOR_ARRAY_COSINE
 
 logger = get_logger(__name__, 20)
 
@@ -55,6 +57,32 @@ def test_parc_get_leiden_partition(iris_data, knn, jac_weighted_edges):
     assert len(leiden_partition.membership) == len(y_data)
     assert len(leiden_partition) <= len(y_data)
     assert len(leiden_partition) >= 1
+
+
+@pytest.mark.parametrize(
+    "knn_hnsw, knn_query, distance_metric, expected_neighbor_array",
+    [
+        (30, 2, "l2", NEIGHBOR_ARRAY_L2),
+        (30, 2, "cosine", NEIGHBOR_ARRAY_COSINE)
+    ]
+)
+def test_parc_make_knn_struct(
+    iris_data, knn_hnsw, knn_query, distance_metric, expected_neighbor_array
+):
+    x_data = iris_data[0]
+    y_data = iris_data[1]
+    parc_model = PARC(x_data=x_data, y_data_true=y_data)
+    knn_struct = parc_model.make_knn_struct(
+        x_data=x_data,
+        knn=knn_hnsw,
+        distance_metric=distance_metric
+    )
+    assert isinstance(knn_struct, hnswlib.Index)
+    neighbor_array, distance_array = knn_struct.knn_query(x_data, k=knn_query)
+    assert neighbor_array.shape == (x_data.shape[0], knn_query)
+    assert distance_array.shape == (x_data.shape[0], knn_query)
+    n_diff = np.count_nonzero(expected_neighbor_array != neighbor_array)
+    assert n_diff / x_data.shape[0] < 0.1
 
 
 @pytest.mark.parametrize("knn", [5, 10, 20, 50])
