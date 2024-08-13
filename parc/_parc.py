@@ -304,7 +304,7 @@ class PARC:
         n_samples = neighbor_array.shape[0]
         rowi = 0
 
-        if self.do_prune_local:  # locally prune based on (squared) l2 distance
+        if self.do_prune_local:
             logger.message(
                 "Starting local pruning based on Euclidean distance metric at "
                 f"{self.l2_std_factor} standard deviations above the mean"
@@ -326,7 +326,7 @@ class PARC:
                         weight_list.append(1/(dist+0.1))
 
                 rowi = rowi + 1
-        else:  # don't prune based on distance
+        else:
             row_list.extend(
                 list(np.transpose(np.ones((n_neighbors, n_samples)) * range(0, n_samples)).flatten())
             )
