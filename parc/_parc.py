@@ -288,6 +288,10 @@ class PARC:
         Args:
             neighbor_array: An array with dimensions ``(n_samples, k)`` listing the
                 k nearest neighbors for each data point.
+
+                .. note::
+                    The neighbors in the array are not listed in any order of proximity.
+
             distance_array: An array with dimensions ``(n_samples, k)`` listing the
                 distances to each of the k nearest neighbors for each data point.
 
@@ -295,7 +299,7 @@ class PARC:
             A compressed sparse row matrix with dimensions ``(n_samples, n_samples)``,
             containing the pruned distances.
         """
-        # neighbor array not listed in in any order of proximity
+
         row_list = []
         col_list = []
         weight_list = []
@@ -312,22 +316,23 @@ class PARC:
             for community_id, neighbors in zip(range(n_samples), neighbor_array):
                 distances = distance_array[community_id, :]
                 max_distance = np.mean(distances) + self.l2_std_factor * np.std(distances)
-                to_keep = np.where(distances < max_distance)[0]  # 0 * std
+                to_keep = np.where(distances < max_distance)[0]
                 updated_neighbors = neighbors[np.ix_(to_keep)]
                 updated_distances = distances[np.ix_(to_keep)]
 
+                # remove self-loops
                 for index in range(len(updated_neighbors)):
-                    if community_id != neighbors[index]:  # remove self-loops
+                    if community_id != neighbors[index]:
                         row_list.append(community_id)
                         col_list.append(updated_neighbors[index])
                         distance = np.sqrt(updated_distances[index])
-                        weight_list.append(1/(distance+0.1))
+                        weight_list.append(1 / (distance + 0.1))
         else:
             row_list.extend(
-                list(np.transpose(np.ones((n_neighbors, n_samples)) * range(0, n_samples)).flatten())
+                list(np.transpose(np.ones((n_neighbors, n_samples)) * range(n_samples)).flatten())
             )
             col_list = neighbor_array.flatten().tolist()
-            weight_list = (1. / (distance_array.flatten() + 0.1)).tolist()
+            weight_list = (1.0 / (distance_array.flatten() + 0.1)).tolist()
 
         csr_array = csr_matrix(
             (np.array(weight_list), (np.array(row_list), np.array(col_list))),
