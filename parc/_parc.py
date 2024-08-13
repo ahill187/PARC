@@ -603,7 +603,7 @@ class PARC:
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
         for cluster in set(node_communities):
             population = len(np.where(node_communities == cluster)[0])
-            if population < small_community_size:
+            if population < self.small_community_size:
                 small_community_exists = True
                 small_pop_list.append(list(np.where(node_communities == cluster)[0]))
                 small_cluster_list.append(cluster)
@@ -627,7 +627,7 @@ class PARC:
             small_community_exists = False
             for cluster in set(list(node_communities.flatten())):
                 population = len(np.where(node_communities == cluster)[0])
-                if population < small_community_size:
+                if population < self.small_community_size:
                     small_community_exists = True
 
                     small_pop_list.append(np.where(node_communities == cluster)[0])
