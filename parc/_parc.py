@@ -202,7 +202,40 @@ class PARC:
         distance_metric: str = "l2",
         n_threads: int | None = None,
         too_big=False
-    ):
+    ) -> hnswlib.Index:
+        """Create a KNN graph using the Hierarchical Navigable Small Worlds (HNSW) algorithm.
+
+        See `hnswlib.Index
+        <https://github.com/nmslib/hnswlib/blob/master/python_bindings/LazyIndex.py>`__.
+
+        Args:
+            x_data: The input data.
+            knn: The number of nearest neighbors k for the k-nearest neighbors algorithm.
+            hnsw_param_m: The number of bi-directional links created for every new element
+                during the ``hnswlib.Index`` construction.
+            hnsw_param_ef_construction: The number of candidates to be considered when adding
+                a new element to the ``hnswlib.Index``. Higher values lead to higher accuracy.
+                Even for ``O(100 000)`` cells, ``150-200`` is adequate.
+            distance_metric: The distance metric to be used in the KNN algorithm:
+
+                * ``l2``: Euclidean distance L^2 norm:
+
+                  .. code-block:: python
+
+                    d = np.sum((x_i - y_i)**2)
+
+                * ``cosine``: cosine similarity
+
+                  .. code-block:: python
+
+                    d = 1.0 - np.sum(x_i*y_i) / np.sqrt(np.sum(x_i*x_i) * np.sum(y_i*y_i))
+
+            n_threads: The number of threads used in the KNN algorithm.
+
+        Returns:
+            The HNSW index of the k-nearest neighbors graph.
+        """
+
         if knn > 190:
             logger.message(
                 f"knn is {knn}, consider using a lower K_in for KNN graph construction"
