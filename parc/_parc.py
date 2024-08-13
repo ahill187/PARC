@@ -303,7 +303,7 @@ class PARC:
         n_neighbors = neighbor_array.shape[1]
         n_samples = neighbor_array.shape[0]
         rowi = 0
-        discard_count = 0
+
         if self.do_prune_local:  # locally prune based on (squared) l2 distance
             logger.message(
                 "Starting local pruning based on Euclidean distance metric at "
@@ -317,7 +317,6 @@ class PARC:
                 )[0]  # 0 * std
                 updated_nn_ind = row[np.ix_(to_keep)]
                 updated_nn_weights = distlist[np.ix_(to_keep)]
-                discard_count = discard_count + (n_neighbors - len(to_keep))
 
                 for ik in range(len(updated_nn_ind)):
                     if rowi != row[ik]:  # remove self-loops
