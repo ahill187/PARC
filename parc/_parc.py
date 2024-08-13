@@ -320,8 +320,8 @@ class PARC:
                     if community_id != neighbors[index]:  # remove self-loops
                         row_list.append(community_id)
                         col_list.append(updated_neighbors[index])
-                        dist = np.sqrt(updated_distances[index])
-                        weight_list.append(1/(dist+0.1))
+                        distance = np.sqrt(updated_distances[index])
+                        weight_list.append(1/(distance+0.1))
         else:
             row_list.extend(
                 list(np.transpose(np.ones((n_neighbors, n_samples)) * range(0, n_samples)).flatten())
