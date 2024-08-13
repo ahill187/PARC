@@ -3,6 +3,7 @@ from sklearn import datasets
 import igraph as ig
 import numpy as np
 import scipy
+import igraph
 from parc._parc import PARC
 from parc.logger import get_logger
 
@@ -89,3 +90,33 @@ def test_parc_prune_local(
     edges = list(zip(input_nodes, output_nodes))
     assert isinstance(csr_array, scipy.sparse.csr_matrix)
     assert len(edges) == n_edges
+
+
+@pytest.mark.parametrize(
+    "knn, jac_threshold_type, jac_std_factor, jac_weighted_edges, n_edges",
+    [
+        (100, "median", 0.3, True, 3679),
+        (100, "mean", 0.3, False, 3865),
+        (100, "mean", -1000, False, 0),
+        (100, "mean", 1000, False, 8558)
+    ]
+)
+def test_parc_prune_global(
+    iris_data, knn, jac_threshold_type, jac_std_factor, jac_weighted_edges, n_edges
+):
+    x_data = iris_data[0]
+    y_data = iris_data[1]
+    parc_model = PARC(x_data=x_data, y_data_true=y_data)
+    knn_struct = parc_model.make_knn_struct()
+    neighbor_array, distance_array = knn_struct.knn_query(x_data, k=knn)
+    csr_array = parc_model.prune_local(neighbor_array, distance_array)
+    graph_pruned = parc_model.prune_global(
+        csr_array=csr_array,
+        jac_threshold_type=jac_threshold_type,
+        jac_std_factor=jac_std_factor,
+        jac_weighted_edges=jac_weighted_edges,
+        n_samples=x_data.shape[0]
+    )
+    assert isinstance(graph_pruned, igraph.Graph)
+    assert graph_pruned.ecount() == n_edges
+    assert graph_pruned.vcount() == x_data.shape[0]
