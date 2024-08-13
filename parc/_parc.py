@@ -272,7 +272,30 @@ class PARC:
         csr_array = csr_array.T + csr_array - prod_matrix
         return csr_array
 
-    def make_csrmatrix_noselfloop(self, neighbor_array, distance_array):
+    def prune_local(
+        self,
+        neighbor_array: np.ndarray,
+        distance_array: np.ndarray
+    ) -> csr_matrix:
+        """Prune the nearest neighbors array.
+
+        If ``keep_all_local_dist=False``, remove any neighbors which are further away than
+        the specified cutoff distance. Also, remove any self-loops. Return in the ``csr_matrix``
+        format.
+
+        If ``keep_all_local_dist=True``, then don't perform any pruning and return the original
+        arrays in the ``csr_matrix`` format.
+
+        Args:
+            neighbor_array: An array with dimensions ``(n_samples, k)`` listing the
+                k nearest neighbors for each data point.
+            distance_array: An array with dimensions ``(n_samples, k)`` listing the
+                distances to each of the k nearest neighbors for each data point.
+
+        Returns:
+            A compressed sparse row matrix with dimensions ``(n_samples, n_samples)``,
+            containing the pruned distances.
+        """
         # neighbor array not listed in in any order of proximity
         row_list = []
         col_list = []
@@ -386,7 +409,7 @@ class PARC:
             knnbig = int(max(5, 0.2 * n_samples))
 
         neighbor_array, distance_array = hnsw.knn_query(x_data, k=knnbig)
-        csr_array = self.make_csrmatrix_noselfloop(neighbor_array, distance_array)
+        csr_array = self.prune_local(neighbor_array, distance_array)
         input_nodes, output_nodes = csr_array.nonzero()
 
         edges = list(zip(input_nodes.tolist(), output_nodes.tolist()))
@@ -498,7 +521,7 @@ class PARC:
             else:
                 logger.message("knn struct already exists")
             neighbor_array, distance_array = self.knn_struct.knn_query(x_data, k=knn)
-            csr_array = self.make_csrmatrix_noselfloop(neighbor_array, distance_array)
+            csr_array = self.prune_local(neighbor_array, distance_array)
 
         input_nodes, output_nodes = csr_array.nonzero()
 
