@@ -193,15 +193,19 @@ class PARC:
         else:
             self._partition_type = partition_type
 
-    def make_knn_struct(self, too_big=False, big_cluster=None):
+    def make_knn_struct(
+        self,
+        x_data: np.ndarray,
+        too_big=False
+    ):
         if self.knn > 190:
             logger.message(
                 f"knn is {self.knn}, consider using a lower K_in for KNN graph construction"
             )
         ef_query = max(100, self.knn + 1)  # ef always should be > k. higher ef, more accurate query
         if not too_big:
-            num_dims = self.x_data.shape[1]
-            n_samples = self.x_data.shape[0]
+            num_dims = x_data.shape[1]
+            n_samples = x_data.shape[0]
             p = hnswlib.Index(space=self.distance_metric, dim=num_dims)  # default to Euclidean distance
             p.set_num_threads(self.n_threads)  # set threads used in KNN construction
             if n_samples < 10000:
@@ -222,13 +226,13 @@ class PARC:
                     ef_construction=ef_construction,
                     M=24  # 30
                 )
-            p.add_items(self.x_data)
-        if too_big:
-            num_dims = big_cluster.shape[1]
-            n_samples = big_cluster.shape[0]
+            p.add_items(x_data)
+        else:
+            num_dims = x_data.shape[1]
+            n_samples = x_data.shape[0]
             p = hnswlib.Index(space="l2", dim=num_dims)
             p.init_index(max_elements=n_samples, ef_construction=200, M=30)
-            p.add_items(big_cluster)
+            p.add_items(x_data)
         p.set_ef(ef_query)  # ef should always be > k
 
         return p
@@ -491,7 +495,7 @@ class PARC:
     ):
 
         n_samples = x_data.shape[0]
-        knn_struct = self.make_knn_struct(too_big=True, big_cluster=x_data)
+        knn_struct = self.make_knn_struct(x_data=x_data, too_big=True)
         if n_samples <= 10:
             logger.message("Consider increasing the large_community_factor")
         if n_samples > self.knn:
@@ -585,7 +589,7 @@ class PARC:
         else:
             if self.knn_struct is None:
                 logger.message("knn struct was not available, creating new one")
-                self.knn_struct = self.make_knn_struct()
+                self.knn_struct = self.make_knn_struct(x_data=x_data)
             else:
                 logger.message("knn struct already exists")
             neighbor_array, distance_array = self.knn_struct.knn_query(x_data, k=knn)
