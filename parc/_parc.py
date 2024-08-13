@@ -197,6 +197,7 @@ class PARC:
         self,
         x_data: np.ndarray,
         distance_metric: str = "l2",
+        n_threads: int | None = None,
         too_big=False
     ):
         if self.knn > 190:
@@ -208,8 +209,10 @@ class PARC:
         n_samples = x_data.shape[0]
         p = hnswlib.Index(space=distance_metric, dim=n_features)
 
+        if n_threads is not None:
+            p.set_num_threads(n_threads)  # set threads used in KNN construction
+
         if not too_big:
-            p.set_num_threads(self.n_threads)  # set threads used in KNN construction
             if n_samples < 10000:
                 ef_query = min(n_samples - 10, 500)
                 ef_construction = ef_query
@@ -591,7 +594,8 @@ class PARC:
                 logger.message("knn struct was not available, creating new one")
                 self.knn_struct = self.make_knn_struct(
                     x_data=x_data,
-                    distance_metric=self.distance_metric
+                    distance_metric=self.distance_metric,
+                    n_threads=self.n_threads
                 )
             else:
                 logger.message("knn struct already exists")
