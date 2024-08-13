@@ -216,21 +216,18 @@ class PARC:
             else:
                 ef_construction = self.hnsw_param_ef_construction
             if (n_features > 30) & (n_samples <= 50000):
-                # good for scRNA seq where dimensionality is high
-                p.init_index(
-                    max_elements=n_samples,
-                    ef_construction=ef_construction,
-                    M=48
-                )
+                M = 48  # good for scRNA seq where dimensionality is high
             else:
-                p.init_index(
-                    max_elements=n_samples,
-                    ef_construction=ef_construction,
-                    M=24  # 30
-                )
+                M = 24  # 30
         else:
-            p.init_index(max_elements=n_samples, ef_construction=200, M=30)
+            M = 30
+            ef_construction = 200
 
+        p.init_index(
+            max_elements=n_samples,
+            ef_construction=ef_construction,
+            M=M
+        )
         p.add_items(x_data)
         p.set_ef(ef_query)  # ef should always be > k
 
