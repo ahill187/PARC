@@ -402,15 +402,14 @@ class PARC:
         logger.info(f"Creating graph with {len(edges)} edges and {n_samples} nodes...")
 
         graph = ig.Graph(edges, edge_attrs={"weight": csr_array.data.tolist()})
-        similarities = graph.similarity_jaccard(pairs=edges_copy)
-        similarities_array = np.asarray(similarities)
+        similarities = np.asarray(graph.similarity_jaccard(pairs=edges_copy))
 
         if jac_threshold_type == "median":
             threshold = np.median(similarities)
         else:
             threshold = np.mean(similarities) - jac_std_factor * np.std(similarities)
 
-        indices_similar = np.where(similarities_array > threshold)[0]
+        indices_similar = np.where(similarities > threshold)[0]
 
         logger.info(
             f"Pruning {len(edges) - len(indices_similar)} edges based on Jaccard similarity "
@@ -423,7 +422,7 @@ class PARC:
             graph_pruned = ig.Graph(
                 n=n_samples,
                 edges=list(np.asarray(edges_copy)[indices_similar]),
-                edge_attrs={"weight": list(similarities_array[indices_similar])}
+                edge_attrs={"weight": list(similarities[indices_similar])}
             )
         else:
             graph_pruned = ig.Graph(
