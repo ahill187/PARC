@@ -302,7 +302,6 @@ class PARC:
 
         n_neighbors = neighbor_array.shape[1]
         n_samples = neighbor_array.shape[0]
-        rowi = 0
 
         if self.do_prune_local:
             logger.message(
@@ -310,21 +309,19 @@ class PARC:
                 f"{self.l2_std_factor} standard deviations above the mean"
             )
             distance_array = distance_array + 0.1
-            for neighbors in neighbor_array:
-                distances = distance_array[rowi, :]
+            for community_id, neighbors in zip(range(n_samples), neighbor_array):
+                distances = distance_array[community_id, :]
                 max_distance = np.mean(distances) + self.l2_std_factor * np.std(distances)
                 to_keep = np.where(distances < max_distance)[0]  # 0 * std
                 updated_neighbors = neighbors[np.ix_(to_keep)]
                 updated_distances = distances[np.ix_(to_keep)]
 
                 for index in range(len(updated_neighbors)):
-                    if rowi != neighbors[index]:  # remove self-loops
-                        row_list.append(rowi)
+                    if community_id != neighbors[index]:  # remove self-loops
+                        row_list.append(community_id)
                         col_list.append(updated_neighbors[index])
                         dist = np.sqrt(updated_distances[index])
                         weight_list.append(1/(dist+0.1))
-
-                rowi = rowi + 1
         else:
             row_list.extend(
                 list(np.transpose(np.ones((n_neighbors, n_samples)) * range(0, n_samples)).flatten())
