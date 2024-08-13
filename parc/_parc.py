@@ -317,11 +317,11 @@ class PARC:
                 updated_neighbors = neighbors[np.ix_(to_keep)]
                 updated_distances = distances[np.ix_(to_keep)]
 
-                for ik in range(len(updated_neighbors)):
-                    if rowi != neighbors[ik]:  # remove self-loops
+                for index in range(len(updated_neighbors)):
+                    if rowi != neighbors[index]:  # remove self-loops
                         row_list.append(rowi)
-                        col_list.append(updated_neighbors[ik])
-                        dist = np.sqrt(updated_distances[ik])
+                        col_list.append(updated_neighbors[index])
+                        dist = np.sqrt(updated_distances[index])
                         weight_list.append(1/(dist+0.1))
 
                 rowi = rowi + 1
