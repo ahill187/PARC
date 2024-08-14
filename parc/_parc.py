@@ -622,7 +622,7 @@ class PARC:
 
         time_start = time.time()
         logger.message("Handling fragments...")
-        while small_community_exists & (time.time() - time_start < self.small_community_timeout):
+        while small_community_exists and (time.time() - time_start < self.small_community_timeout):
             small_pop_list = []
             small_community_exists = False
             for cluster in set(list(node_communities.flatten())):
@@ -779,7 +779,7 @@ class PARC:
                     best_group = max(available_neighbours_list, key=available_neighbours_list.count)
                     node_communities[single_cell] = best_group
         time_start_sc = time.time()
-        while small_community_exists & (time.time() - time_start_sc) < self.small_community_timeout:
+        while small_community_exists and (time.time() - time_start_sc) < self.small_community_timeout:
             small_pop_list = []
             small_community_exists = False
             for cluster in set(list(node_communities.flatten())):
