@@ -113,24 +113,24 @@ class PARC:
         self,
         x_data: np.ndarray,
         y_data_true: np.ndarray | None = None,
-        l2_std_factor: float = 3,
-        jac_threshold_type: str = "median",
-        jac_std_factor: float = 0.15,
-        do_prune_local: bool | None = None,
-        large_community_factor: float = 0.4,
-        small_community_size: int = 10,
-        jac_weighted_edges: bool = True,
         knn: int = 30,
         n_iter_leiden: int = 5,
         random_seed: int = 42,
-        n_threads: int = -1,
         distance_metric: str = "l2",
-        small_community_timeout: float = 15,
-        partition_type: str = "ModularityVP",
-        resolution_parameter: float = 1.0,
-        knn_struct: hnswlib.Index | None = None,
+        n_threads: int = -1,
+        hnsw_param_ef_construction: int = 150,
         neighbor_graph: csr_matrix | None = None,
-        hnsw_param_ef_construction: int = 150
+        knn_struct: hnswlib.Index | None = None,
+        l2_std_factor: float = 3,
+        jac_threshold_type: str = "median",
+        jac_std_factor: float = 0.15,
+        jac_weighted_edges: bool = True,
+        do_prune_local: bool | None = None,
+        large_community_factor: float = 0.4,
+        small_community_size: int = 10,
+        small_community_timeout: float = 15,
+        resolution_parameter: float = 1.0,
+        partition_type: str = "ModularityVP"
     ):
         self.x_data = x_data
         self.y_data_true = y_data_true
@@ -815,8 +815,8 @@ class PARC:
         node_communities = list(node_communities.flatten())
         pop_list = []
         for item in set(node_communities):
-            pop_list.append((item, node_communities.count(item)))
-        logger.message(f"Cluster labels and populations {len(pop_list)} {pop_list}")
+            pop_list.append((int(item), node_communities.count(item)))
+        logger.message(f"Community labels and sizes: {pop_list}")
 
         self.y_data_pred = node_communities
         run_time = time.time() - time_start
