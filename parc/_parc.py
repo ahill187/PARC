@@ -702,7 +702,8 @@ class PARC:
 
         # The 0th cluster is the largest one.
         # So, if cluster 0 is not too big, then the others won't be too big either
-        community_indices = np.where(node_communities == 0)[0]
+        large_community_id = 0
+        community_indices = np.where(node_communities == large_community_id)[0]
         community_size = len(community_indices)
         if community_size > large_community_factor * n_samples:  # 0.4
             too_big = True
