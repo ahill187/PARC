@@ -9,7 +9,7 @@ from parc._parc import PARC
 from parc.logger import get_logger
 from tests.variables import NEIGHBOR_ARRAY_L2, NEIGHBOR_ARRAY_COSINE
 
-logger = get_logger(__name__, 20)
+logger = get_logger(__name__, 25)
 
 
 @pytest.fixture
@@ -20,13 +20,21 @@ def iris_data():
     return x_data, y_data
 
 
+@pytest.fixture
+def forest_data():
+    forests = datasets.fetch_covtype()
+    x_data = forests.data[list(range(0, 30000)), :]
+    y_data = forests.target[list(range(0, 30000))]
+    return x_data, y_data
+
+
 def test_parc_run_umap_hnsw():
     iris = datasets.load_iris()
     x_data = iris.data
     y_data = iris.target
 
     parc_model = PARC(x_data, y_data_true=y_data)
-    parc_model.run_PARC()
+    parc_model.run_parc()
 
     graph = parc_model.create_knn_graph()
     x_umap = parc_model.run_umap_hnsw(x_data, graph)
@@ -40,9 +48,9 @@ def test_parc_get_leiden_partition(iris_data, knn, jac_weighted_edges):
     y_data = iris_data[1]
 
     parc_model = PARC(x_data, y_data_true=y_data)
-    knn_struct = parc_model.make_knn_struct()
+    knn_struct = parc_model.make_knn_struct(x_data=x_data, knn=knn)
     neighbor_array, distance_array = knn_struct.knn_query(x_data, k=knn)
-    csr_array = parc_model.make_csrmatrix_noselfloop(neighbor_array, distance_array)
+    csr_array = parc_model.prune_local(neighbor_array, distance_array)
 
     input_nodes, output_nodes = csr_array.nonzero()
 
@@ -91,7 +99,7 @@ def test_parc_create_knn_graph(iris_data, knn):
     y_data = iris_data[1]
 
     parc_model = PARC(x_data, y_data_true=y_data)
-    parc_model.knn_struct = parc_model.make_knn_struct()
+    parc_model.knn_struct = parc_model.make_knn_struct(x_data=x_data, knn=knn)
     csr_array = parc_model.create_knn_graph(knn=knn)
     nn_collection = np.split(csr_array.indices, csr_array.indptr)[1:-1]
     assert len(nn_collection) == y_data.shape[0]
@@ -111,7 +119,7 @@ def test_parc_prune_local(
     x_data = iris_data[0]
     y_data = iris_data[1]
     parc_model = PARC(x_data=x_data, y_data_true=y_data)
-    knn_struct = parc_model.make_knn_struct()
+    knn_struct = parc_model.make_knn_struct(x_data=x_data, knn=knn)
     neighbor_array, distance_array = knn_struct.knn_query(x_data, k=knn)
     csr_array = parc_model.prune_local(neighbor_array, distance_array, l2_std_factor)
     input_nodes, output_nodes = csr_array.nonzero()
@@ -135,7 +143,7 @@ def test_parc_prune_global(
     x_data = iris_data[0]
     y_data = iris_data[1]
     parc_model = PARC(x_data=x_data, y_data_true=y_data)
-    knn_struct = parc_model.make_knn_struct()
+    knn_struct = parc_model.make_knn_struct(x_data=x_data, knn=knn)
     neighbor_array, distance_array = knn_struct.knn_query(x_data, k=knn)
     csr_array = parc_model.prune_local(neighbor_array, distance_array)
     graph_pruned = parc_model.prune_global(
@@ -148,3 +156,149 @@ def test_parc_prune_global(
     assert isinstance(graph_pruned, igraph.Graph)
     assert graph_pruned.ecount() == n_edges
     assert graph_pruned.vcount() == x_data.shape[0]
+
+
+@pytest.mark.parametrize(
+    (
+        "dataset_name, knn, n_iter_leiden, distance_metric, hnsw_param_ef_construction,"
+        "l2_std_factor, jac_threshold_type, jac_std_factor, jac_weighted_edges, do_prune_local,"
+        "large_community_factor, small_community_size, small_community_timeout,"
+        "resolution_parameter, partition_type,"
+        "f1_mean, f1_accumulated"
+    ),
+    [
+        (
+            "iris_data", 30, 5, "l2", 150, 3.0, "median", 0.15, True, True, 0.4, 10, 15, 1.0,
+            "ModularityVP", 0.9, 0.9
+        ),
+        (
+            "iris_data", 30, 5, "l2", 150, 3.0, "median", 0.15, True, True, 0.15, 10, 15, 1.0,
+            "ModularityVP", 0.9, 0.9
+        )
+    ]
+)
+@pytest.mark.parametrize(
+    "targets_exist",
+    [
+        (True),
+        (False)
+    ]
+)
+def test_parc_run_parc_fast(
+    request, dataset_name, knn, n_iter_leiden, distance_metric, hnsw_param_ef_construction,
+    l2_std_factor, jac_threshold_type, jac_std_factor, jac_weighted_edges, do_prune_local,
+    large_community_factor, small_community_size, small_community_timeout,
+    resolution_parameter, partition_type, f1_mean, f1_accumulated, targets_exist
+):
+    x_data, y_data = request.getfixturevalue(dataset_name)
+    if not targets_exist:
+        y_data = None
+
+    parc_model = PARC(
+        x_data=x_data,
+        y_data_true=y_data,
+        knn=knn,
+        n_iter_leiden=n_iter_leiden,
+        distance_metric=distance_metric,
+        hnsw_param_ef_construction=hnsw_param_ef_construction,
+        l2_std_factor=l2_std_factor,
+        jac_threshold_type=jac_threshold_type,
+        jac_std_factor=jac_std_factor,
+        jac_weighted_edges=jac_weighted_edges,
+        do_prune_local=do_prune_local,
+        large_community_factor=large_community_factor,
+        small_community_size=small_community_size,
+        small_community_timeout=small_community_timeout,
+        resolution_parameter=resolution_parameter,
+        partition_type=partition_type
+    )
+
+    parc_model.run_parc()
+    if targets_exist:
+        assert parc_model.f1_mean >= f1_mean
+        assert parc_model.f1_accumulated >= f1_accumulated
+    else:
+        assert parc_model.f1_mean == 0
+        assert parc_model.f1_accumulated == 0
+    assert len(parc_model.y_data_pred) == x_data.shape[0]
+
+
+@pytest.mark.parametrize(
+    (
+        "dataset_name, knn, n_iter_leiden, distance_metric, hnsw_param_ef_construction,"
+        "l2_std_factor, jac_threshold_type, jac_std_factor, jac_weighted_edges, do_prune_local,"
+        "large_community_factor, small_community_size, small_community_timeout,"
+        "resolution_parameter, partition_type,"
+        "f1_mean, f1_accumulated"
+    ),
+    [
+        (
+            "iris_data", 30, 5, "l2", 150, 3.0, "median", 0.15, True, True, 0.4, 10, 15, 1.0,
+            "ModularityVP", 0.9, 0.9
+        ),
+        (
+            "iris_data", 30, 5, "l2", 150, 3.0, "median", 0.15, True, True, 0.15, 10, 15, 1.0,
+            "ModularityVP", 0.9, 0.9
+        ),
+        (
+            "iris_data", 2, 10, "l2", 150, 3.0, "median", 0.15, True, True, 0.4, 10, 15, 1.0,
+            "ModularityVP", 0.9, 0.9
+        ),
+        (
+            "forest_data", 30, 5, "l2", 150, 3.0, "median", 0.15, True, True, 0.019, 10, 15, 1.0,
+            "ModularityVP", 0.6, 0.7
+        ),
+        (
+            "forest_data", 30, 5, "l2", 150, 3.0, "median", 0.15, True, True, 0.4, 10, 15, 1.0,
+            "ModularityVP", 0.6, 0.7
+        ),
+        (
+            "forest_data", 100, 5, "l2", 150, 3.0, "median", 0.15, True, True, 0.4, 10, 15, 1.0,
+            "ModularityVP", 0.5, 0.6
+        )
+    ]
+)
+@pytest.mark.parametrize(
+    "targets_exist",
+    [
+        (True),
+        (False)
+    ]
+)
+def test_parc_run_parc_full(
+    request, dataset_name, knn, n_iter_leiden, distance_metric, hnsw_param_ef_construction,
+    l2_std_factor, jac_threshold_type, jac_std_factor, jac_weighted_edges, do_prune_local,
+    large_community_factor, small_community_size, small_community_timeout,
+    resolution_parameter, partition_type, f1_mean, f1_accumulated, targets_exist
+):
+    x_data, y_data = request.getfixturevalue(dataset_name)
+    if not targets_exist:
+        y_data = None
+
+    parc_model = PARC(
+        x_data=x_data,
+        y_data_true=y_data,
+        knn=knn,
+        n_iter_leiden=n_iter_leiden,
+        distance_metric=distance_metric,
+        hnsw_param_ef_construction=hnsw_param_ef_construction,
+        l2_std_factor=l2_std_factor,
+        jac_threshold_type=jac_threshold_type,
+        jac_std_factor=jac_std_factor,
+        jac_weighted_edges=jac_weighted_edges,
+        do_prune_local=do_prune_local,
+        large_community_factor=large_community_factor,
+        small_community_size=small_community_size,
+        small_community_timeout=small_community_timeout,
+        resolution_parameter=resolution_parameter,
+        partition_type=partition_type
+    )
+
+    parc_model.run_parc()
+    if targets_exist:
+        assert parc_model.f1_mean >= f1_mean
+        assert parc_model.f1_accumulated >= f1_accumulated
+    else:
+        assert parc_model.f1_mean == 0
+        assert parc_model.f1_accumulated == 0
+    assert len(parc_model.y_data_pred) == x_data.shape[0]
