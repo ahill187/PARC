@@ -105,7 +105,7 @@ class PARC:
     """
     def __init__(
         self,
-        x_data: np.ndarray,
+        x_data: np.ndarray | pd.DataFrame,
         y_data_true: np.ndarray | pd.Series | list[int] | None = None,
         knn: int = 30,
         n_iter_leiden: int = 5,
