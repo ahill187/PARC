@@ -17,8 +17,6 @@ class PARC:
     """``PARC``: ``P``henotyping by ``A``ccelerated ``R``efined ``C``ommunity-partitioning.
 
     Attributes:
-        y_data_pred:
-            An array of the predicted output y labels.
         knn:
             The number of nearest neighbors k for the k-nearest neighbours algorithm.
             Larger k means more neighbors in a cluster and therefore less clusters.
@@ -175,6 +173,19 @@ class PARC:
         elif isinstance(y_data_true, list):
             y_data_true = np.array(y_data_true)
         self._y_data_true = y_data_true
+
+    @property
+    def y_data_pred(self) -> np.ndarray | None:
+        """An array of the predicted output y labels, with dimensions ``(n_samples, 1)``."""
+        return self._y_data_pred
+
+    @y_data_pred.setter
+    def y_data_pred(self, y_data_pred: np.ndarray | pd.Series | list[int] | None):
+        if isinstance(y_data_pred, pd.Series):
+            y_data_pred = y_data_pred.to_numpy()
+        elif isinstance(y_data_pred, list):
+            y_data_pred = np.array(y_data_pred)
+        self._y_data_pred = y_data_pred
 
     @property
     def do_prune_local(self) -> bool:
