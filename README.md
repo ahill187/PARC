@@ -136,16 +136,33 @@ plt.show()
 
 ```
 
-```
-// load sample digits data
+### Example 3: Digits Dataset from `sklearn`
+
+```python
+import parc
+import matplotlib.pyplot as plt
+from sklearn import datasets
+
+
+# Load the Digits dataset
 digits = datasets.load_digits()
-X = digits.data // (n_obs x k_dim, 1797x64)
-y = digits.target
-Parc2 = parc.PARC(X,true_label=y, jac_std_global='median') // 'median' is default pruning level
-Parc2.run_PARC()
-parc_labels = Parc2.labels
+x_data = digits.data # (n_samples x n_features = 1797 x 64)
+y_data = digits.target
+
+# Insantiate the PARC model
+parc_model = parc.PARC(
+    x_data=x_data,
+    y_data_true=y_data,
+    jac_threshold_type="median"  # "median" is default pruning level
+)
+
+# Run the PARC clustering
+parc_model.run_parc()
+y_data_pred = parc_model.y_data_pred
 
 ```
+
+
 ## Example Usage 2. (mid-scale scRNA-seq): 10X PBMC (Zheng et al., 2017)
 [pre-processed datafile](https://drive.google.com/file/d/1H4gOZ09haP_VPCwsYxZt4vf3hJ1GZj3b/view?usp=sharing)
 
