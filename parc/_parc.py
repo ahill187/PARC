@@ -17,8 +17,6 @@ class PARC:
     """``PARC``: ``P``henotyping by ``A``ccelerated ``R``efined ``C``ommunity-partitioning.
 
     Attributes:
-        y_data_true:
-            An array of the true output y labels.
         y_data_pred:
             An array of the predicted output y labels.
         knn:
@@ -110,7 +108,7 @@ class PARC:
     def __init__(
         self,
         x_data: np.ndarray,
-        y_data_true: np.ndarray | None = None,
+        y_data_true: np.ndarray | pd.Series | list[int] | None = None,
         knn: int = 30,
         n_iter_leiden: int = 5,
         random_seed: int = 42,
@@ -165,12 +163,17 @@ class PARC:
 
     @property
     def y_data_true(self) -> np.ndarray:
+        """An array of the true output y labels, with dimensions ``(n_samples, 1)``."""
         return self._y_data_true
 
     @y_data_true.setter
-    def y_data_true(self, y_data_true: np.ndarray | None):
+    def y_data_true(self, y_data_true: np.ndarray | pd.Series | list[int] | None):
         if y_data_true is None:
             y_data_true = [1] * self.x_data.shape[0]
+        elif isinstance(y_data_true, pd.Series):
+            y_data_true = y_data_true.to_numpy()
+        elif isinstance(y_data_true, list):
+            y_data_true = np.array(y_data_true)
         self._y_data_true = y_data_true
 
     @property
