@@ -17,7 +17,7 @@ jobs:
       - name: Install PARC
         run: |
           pip install .
-      - name: Run Python tests
+      - name: Run Python tests -x
         run: |
           pytest tests/
         continue-on-error: false
