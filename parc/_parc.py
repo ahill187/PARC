@@ -17,8 +17,6 @@ class PARC:
     """``PARC``: ``P``henotyping by ``A``ccelerated ``R``efined ``C``ommunity-partitioning.
 
     Attributes:
-        x_data:
-            An array of the input x data, with dimensions ``(n_samples, n_features)``.
         y_data_true:
             An array of the true output y labels.
         y_data_pred:
@@ -153,6 +151,17 @@ class PARC:
         self.small_community_timeout = small_community_timeout
         self.resolution_parameter = resolution_parameter
         self.partition_type = partition_type
+
+    @property
+    def x_data(self) -> np.ndarray:
+        """An array of the input x data, with dimensions ``(n_samples, n_features)``."""
+        return self._x_data
+
+    @x_data.setter
+    def x_data(self, x_data: np.ndarray | pd.DataFrame):
+        if isinstance(x_data, pd.DataFrame):
+            x_data = x_data.to_numpy()
+        self._x_data = x_data
 
     @property
     def y_data_true(self) -> np.ndarray:
