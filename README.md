@@ -162,36 +162,52 @@ y_data_pred = parc_model.y_data_pred
 
 ```
 
+### Example 4: (mid-scale scRNA-seq): 10X PBMC (Zheng et al., 2017)
 
-## Example Usage 2. (mid-scale scRNA-seq): 10X PBMC (Zheng et al., 2017)
-[pre-processed datafile](https://drive.google.com/file/d/1H4gOZ09haP_VPCwsYxZt4vf3hJ1GZj3b/view?usp=sharing)
+1. Download the input data file and save it to the `PARC/data/` directory:
+[pca50_pbmc68k.txt](https://drive.google.com/file/d/1H4gOZ09haP_VPCwsYxZt4vf3hJ1GZj3b/view?usp=sharing).
 
-[annotations](https://github.com/ShobiStassen/PARC/blob/master/Datasets/zheng17_annotations.txt)
+2. You can view the target annotations here: [PARC/data/zheng17_annotations.txt](https://github.com/ahill187/PARC/blob/main/data/zheng17_annotations.txt).
 
-```
+
+```python
+import pathlib
 import parc
-import csv
 import numpy as np
 import pandas as pd
 
-## load data (50 PCs of filtered gene matrix pre-processed as per Zheng et al. 2017)
+# Set the directory by replacing {PATH/TO/PARC}
+PARC_DIR = "{PATH/TO/PARC}/PARC/"
+x_data_path = pathlib.Path(PARC_DIR, "data/pca50_pbmc68k.txt")
+y_data_path = pathlib.Path(PARC_DIR, "data/zheng17_annotations.txt")
 
-X = csv.reader(open("./pca50_pbmc68k.txt", 'rt'),delimiter = ",")
-X = np.array(list(X)) // (n_obs x k_dim, 68579 x 50)
-X = X.astype("float")
-// OR with pandas as: X = pd.read_csv("'./pca50_pbmc68k.txt", header=None).values.astype("float")
+# Load data
+# 50 PCs of filtered gene matrix pre-processed as per Zheng et al. 2017)
+# (n_samples x n_features) = (68579 x 50)
+x_data = pd.read_csv(x_data_path, header=None).values.astype("float")
+y_data = list(pd.read_csv(y_data_path, header=None)[0])   
 
-y = [] // annotations
-with open('./zheng17_annotations.txt', 'rt') as f:
-    for line in f: y.append(line.strip().replace('\"', ''))
-// OR with pandas as: y =  list(pd.read_csv('./data/zheng17_annotations.txt', header=None)[0])   
+# Instantiate the PARC model
+parc_model = parc.PARC(
+    x_data=x_data,
+    y_data_true=y_data,
+    jac_std_factor=0.15,
+    jac_threshold_type="mean",
+    random_seed=1,
+    small_community_size=50 # setting small_community_size = 50
+    # cleans up some of the smaller clusters, but can also be left at the default 10
+)
 
-// setting small_pop to 50 cleans up some of the smaller clusters, but can also be left at the default 10
-parc1 = parc.PARC(X,true_label=y,jac_std_global=0.15, random_seed =1, small_pop = 50) // instantiate PARC
-parc1.run_PARC() // run the clustering
-parc_labels = parc1.labels
+# Run the PARC clustering
+parc_model.run_parc()
+y_data_pred = parc_model.y_data_pred
+
+# View the model performance
+parc_model.stats_df
 ```
-![](Images/10X_PBMC_PARC_andGround.png) tsne plot of annotations and PARC clustering
+
+![](Images/10X_PBMC_PARC_andGround.png) t-SNE plot of annotations and PARC clustering
+
 
 ## Example Usage 3. 10X PBMC (Zheng et al., 2017) integrating Scanpy pipeline
 
