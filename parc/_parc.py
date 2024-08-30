@@ -167,7 +167,7 @@ class PARC:
     @y_data_true.setter
     def y_data_true(self, y_data_true: np.ndarray | pd.Series | list[int] | None):
         if y_data_true is None:
-            y_data_true = [1] * self.x_data.shape[0]
+            y_data_true = np.array([1] * self.x_data.shape[0])
         elif isinstance(y_data_true, pd.Series):
             y_data_true = y_data_true.to_numpy()
         elif isinstance(y_data_true, list):
