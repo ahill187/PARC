@@ -254,8 +254,8 @@ For a more detailed explanation of the impact of tuning key parameters please se
 
 To install a development version:
 
-```
-git clone https://github.com/ShobiStassen/PARC.git
+```sh
+git clone https://github.com/ahill187/PARC.git
 cd PARC
 pip install -e ".[extra]"
 ```
@@ -264,7 +264,7 @@ pip install -e ".[extra]"
 
 To run the test suite for the package:
 
-```
+```sh
 cd PARC
 pytest tests/
 ```
