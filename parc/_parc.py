@@ -17,12 +17,6 @@ class PARC:
     """``PARC``: ``P``henotyping by ``A``ccelerated ``R``efined ``C``ommunity-partitioning.
 
     Attributes:
-        x_data:
-            An array of the input x data, with dimensions ``(n_samples, n_features)``.
-        y_data_true:
-            An array of the true output y labels.
-        y_data_pred:
-            An array of the predicted output y labels.
         knn:
             The number of nearest neighbors k for the k-nearest neighbours algorithm.
             Larger k means more neighbors in a cluster and therefore less clusters.
@@ -111,8 +105,8 @@ class PARC:
     """
     def __init__(
         self,
-        x_data: np.ndarray,
-        y_data_true: np.ndarray | None = None,
+        x_data: np.ndarray | pd.DataFrame,
+        y_data_true: np.ndarray | pd.Series | list[int] | None = None,
         knn: int = 30,
         n_iter_leiden: int = 5,
         random_seed: int = 42,
@@ -155,14 +149,43 @@ class PARC:
         self.partition_type = partition_type
 
     @property
+    def x_data(self) -> np.ndarray:
+        """An array of the input x data, with dimensions ``(n_samples, n_features)``."""
+        return self._x_data
+
+    @x_data.setter
+    def x_data(self, x_data: np.ndarray | pd.DataFrame):
+        if isinstance(x_data, pd.DataFrame):
+            x_data = x_data.to_numpy()
+        self._x_data = x_data
+
+    @property
     def y_data_true(self) -> np.ndarray:
+        """An array of the true output y labels, with dimensions ``(n_samples, 1)``."""
         return self._y_data_true
 
     @y_data_true.setter
-    def y_data_true(self, y_data_true: np.ndarray | None):
+    def y_data_true(self, y_data_true: np.ndarray | pd.Series | list[int] | None):
         if y_data_true is None:
-            y_data_true = [1] * self.x_data.shape[0]
+            y_data_true = np.array([1] * self.x_data.shape[0])
+        elif isinstance(y_data_true, pd.Series):
+            y_data_true = y_data_true.to_numpy()
+        elif isinstance(y_data_true, list):
+            y_data_true = np.array(y_data_true)
         self._y_data_true = y_data_true
+
+    @property
+    def y_data_pred(self) -> np.ndarray | None:
+        """An array of the predicted output y labels, with dimensions ``(n_samples, 1)``."""
+        return self._y_data_pred
+
+    @y_data_pred.setter
+    def y_data_pred(self, y_data_pred: np.ndarray | pd.Series | list[int] | None):
+        if isinstance(y_data_pred, pd.Series):
+            y_data_pred = y_data_pred.to_numpy()
+        elif isinstance(y_data_pred, list):
+            y_data_pred = np.array(y_data_pred)
+        self._y_data_pred = y_data_pred
 
     @property
     def do_prune_local(self) -> bool:
