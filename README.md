@@ -68,17 +68,23 @@ pip install hnswlib
 pip install parc
 ```
 
+## Examples
 
-## Example Usage on Covid-19 scRNA-seq data
+### Example 1: COVID-19 scRNA-seq Data
 
-Check out the [Jupyter Notebook](https://parc.readthedocs.io/en/latest/Notebook-covid19.html) for how to pre-process and PARC cluster the new Covid-19 BALF dataset by [Liao et. al 2020](https://www.nature.com/articles/s41591-020-0901-9).
-We also show how to integrate UMAP with HNSW such that the embedding in UMAP is constructed using the HNSW graph built in PARC, enabling a very fast and memory efficient viusalization (particularly noticeable when n_cells > 1 Million)
+Check out this [Jupyter Notebook](https://parc.readthedocs.io/en/latest/Notebook-covid19.html) using the [COVID-19 BALF Dataset (Liao et. al 2020)](https://www.nature.com/articles/s41591-020-0901-9):
 
-### PARC Cluster-level average gene expression
-![](https://github.com/ShobiStassen/PARC/blob/master/Images/Covid_matrixplot.png)
+1. Pre-process the data.
+2. Use `PARC` to cluster the data.
+3. Integrate `UMAP` with `HNSW` such that the embedding in `UMAP` is constructed using the `HNSW` graph built in `PARC`. This enables a very fast and memory-efficient viusalization
+(particularly noticeable when `n_samples > 1 000 000`).
 
-### PARC visualizes cells by integrating UMAP embedding on the HNSW graph
-![](https://github.com/ShobiStassen/PARC/blob/master/Images/Covid_hnsw_umap.png)
+#### PARC Cluster-level average gene expression
+![](https://github.com/ahill187/PARC/blob/master/Images/Covid_matrixplot.png)
+
+#### PARC visualizes cells by integrating UMAP embedding on the HNSW graph
+![](https://github.com/ahill187/PARC/blob/master/Images/Covid_hnsw_umap.png)
+
 
 ## Example Usage 1. (small test sets) - IRIS and Digits dataset from sklearn
 
