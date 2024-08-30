@@ -25,38 +25,50 @@ by PARC in a non-TI context.
 
 
 
-### Installation
-**Using pip**
-```
-conda create --name ParcEnv pip
-pip install parc // tested on linux
-```
-**Cloning repository and running setup.py** (ensure dependencies are installed)
-```
-git clone https://github.com/ShobiStassen/PARC.git
-python3 setup.py install // cd into the directory of the cloned PARC folder containing setup.py and issue this command
+## Installation
+
+### MacOS / Linux
+
+```sh
+git clone https://github.com/ahill187/PARC.git
+cd PARC
+python3 -m venv env
+source env/bin/activate
+pip install .
 ```
 
-**install dependencies separately if needed (linux)**
-If the pip install doesn't work, it usually suffices to first install all the requirements (using pip) and subsequently install parc (also using pip)
-```
+> **Note**  
+> If the `pip install` doesn't work, it usually suffices to first install all the requirements
+> (using pip) and subsequently install `PARC` (also using pip), i.e.
+
+```sh
+git clone https://github.com/ahill187/PARC.git
+cd PARC
+python3 -m venv env
+source env/bin/activate
 pip install igraph, leidenalg, hnswlib, umap-learn
-pip install parc
+pip install .
 ```
 
-**Windows installation**
-Once you have Visual Studio installed it should be smooth sailing (sometimes requires a restart after intalling VS). It might be easier to install dependences using either pip or conda -c conda-forge install. If this doesn't work then you might need to consider using binaries to install igraph and leidenalg.
+### Windows
 
-python-igraph: download the python36 Windows Binaries by [Gohlke](http://www.lfd.uci.edu/~gohlke/pythonlibs)
-leidenalg: depends on python-igraph. download [windows binary](https://pypi.org/project/leidenalg/#files) available for python3.6 only
+Once you have Visual Studio installed it should be smooth sailing
+(sometimes requires a restart after intalling VS). It might be easier to install dependences using
+either `pip install` or `conda -c conda-forge install`. If this doesn't work then you might need to
+consider using binaries to install `igraph` and `leidenalg`.
 
-```
+* `python-igraph`: Download the [Python 3.6 Windows Binaries by Gohlke](http://www.lfd.uci.edu/~gohlke/pythonlibs).
+* `leidenalg`: depends on `python-igraph`. Download the [Python 3.6 Windows binary](https://pypi.org/project/leidenalg/#files).
+
+```sh
 conda create --name parcEnv python=3.6 pip
-pip install igraph #(or install python_igraph-0.7.1.post6-cp36-cp36m-win_amd64.whl )
-pip install leidenalg #(or install leidenalg-0.7.0-cp36-cp36m-win_amd64.whl)
+pip install igraph  # or install python_igraph-0.7.1.post6-cp36-cp36m-win_amd64.whl
+pip install leidenalg  # or install leidenalg-0.7.0-cp36-cp36m-win_amd64.whl
 pip install hnswlib
 pip install parc
 ```
+
+
 ## Example Usage on Covid-19 scRNA-seq data
 
 Check out the [Jupyter Notebook](https://parc.readthedocs.io/en/latest/Notebook-covid19.html) for how to pre-process and PARC cluster the new Covid-19 BALF dataset by [Liao et. al 2020](https://www.nature.com/articles/s41591-020-0901-9).
