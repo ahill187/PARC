@@ -18,7 +18,8 @@ setuptools.setup(
         line.strip() for line in open("requirements.txt")
     ],
     extras_require={
-        "dev": ["pytest", "scikit-learn", "sphinx", "sphinx-immaterial"]
+        "dev": [line.strip() for line in open("requirements-dev.txt")],
+        "docs": [line.strip() for line in open("requirements-docs.txt")]
     },
     long_description=long_description,
     long_description_content_type="text/markdown"
