@@ -1,5 +1,5 @@
-sphinx==4.0.2
+sphinx
 sphinx-immaterial
-sphinxemoji==0.2.0
+sphinxemoji
 myst-parser==0.17.2
 nbsphinx==0.8.8
