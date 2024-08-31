@@ -15,8 +15,7 @@ setuptools.setup(
     url="https://github.com/ShobiStassen/PARC",
     setup_requires=["numpy", "pybind11"],
     install_requires=[
-        "pybind11", "numpy", "scipy", "pandas", "hnswlib", "igraph",
-        "leidenalg>=0.7.0", "umap-learn"
+        line.strip() for line in open("requirements.txt")
     ],
     extras_require={
         "dev": ["pytest", "scikit-learn"]
