@@ -34,6 +34,7 @@ release = 'April 2020'
 extensions = [
     'myst_parser',
     'nbsphinx',
+    'sphinxemoji.sphinxemoji',
     'sphinx.ext.autodoc',
     "sphinx_immaterial",
     'sphinx.ext.napoleon',
