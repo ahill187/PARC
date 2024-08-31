@@ -27,7 +27,7 @@ If you find this code useful in your work, please consider citing this paper `PA
    :maxdepth: 1
    :hidden:
 
-   Installation
+   installation
    Examples
    Parameter Usage
    Notebook-covid19
