@@ -30,5 +30,6 @@ If you find this code useful in your work, please consider citing this paper `PA
    installation
    examples
    Parameter Usage
+   dev/index
    Notebook-covid19
 
