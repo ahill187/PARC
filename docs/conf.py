@@ -36,6 +36,7 @@ extensions = [
     'sphinx_rtd_theme',
     'nbsphinx',
     'sphinx.ext.autodoc',
+    "sphinx_immaterial"
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -51,11 +52,52 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-#
-html_theme = "sphinx_rtd_theme"
+
+html_theme = "sphinx_immaterial"
+html_title = "PARC"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 
 html_static_path = ['_static']
+html_theme_options = {
+    "icon": {
+        "repo": "fontawesome/brands/github",
+        "edit": "material/file-edit-outline",
+    },
+    "site_url": "https://ahill187.github.io/PARC/",
+    "repo_url": "https://github.com/ahill187/PARC/",
+    "repo_name": "PARC",
+    "edit_uri": "blob/main/docs",
+    "globaltoc_collapse": True,
+    "features": [
+        "navigation.expand",
+        # "navigation.tabs",
+        # "toc.integrate",
+        "navigation.sections",
+        # "navigation.instant",
+        # "header.autohide",
+        "navigation.top",
+        # "navigation.tracking",
+        # "search.highlight",
+        "search.share",
+        "toc.follow",
+        "toc.sticky",
+        "content.tabs.link",
+        "announce.dismiss",
+        "content.code.annotate"
+    ],
+    "palette": [
+        {"primary": "indigo"}
+    ],
+    "version_dropdown": False,
+    "toc_title_is_page_title": True,
+    "social": [
+        {
+            "icon": "fontawesome/brands/github",
+            "link": "https://github.com/ahill187/PARC/",
+            "name": "Source on github.com",
+        }
+    ]
+}
