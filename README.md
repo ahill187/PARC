@@ -80,10 +80,10 @@ Check out this [Jupyter Notebook](https://parc.readthedocs.io/en/latest/Notebook
 (particularly noticeable when `n_samples > 1 000 000`).
 
 #### PARC Cluster-level average gene expression
-![](https://github.com/ahill187/PARC/blob/master/Images/Covid_matrixplot.png)
+![](https://github.com/ahill187/PARC/blob/master/docs/_static/img/Covid_matrixplot.png)
 
 #### PARC visualizes cells by integrating UMAP embedding on the HNSW graph
-![](https://github.com/ahill187/PARC/blob/master/Images/Covid_hnsw_umap.png)
+![](https://github.com/ahill187/PARC/blob/master/docs/_static/img/Covid_hnsw_umap.png)
 
 
 ### Example 2: Iris Dataset from `sklearn`
@@ -206,7 +206,7 @@ y_data_pred = parc_model.y_data_pred
 parc_model.stats_df
 ```
 
-![](Images/10X_PBMC_PARC_andGround.png) t-SNE plot of annotations and PARC clustering
+![](docs/_static/img/10X_PBMC_PARC_andGround.png) t-SNE plot of annotations and PARC clustering
 
 
 ### Example 5: 10X PBMC (Zheng et al., 2017) integrating `scanpy` pipeline
@@ -372,7 +372,7 @@ parc_model.run_parc()
 parc_labels_rare = parc_model.y_data_pred
 
 ```
-![](Images/70K_Lung_github_overview.png) t-SNE plot of annotations and PARC clustering, heatmap of features
+![](docs/_static/img/70K_Lung_github_overview.png) t-SNE plot of annotations and PARC clustering, heatmap of features
 
 
 ## Parameters
