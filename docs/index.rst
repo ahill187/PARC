@@ -28,7 +28,7 @@ If you find this code useful in your work, please consider citing this paper `PA
    :hidden:
 
    installation
-   Examples
+   examples
    Parameter Usage
    Notebook-covid19
 
