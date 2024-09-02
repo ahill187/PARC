@@ -25,3 +25,12 @@ if you add a new module/function/class, you will need to rerun the initial ``aut
 
   cd PARC/docs
   sphinx-apidoc -o ./dev/api/ ../parc/ --separate
+
+
+Sphinx-Immaterial Theme
+***********************
+
+The documentation is styled using the `Sphinx-Immaterial`_ theme.
+
+
+.. _Sphinx-Immaterial: https://sphinx-immaterial.readthedocs.io/en/stable/index.html
