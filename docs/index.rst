@@ -28,8 +28,7 @@ If you find this code useful in your work, please consider citing this paper `PA
    :hidden:
 
    installation
-   examples
+   examples/index
    parameters
    dev/index
-   Notebook-covid19
 
