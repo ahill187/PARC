@@ -58,6 +58,7 @@ If you find this code useful in your work, please consider citing this paper:
 
    installation
    examples/index
+   algorithm/index
    parameters
    dev/index
    references
