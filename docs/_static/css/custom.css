@@ -42,12 +42,20 @@
     margin-bottom: 10px;
 }
 
-.md-typeset figcaption {
-    font-style: normal;
+.md-typeset figure.align-left {
+    margin-left: 0px;
 }
 
-figcaption {
-    padding-left: 1.5rem;
+
+.md-typeset figcaption {
+    font-style: normal;
+    color: #0000008a;
+    max-width: 100%;
+}
+
+figure.align-left > figcaption {
+    padding-left: 1.0rem;
+    margin-left: 0px;
 }
 
 
