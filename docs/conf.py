@@ -22,7 +22,7 @@ copyright = '2022, Shobana Stassen'
 author = 'Shobana Stassen'
 
 # The full version, including alpha/beta/rc tags
-release = 'April 2020'
+release = 'August 2024'
 
 
 # -- General configuration ---------------------------------------------------
