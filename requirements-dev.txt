@@ -1,0 +1,7 @@
+sphinx
+sphinx-immaterial
+sphinxemoji
+myst-parser
+nbsphinx
+pytest
+scikit-learn

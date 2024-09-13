@@ -22,7 +22,7 @@ copyright = '2022, Shobana Stassen'
 author = 'Shobana Stassen'
 
 # The full version, including alpha/beta/rc tags
-release = 'April 2020'
+release = 'August 2024'
 
 
 # -- General configuration ---------------------------------------------------
@@ -30,7 +30,16 @@ release = 'April 2020'
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['myst_parser','sphinxemoji.sphinxemoji', 'sphinx_rtd_theme','nbsphinx']
+
+extensions = [
+    'myst_parser',
+    'nbsphinx',
+    'sphinxemoji.sphinxemoji',
+    'sphinx.ext.autodoc',
+    "sphinx_immaterial",
+    'sphinx.ext.napoleon',
+    'sphinxcontrib.bibtex'
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -40,15 +49,79 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
+bibtex_bibfiles = ['_static/bibliography.bib']
+
 
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-#
-html_theme = "sphinx_rtd_theme"
+
+html_theme = "sphinx_immaterial"
+html_title = "PARC"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-#html_static_path = ['_static']
+
+html_static_path = ['_static']
+
+html_css_files = [
+    'css/custom.css'
+]
+
+
+html_theme_options = {
+    "icon": {
+        "repo": "fontawesome/brands/github",
+        "edit": "material/file-edit-outline",
+    },
+    "site_url": "https://ahill187.github.io/PARC/",
+    "repo_url": "https://github.com/ahill187/PARC/",
+    "repo_name": "PARC",
+    "edit_uri": "blob/main/docs",
+    "globaltoc_collapse": True,
+    "features": [
+        "navigation.expand",
+        # "navigation.tabs",
+        # "toc.integrate",
+        "navigation.sections",
+        # "navigation.instant",
+        # "header.autohide",
+        "navigation.top",
+        # "navigation.tracking",
+        # "search.highlight",
+        "search.share",
+        "toc.follow",
+        "toc.sticky",
+        "content.tabs.link",
+        "announce.dismiss",
+        "content.code.annotate"
+    ],
+    "palette": [
+        {"primary": "indigo"}
+    ],
+    "version_dropdown": False,
+    "toc_title_is_page_title": True,
+    "social": [
+        {
+            "icon": "fontawesome/brands/github",
+            "link": "https://github.com/ahill187/PARC/",
+            "name": "Source on github.com",
+        }
+    ]
+}
+
+
+# Napoleon settings
+napoleon_google_docstring = True
+napoleon_numpy_docstring = True
+napoleon_include_init_with_doc = True
+napoleon_include_private_with_doc = True
+napoleon_include_special_with_doc = True
+napoleon_use_admonition_for_examples = False
+napoleon_use_admonition_for_notes = False
+napoleon_use_admonition_for_references = False
+napoleon_use_ivar = False
+napoleon_use_param = True
+napoleon_use_rtype = True

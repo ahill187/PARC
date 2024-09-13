@@ -3,3 +3,15 @@ env/
 *.egg-info
 .eggs/
 .DS_Store
+
+# Ignore the data files
+data/filtered_matrices_mex/*
+data/pca50_pbmc68k.txt
+data/datamatrix_LC_PARC__N70000.txt
+data/true_label_LC_PARC_N70000.txt
+data/datamatrix_LungCancer_multiATOM_N1113369.txt
+data/true_label_LungCancer_multiATOM_N1113369.txt
+data/datamatrix_RareH1975_LC_RS209_N281604Dim24.txt
+
+# docs
+docs/_build/

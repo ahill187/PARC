@@ -1,0 +1,90 @@
+
+/* Colors */
+
+:root {
+    --md-code-kw-color: #e74c3c;
+}
+
+
+/* Layout */
+
+.md-sidebar {
+    width: 10rem;
+}
+
+.md-grid {
+    margin-left: 10px;
+    margin-right: 10px;
+    max-width: 1400px;
+}
+
+/* Code */
+
+.md-typeset code.notranslate {
+    word-break: keep-all;
+    white-space: nowrap;
+}
+
+.md-typeset code.snippet {
+    word-break: keep-all;
+    white-space: normal;
+    padding: 8px;
+}
+
+.md-typeset code.notranslate {
+    color: var(--md-code-kw-color);
+}
+
+/* Images */
+
+.md-typeset figure {
+    text-align: left;
+    margin-bottom: 10px;
+}
+
+.md-typeset figure.align-left {
+    margin-left: 0px;
+}
+
+
+.md-typeset figcaption {
+    font-style: normal;
+    color: #0000008a;
+    max-width: 100%;
+}
+
+figure.align-left > figcaption {
+    padding-left: 1.0rem;
+    margin-left: 0px;
+}
+
+
+/* Bootstrap Tables */
+
+.md-typeset table.plot-table.data:not(.plain) td,
+.md-typeset table.plot-table.data:not(.plain) th {
+    padding: 0px;
+}
+
+.table {
+    width: 100%;
+    margin-bottom: 1rem;
+    color: #212529;
+}
+
+.table th,
+.table td {
+    padding: 0.5rem;
+    vertical-align: top;
+    border-top: 1px solid #dee2e6;
+}
+
+.table thead th {
+    vertical-align: bottom;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 700;
+}
+
+.table tbody+tbody {
+    border-top: 2px solid #dee2e6;
+}
