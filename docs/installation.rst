@@ -56,15 +56,5 @@ If you want to develop this package, please see the installation instructions fo
 developers: :doc:`Developer Installation <../dev/dev-installation>`.
 
 
-References
-**********
-
-- `Leiden algorithm (V.A. Traag, 2019) <doi.org/10.1038/s41598-019-41695-z>`_
-
-- `hsnwlib <https://arxiv.org/abs/1603.09320>`_ (Malkov Yu A., and D. A. Yashunin)
-  "Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small
-  World graphs."  
-
-
 
 
