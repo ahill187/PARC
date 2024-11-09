@@ -216,6 +216,22 @@ class PARC:
         else:
             self._partition_type = partition_type
 
+    @property
+    def community_counts(self) -> pd.DataFrame:
+        """A dataframe containing the community counts.
+        
+        Returns:
+            A dataframe with the following columns:
+
+            * ``community_id``: The community ID.
+            * ``count``: The number of samples in the community.
+        """
+        return self._community_counts
+    
+    @community_counts.setter
+    def community_counts(self, community_counts: pd.DataFrame):
+        self._community_counts = community_counts
+
     def make_knn_struct(
         self,
         x_data: np.ndarray,
@@ -842,10 +858,14 @@ class PARC:
 
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
         node_communities = list(node_communities.flatten())
-        pop_list = []
-        for item in set(node_communities):
-            pop_list.append((int(item), node_communities.count(item)))
-        logger.message(f"Community labels and sizes: {pop_list}")
+
+        community_counts = pd.DataFrame({
+            "community_id": list(set(node_communities)),
+            "count": [
+                node_communities.count(community_id) for community_id in set(node_communities)
+            ]
+        })
+        logger.message(f"Community labels and sizes:\n{community_counts}")
 
         self.y_data_pred = node_communities
         run_time = time.time() - time_start
