@@ -669,9 +669,15 @@ class PARC:
 
         return node_communities
 
-    def run_parc(self):
+    def fit_predict(self, x_data: np.ndarray | None = None) -> np.ndarray:
+        if x_data is None and self.x_data is None:
+            raise ValueError("x_data must be provided.")
+        elif x_data is None:
+            x_data = self.x_data
+        else:
+            self.x_data = x_data
+
         time_start = time.time()
-        x_data = self.x_data
         n_samples = x_data.shape[0]
         n_features = x_data.shape[1]
         logger.message(
@@ -845,6 +851,7 @@ class PARC:
         run_time = time.time() - time_start
         logger.message(f"Time elapsed to run PARC: {run_time:.1f} seconds")
         self.compute_performance_metrics(run_time)
+        return self.y_data_pred
 
     def accuracy(self, target=1):
 
