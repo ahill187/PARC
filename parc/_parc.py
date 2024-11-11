@@ -216,6 +216,22 @@ class PARC:
         else:
             self._partition_type = partition_type
 
+    @property
+    def community_counts(self) -> pd.DataFrame:
+        """A dataframe containing the community counts.
+        
+        Returns:
+            A dataframe with the following columns:
+
+            * ``community_id``: The community ID.
+            * ``count``: The number of samples in the community.
+        """
+        return self._community_counts
+    
+    @community_counts.setter
+    def community_counts(self, community_counts: pd.DataFrame):
+        self._community_counts = community_counts
+
     def make_knn_struct(
         self,
         x_data: np.ndarray,
@@ -669,9 +685,26 @@ class PARC:
 
         return node_communities
 
-    def run_parc(self):
+    def fit_predict(self, x_data: np.ndarray | None = None) -> np.ndarray:
+        """Fit the PARC algorithm to the input data and predict the output labels.
+        
+        Args:
+            x_data: An array of the input x data, with dimensions ``(n_samples, n_features)``.
+                If ``None``, then the ``x_data`` attribute will be used.
+                
+        Returns:
+            An array of the predicted output y labels, with dimensions ``(n_samples, 1)``.
+        """
+
         time_start = time.time()
-        x_data = self.x_data
+
+        if x_data is None and self.x_data is None:
+            raise ValueError("x_data must be provided.")
+        elif x_data is None:
+            x_data = self.x_data
+        else:
+            self.x_data = x_data
+
         n_samples = x_data.shape[0]
         n_features = x_data.shape[1]
         logger.message(
@@ -795,7 +828,7 @@ class PARC:
         for cluster in set(node_communities):
             population = len(np.where(node_communities == cluster)[0])
             if population < small_community_size:
-                logger.message(
+                logger.info(
                     f"Community {cluster} is a small community with population {population}"
                 )
                 small_community_exists = True
@@ -836,15 +869,20 @@ class PARC:
 
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
         node_communities = list(node_communities.flatten())
-        pop_list = []
-        for item in set(node_communities):
-            pop_list.append((int(item), node_communities.count(item)))
-        logger.message(f"Community labels and sizes: {pop_list}")
+
+        community_counts = pd.DataFrame({
+            "community_id": list(set(node_communities)),
+            "count": [
+                node_communities.count(community_id) for community_id in set(node_communities)
+            ]
+        })
+        logger.message(f"Community labels and sizes:\n{community_counts}")
 
         self.y_data_pred = node_communities
         run_time = time.time() - time_start
         logger.message(f"Time elapsed to run PARC: {run_time:.1f} seconds")
         self.compute_performance_metrics(run_time)
+        return self.y_data_pred
 
     def accuracy(self, target=1):
 

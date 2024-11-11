@@ -34,7 +34,7 @@ def test_parc_run_umap_hnsw():
     y_data = iris.target
 
     parc_model = PARC(x_data, y_data_true=y_data)
-    parc_model.run_parc()
+    parc_model.fit_predict()
 
     graph = parc_model.create_knn_graph()
     x_umap = parc_model.run_umap_hnsw(x_data, graph)
@@ -184,7 +184,7 @@ def test_parc_prune_global(
         (False)
     ]
 )
-def test_parc_run_parc_fast(
+def test_parc_fit_predict_fast(
     request, dataset_name, knn, n_iter_leiden, distance_metric, hnsw_param_ef_construction,
     l2_std_factor, jac_threshold_type, jac_std_factor, jac_weighted_edges, do_prune_local,
     large_community_factor, small_community_size, small_community_timeout,
@@ -213,7 +213,7 @@ def test_parc_run_parc_fast(
         partition_type=partition_type
     )
 
-    parc_model.run_parc()
+    parc_model.fit_predict()
     if targets_exist:
         assert parc_model.f1_mean >= f1_mean
         assert parc_model.f1_accumulated >= f1_accumulated
@@ -265,7 +265,7 @@ def test_parc_run_parc_fast(
         (False)
     ]
 )
-def test_parc_run_parc_full(
+def test_parc_fit_predict_full(
     request, dataset_name, knn, n_iter_leiden, distance_metric, hnsw_param_ef_construction,
     l2_std_factor, jac_threshold_type, jac_std_factor, jac_weighted_edges, do_prune_local,
     large_community_factor, small_community_size, small_community_timeout,
@@ -294,7 +294,7 @@ def test_parc_run_parc_full(
         partition_type=partition_type
     )
 
-    parc_model.run_parc()
+    parc_model.fit_predict()
     if targets_exist:
         assert parc_model.f1_mean >= f1_mean
         assert parc_model.f1_accumulated >= f1_accumulated
