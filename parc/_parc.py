@@ -696,6 +696,8 @@ class PARC:
             An array of the predicted output y labels, with dimensions ``(n_samples, 1)``.
         """
 
+        time_start = time.time()
+
         if x_data is None and self.x_data is None:
             raise ValueError("x_data must be provided.")
         elif x_data is None:
@@ -703,7 +705,6 @@ class PARC:
         else:
             self.x_data = x_data
 
-        time_start = time.time()
         n_samples = x_data.shape[0]
         n_features = x_data.shape[1]
         logger.message(
