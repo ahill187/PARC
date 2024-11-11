@@ -817,7 +817,7 @@ class PARC:
         for cluster in set(node_communities):
             population = len(np.where(node_communities == cluster)[0])
             if population < small_community_size:
-                logger.message(
+                logger.info(
                     f"Community {cluster} is a small community with population {population}"
                 )
                 small_community_exists = True
