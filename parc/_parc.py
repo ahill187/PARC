@@ -686,6 +686,16 @@ class PARC:
         return node_communities
 
     def fit_predict(self, x_data: np.ndarray | None = None) -> np.ndarray:
+        """Fit the PARC algorithm to the input data and predict the output labels.
+        
+        Args:
+            x_data: An array of the input x data, with dimensions ``(n_samples, n_features)``.
+                If ``None``, then the ``x_data`` attribute will be used.
+                
+        Returns:
+            An array of the predicted output y labels, with dimensions ``(n_samples, 1)``.
+        """
+
         if x_data is None and self.x_data is None:
             raise ValueError("x_data must be provided.")
         elif x_data is None:
