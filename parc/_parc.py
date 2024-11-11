@@ -1,6 +1,9 @@
 import numpy as np
 import pandas as pd
 import hnswlib
+import os
+import pathlib
+import json
 from scipy.sparse import csr_matrix
 import igraph as ig
 import leidenalg
@@ -1104,3 +1107,41 @@ class PARC:
             output_dens=output_dens
         )
         return X_umap[0]
+    
+    def save(self, file_path: pathlib.Path | str):
+        """Save the PARC object to a file.
+
+        Args:
+            file_path: The full path name of the JSON file to save the ``PARC`` object to.
+        """
+
+        file_path = pathlib.Path(file_path).resolve()
+        if not os.path.isdir(file_path.parent):
+            raise ValueError(f"{file_path.parent} is not a valid directory.")
+        
+        if file_path.suffix != ".json":
+            raise ValueError(f"file_path must have a .json extension, got {file_path.suffix}.")
+        
+        model_dict = {
+            "knn": self.knn,
+            "n_iter_leiden": self.n_iter_leiden,
+            "random_seed": self.random_seed,
+            "distance_metric": self.distance_metric,
+            "n_threads": self.n_threads,
+            "hnsw_param_ef_construction": self.hnsw_param_ef_construction,
+            "l2_std_factor": self.l2_std_factor,
+            "jac_threshold_type": self.jac_threshold_type,
+            "jac_std_factor": self.jac_std_factor,
+            "jac_weighted_edges": self.jac_weighted_edges,
+            "do_prune_local": self.do_prune_local,
+            "large_community_factor": self.large_community_factor,
+            "small_community_size": self.small_community_size,
+            "small_community_timeout": self.small_community_timeout,
+            "resolution_parameter": self.resolution_parameter,
+            "partition_type": self.partition_type
+        }
+
+        with open(file_path, "w") as file:
+            json.dump(model_dict, file)
+
+        logger.message(f"PARC object saved to: {file_path}")
