@@ -110,6 +110,7 @@ class PARC:
         self,
         x_data: np.ndarray | pd.DataFrame,
         y_data_true: np.ndarray | pd.Series | list[int] | None = None,
+        file_path: pathlib.Path | str | None = None,
         knn: int = 30,
         n_iter_leiden: int = 5,
         random_seed: int = 42,
@@ -132,24 +133,28 @@ class PARC:
         self.x_data = x_data
         self.y_data_true = y_data_true
         self.y_data_pred = None
-        self.knn = knn
-        self.n_iter_leiden = n_iter_leiden
-        self.random_seed = random_seed
-        self.distance_metric = distance_metric
-        self.n_threads = n_threads
-        self.hnsw_param_ef_construction = hnsw_param_ef_construction
-        self.neighbor_graph = neighbor_graph
-        self.knn_struct = knn_struct
-        self.l2_std_factor = l2_std_factor
-        self.jac_threshold_type = jac_threshold_type
-        self.jac_std_factor = jac_std_factor
-        self.jac_weighted_edges = jac_weighted_edges
-        self.do_prune_local = do_prune_local
-        self.large_community_factor = large_community_factor
-        self.small_community_size = small_community_size
-        self.small_community_timeout = small_community_timeout
-        self.resolution_parameter = resolution_parameter
-        self.partition_type = partition_type
+
+        if file_path is not None:
+            self.load(file_path)
+        else:
+            self.knn = knn
+            self.n_iter_leiden = n_iter_leiden
+            self.random_seed = random_seed
+            self.distance_metric = distance_metric
+            self.n_threads = n_threads
+            self.hnsw_param_ef_construction = hnsw_param_ef_construction
+            self.neighbor_graph = neighbor_graph
+            self.knn_struct = knn_struct
+            self.l2_std_factor = l2_std_factor
+            self.jac_threshold_type = jac_threshold_type
+            self.jac_std_factor = jac_std_factor
+            self.jac_weighted_edges = jac_weighted_edges
+            self.do_prune_local = do_prune_local
+            self.large_community_factor = large_community_factor
+            self.small_community_size = small_community_size
+            self.small_community_timeout = small_community_timeout
+            self.resolution_parameter = resolution_parameter
+            self.partition_type = partition_type
 
     @property
     def x_data(self) -> np.ndarray:
@@ -1108,6 +1113,41 @@ class PARC:
         )
         return X_umap[0]
     
+    def load(self, file_path: pathlib.Path | str):
+        """Load a PARC object from a file.
+
+        Args:
+            file_path: The full path name of the JSON file to load the ``PARC`` object from.
+        """
+        logger.message(f"Loading PARC object from: {file_path}")
+
+        file_path = pathlib.Path(file_path).resolve()
+        if not os.path.isfile(file_path):
+            raise ValueError(f"{file_path} is not a valid file.")
+        
+        if file_path.suffix != ".json":
+            raise ValueError(f"file_path must have a .json extension, got {file_path.suffix}.")
+
+        with open(file_path, "r") as file:
+            model_dict = json.load(file)
+
+        self.knn = model_dict["knn"]
+        self.n_iter_leiden = model_dict["n_iter_leiden"]
+        self.random_seed = model_dict["random_seed"]
+        self.distance_metric = model_dict["distance_metric"]
+        self.n_threads = model_dict["n_threads"]
+        self.hnsw_param_ef_construction = model_dict["hnsw_param_ef_construction"]
+        self.l2_std_factor = model_dict["l2_std_factor"]
+        self.jac_threshold_type = model_dict["jac_threshold_type"]
+        self.jac_std_factor = model_dict["jac_std_factor"]
+        self.jac_weighted_edges = model_dict["jac_weighted_edges"]
+        self.do_prune_local = model_dict["do_prune_local"]
+        self.large_community_factor = model_dict["large_community_factor"]
+        self.small_community_size = model_dict["small_community_size"]
+        self.small_community_timeout = model_dict["small_community_timeout"]
+        self.resolution_parameter = model_dict["resolution_parameter"]
+        self.partition_type = model_dict["partition_type"]
+
     def save(self, file_path: pathlib.Path | str):
         """Save the PARC object to a file.
 
