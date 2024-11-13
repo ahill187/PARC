@@ -240,7 +240,7 @@ class PARC:
     def community_counts(self, community_counts: pd.DataFrame):
         self._community_counts = community_counts
 
-    def make_knn_struct(
+    def create_hnsw_index(
         self,
         x_data: np.ndarray,
         knn: int,
@@ -612,7 +612,7 @@ class PARC:
     ):
 
         n_samples = x_data.shape[0]
-        knn_struct = self.make_knn_struct(
+        knn_struct = self.create_hnsw_index(
             x_data=x_data,
             knn=self.knn,
             hnsw_param_m=30,
@@ -736,7 +736,7 @@ class PARC:
                     ef_query = min(n_samples - 10, 500)
                 else:
                     ef_query = 100
-                self.knn_struct = self.make_knn_struct(
+                self.knn_struct = self.create_hnsw_index(
                     x_data=x_data,
                     knn=knn,
                     ef_query=ef_query,

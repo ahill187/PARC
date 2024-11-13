@@ -55,7 +55,7 @@ def test_parc_get_leiden_partition(iris_data, knn, jac_weighted_edges):
     y_data = iris_data[1]
 
     parc_model = PARC(x_data, y_data_true=y_data)
-    knn_struct = parc_model.make_knn_struct(x_data=x_data, knn=knn)
+    knn_struct = parc_model.create_hnsw_index(x_data=x_data, knn=knn)
     neighbor_array, distance_array = knn_struct.knn_query(x_data, k=knn)
     csr_array = parc_model.prune_local(neighbor_array, distance_array)
 
@@ -81,13 +81,13 @@ def test_parc_get_leiden_partition(iris_data, knn, jac_weighted_edges):
         (30, 2, "cosine", NEIGHBOR_ARRAY_COSINE)
     ]
 )
-def test_parc_make_knn_struct(
+def test_parc_create_hnsw_index(
     iris_data, knn_hnsw, knn_query, distance_metric, expected_neighbor_array
 ):
     x_data = iris_data[0]
     y_data = iris_data[1]
     parc_model = PARC(x_data=x_data, y_data_true=y_data)
-    knn_struct = parc_model.make_knn_struct(
+    knn_struct = parc_model.create_hnsw_index(
         x_data=x_data,
         knn=knn_hnsw,
         distance_metric=distance_metric
@@ -106,7 +106,7 @@ def test_parc_create_knn_graph(iris_data, knn):
     y_data = iris_data[1]
 
     parc_model = PARC(x_data, y_data_true=y_data)
-    parc_model.knn_struct = parc_model.make_knn_struct(x_data=x_data, knn=knn)
+    parc_model.knn_struct = parc_model.create_hnsw_index(x_data=x_data, knn=knn)
     csr_array = parc_model.create_knn_graph(knn=knn)
     nn_collection = np.split(csr_array.indices, csr_array.indptr)[1:-1]
     assert len(nn_collection) == y_data.shape[0]
@@ -126,7 +126,7 @@ def test_parc_prune_local(
     x_data = iris_data[0]
     y_data = iris_data[1]
     parc_model = PARC(x_data=x_data, y_data_true=y_data)
-    knn_struct = parc_model.make_knn_struct(x_data=x_data, knn=knn)
+    knn_struct = parc_model.create_hnsw_index(x_data=x_data, knn=knn)
     neighbor_array, distance_array = knn_struct.knn_query(x_data, k=knn)
     csr_array = parc_model.prune_local(neighbor_array, distance_array, l2_std_factor)
     input_nodes, output_nodes = csr_array.nonzero()
@@ -150,7 +150,7 @@ def test_parc_prune_global(
     x_data = iris_data[0]
     y_data = iris_data[1]
     parc_model = PARC(x_data=x_data, y_data_true=y_data)
-    knn_struct = parc_model.make_knn_struct(x_data=x_data, knn=knn)
+    knn_struct = parc_model.create_hnsw_index(x_data=x_data, knn=knn)
     neighbor_array, distance_array = knn_struct.knn_query(x_data, k=knn)
     csr_array = parc_model.prune_local(neighbor_array, distance_array)
     graph_pruned = parc_model.prune_global(
