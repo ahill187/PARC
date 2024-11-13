@@ -244,7 +244,7 @@ class PARC:
         self,
         x_data: np.ndarray,
         knn: int,
-        ef_query: int = 100,
+        ef_query: int | None = None,
         hnsw_param_m: int | None = None,
         hnsw_param_ef_construction: int | None = None,
         distance_metric: str = "l2",
@@ -316,18 +316,23 @@ class PARC:
             The HNSW index of the k-nearest neighbors graph.
         """
 
+        n_features = x_data.shape[1]
+        n_samples = x_data.shape[0]
+
+        hnsw_index = hnswlib.Index(space=distance_metric, dim=n_features)
+
         if knn > 190:
             logger.message(
                 f"knn is {knn}, consider using a lower K_in for KNN graph construction"
             )
 
-        n_features = x_data.shape[1]
-        n_samples = x_data.shape[0]
+        if ef_query is None:
+            if n_samples < 10000:
+                ef_query = min(n_samples - 10, 500)
+            else:
+                ef_query = 100
 
         ef_query = min(max(ef_query, knn + 1), n_samples)
-        logger.info(f"Setting ef_query to {ef_query}")
-
-        hnsw_index = hnswlib.Index(space=distance_metric, dim=n_features)
 
         if n_threads is not None:
             hnsw_index.set_num_threads(n_threads)
@@ -732,14 +737,9 @@ class PARC:
         else:
             if self.hnsw_index is None:
                 logger.message("Creating HNSW index...")
-                if n_samples < 10000:
-                    ef_query = min(n_samples - 10, 500)
-                else:
-                    ef_query = 100
                 self.hnsw_index = self.create_hnsw_index(
                     x_data=x_data,
                     knn=knn,
-                    ef_query=ef_query,
                     distance_metric=self.distance_metric,
                     n_threads=self.n_threads
                 )
