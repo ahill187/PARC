@@ -731,7 +731,7 @@ class PARC:
             neighbor_array = np.split(csr_array.indices, csr_array.indptr)[1:-1]
         else:
             if self.hnsw_index is None:
-                logger.message("Creating hnsw_index...")
+                logger.message("Creating HNSW index...")
                 if n_samples < 10000:
                     ef_query = min(n_samples - 10, 500)
                 else:
@@ -744,7 +744,7 @@ class PARC:
                     n_threads=self.n_threads
                 )
             else:
-                logger.message("knn struct already exists")
+                logger.message("HNSW index already exists.")
             neighbor_array, distance_array = self.hnsw_index.knn_query(x_data, k=knn)
             csr_array = self.prune_local(neighbor_array, distance_array)
 
