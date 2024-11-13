@@ -2,14 +2,21 @@ import pytest
 from sklearn import datasets
 import igraph as ig
 import numpy as np
+import pathlib
+import json
 import scipy
 import igraph
 import hnswlib
 from parc._parc import PARC
 from parc.logger import get_logger
 from tests.variables import NEIGHBOR_ARRAY_L2, NEIGHBOR_ARRAY_COSINE
+from tests.utils import __tmp_dir__, create_tmp_dir, remove_tmp_dir
 
 logger = get_logger(__name__, 25)
+
+
+def setup_function():
+    create_tmp_dir()
 
 
 @pytest.fixture
@@ -302,3 +309,116 @@ def test_parc_fit_predict_full(
         assert parc_model.f1_mean == 0
         assert parc_model.f1_accumulated == 0
     assert len(parc_model.y_data_pred) == x_data.shape[0]
+
+
+@pytest.mark.parametrize(
+    (
+        "file_path, knn, n_iter_leiden, distance_metric, hnsw_param_ef_construction,"
+        "l2_std_factor, jac_threshold_type, jac_std_factor, jac_weighted_edges, do_prune_local,"
+        "large_community_factor, small_community_size, small_community_timeout,"
+        "resolution_parameter, partition_type"
+    ),
+    [
+        (
+            pathlib.Path(__tmp_dir__, "parc_model.json"), 30, 5, "l2", 150, 3.0,
+            "median", 0.15, True, True, 0.4, 10, 15, 1.0, "ModularityVP"
+        )
+    ]
+)
+def test_parc_save(
+    iris_data, file_path, knn, n_iter_leiden, distance_metric, hnsw_param_ef_construction,
+    l2_std_factor, jac_threshold_type, jac_std_factor, jac_weighted_edges, do_prune_local,
+    large_community_factor, small_community_size, small_community_timeout,
+    resolution_parameter, partition_type
+):
+
+    x_data = iris_data[0]
+    y_data = iris_data[1]
+    parc_model = PARC(
+        x_data=x_data,
+        y_data_true=y_data,
+        knn=knn,
+        n_iter_leiden=n_iter_leiden,
+        distance_metric=distance_metric,
+        hnsw_param_ef_construction=hnsw_param_ef_construction,
+        l2_std_factor=l2_std_factor,
+        jac_threshold_type=jac_threshold_type,
+        jac_std_factor=jac_std_factor,
+        jac_weighted_edges=jac_weighted_edges,
+        do_prune_local=do_prune_local,
+        large_community_factor=large_community_factor,
+        small_community_size=small_community_size,
+        small_community_timeout=small_community_timeout,
+        resolution_parameter=resolution_parameter,
+        partition_type=partition_type
+    )
+    parc_model.fit_predict()
+    parc_model.save(file_path)
+    assert file_path.exists()
+    with open(file_path) as file:
+        model_dict = json.load(file)
+
+    for key, value in model_dict.items():
+        assert getattr(parc_model, key) == value
+
+
+@pytest.mark.parametrize(
+    (
+        "file_path, knn, n_iter_leiden, distance_metric, hnsw_param_ef_construction,"
+        "l2_std_factor, jac_threshold_type, jac_std_factor, jac_weighted_edges, do_prune_local,"
+        "large_community_factor, small_community_size, small_community_timeout,"
+        "resolution_parameter, partition_type"
+    ),
+    [
+        (
+            pathlib.Path(__tmp_dir__, "parc_model.json"), 30, 5, "l2", 150, 3.0,
+            "median", 0.15, True, True, 0.4, 10, 15, 1.0, "ModularityVP"
+        )
+    ]
+)
+def test_parc_load(
+    iris_data, file_path, knn, n_iter_leiden, distance_metric, hnsw_param_ef_construction,
+    l2_std_factor, jac_threshold_type, jac_std_factor, jac_weighted_edges, do_prune_local,
+    large_community_factor, small_community_size, small_community_timeout,
+    resolution_parameter, partition_type
+):
+
+    x_data = iris_data[0]
+    y_data = iris_data[1]
+    parc_model = PARC(
+        x_data=x_data,
+        y_data_true=y_data,
+        knn=knn,
+        n_iter_leiden=n_iter_leiden,
+        distance_metric=distance_metric,
+        hnsw_param_ef_construction=hnsw_param_ef_construction,
+        l2_std_factor=l2_std_factor,
+        jac_threshold_type=jac_threshold_type,
+        jac_std_factor=jac_std_factor,
+        jac_weighted_edges=jac_weighted_edges,
+        do_prune_local=do_prune_local,
+        large_community_factor=large_community_factor,
+        small_community_size=small_community_size,
+        small_community_timeout=small_community_timeout,
+        resolution_parameter=resolution_parameter,
+        partition_type=partition_type
+    )
+    parc_model.fit_predict()
+    parc_model.save(file_path)
+
+    parc_model_saved = PARC(
+        x_data=x_data,
+        y_data_true=y_data,
+        file_path=file_path
+    )
+
+    with open(file_path) as file:
+        model_dict = json.load(file)
+
+    for key, value in model_dict.items():
+        assert getattr(parc_model_saved, key) == value
+
+
+
+def teardown_function():
+    remove_tmp_dir()
