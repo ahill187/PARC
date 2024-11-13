@@ -622,7 +622,8 @@ class PARC:
             knn=self.knn,
             hnsw_param_m=30,
             hnsw_param_ef_construction=200,
-            distance_metric="l2"
+            distance_metric="l2",
+            ef_query=100
         )
         if n_samples <= 10:
             logger.message(
