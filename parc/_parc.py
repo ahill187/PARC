@@ -53,7 +53,7 @@ class PARC:
         neighbor_graph:
             A sparse matrix with dimensions ``(n_samples, n_samples)``, containing the
             distances between nodes.
-        knn_struct:
+        hnsw_index:
             The HNSW index of the KNN graph on which we perform queries.
         l2_std_factor:
             The multiplier used in calculating the Euclidean distance threshold for the distance
@@ -118,7 +118,7 @@ class PARC:
         n_threads: int = -1,
         hnsw_param_ef_construction: int = 150,
         neighbor_graph: csr_matrix | None = None,
-        knn_struct: hnswlib.Index | None = None,
+        hnsw_index: hnswlib.Index | None = None,
         l2_std_factor: float = 3,
         jac_threshold_type: str = "median",
         jac_std_factor: float = 0.15,
@@ -144,7 +144,7 @@ class PARC:
             self.n_threads = n_threads
             self.hnsw_param_ef_construction = hnsw_param_ef_construction
             self.neighbor_graph = neighbor_graph
-            self.knn_struct = knn_struct
+            self.hnsw_index = hnsw_index
             self.l2_std_factor = l2_std_factor
             self.jac_threshold_type = jac_threshold_type
             self.jac_std_factor = jac_std_factor
@@ -240,11 +240,11 @@ class PARC:
     def community_counts(self, community_counts: pd.DataFrame):
         self._community_counts = community_counts
 
-    def make_knn_struct(
+    def create_hnsw_index(
         self,
         x_data: np.ndarray,
         knn: int,
-        ef_query: int = 100,
+        ef_query: int | None = None,
         hnsw_param_m: int | None = None,
         hnsw_param_ef_construction: int | None = None,
         distance_metric: str = "l2",
@@ -316,21 +316,26 @@ class PARC:
             The HNSW index of the k-nearest neighbors graph.
         """
 
+        n_features = x_data.shape[1]
+        n_samples = x_data.shape[0]
+
+        hnsw_index = hnswlib.Index(space=distance_metric, dim=n_features)
+
         if knn > 190:
             logger.message(
                 f"knn is {knn}, consider using a lower K_in for KNN graph construction"
             )
 
-        n_features = x_data.shape[1]
-        n_samples = x_data.shape[0]
+        if ef_query is None:
+            if n_samples < 10000:
+                ef_query = min(n_samples - 10, 500)
+            else:
+                ef_query = 100
 
         ef_query = min(max(ef_query, knn + 1), n_samples)
-        logger.info(f"Setting ef_query to {ef_query}")
-
-        knn_struct = hnswlib.Index(space=distance_metric, dim=n_features)
 
         if n_threads is not None:
-            knn_struct.set_num_threads(n_threads)
+            hnsw_index.set_num_threads(n_threads)
 
         if hnsw_param_m is None:
             if n_features > 30 and n_samples <= 50000:
@@ -344,15 +349,15 @@ class PARC:
             else:
                 hnsw_param_ef_construction = self.hnsw_param_ef_construction
 
-        knn_struct.init_index(
+        hnsw_index.init_index(
             max_elements=n_samples,
             ef_construction=hnsw_param_ef_construction,
             M=hnsw_param_m
         )
-        knn_struct.add_items(x_data)
-        knn_struct.set_ef(ef_query)
+        hnsw_index.add_items(x_data)
+        hnsw_index.set_ef(ef_query)
 
-        return knn_struct
+        return hnsw_index
 
     def create_knn_graph(self, knn: int = 15) -> csr_matrix:
         """Create a full k-nearest neighbors graph using the HNSW algorithm.
@@ -366,8 +371,8 @@ class PARC:
         """
 
         # neighbors in array are not listed in in any order of proximity
-        self.knn_struct.set_ef(knn + 1)
-        neighbor_array, distance_array = self.knn_struct.knn_query(self.x_data, k=knn)
+        self.hnsw_index.set_ef(knn + 1)
+        neighbor_array, distance_array = self.hnsw_index.knn_query(self.x_data, k=knn)
 
         row_list = []
         n_neighbors = neighbor_array.shape[1]
@@ -612,12 +617,13 @@ class PARC:
     ):
 
         n_samples = x_data.shape[0]
-        knn_struct = self.make_knn_struct(
+        hnsw_index = self.create_hnsw_index(
             x_data=x_data,
             knn=self.knn,
             hnsw_param_m=30,
             hnsw_param_ef_construction=200,
-            distance_metric="l2"
+            distance_metric="l2",
+            ef_query=100
         )
         if n_samples <= 10:
             logger.message(
@@ -629,7 +635,7 @@ class PARC:
         else:
             knnbig = int(max(5, 0.2 * n_samples))
 
-        neighbor_array, distance_array = knn_struct.knn_query(x_data, k=knnbig)
+        neighbor_array, distance_array = hnsw_index.knn_query(x_data, k=knnbig)
         csr_array = self.prune_local(neighbor_array, distance_array)
 
         graph_pruned = self.prune_global(
@@ -730,22 +736,17 @@ class PARC:
             csr_array = self.neighbor_graph
             neighbor_array = np.split(csr_array.indices, csr_array.indptr)[1:-1]
         else:
-            if self.knn_struct is None:
-                logger.message("Creating knn_struct...")
-                if n_samples < 10000:
-                    ef_query = min(n_samples - 10, 500)
-                else:
-                    ef_query = 100
-                self.knn_struct = self.make_knn_struct(
+            if self.hnsw_index is None:
+                logger.message("Creating HNSW index...")
+                self.hnsw_index = self.create_hnsw_index(
                     x_data=x_data,
                     knn=knn,
-                    ef_query=ef_query,
                     distance_metric=self.distance_metric,
                     n_threads=self.n_threads
                 )
             else:
-                logger.message("knn struct already exists")
-            neighbor_array, distance_array = self.knn_struct.knn_query(x_data, k=knn)
+                logger.message("HNSW index already exists.")
+            neighbor_array, distance_array = self.hnsw_index.knn_query(x_data, k=knn)
             csr_array = self.prune_local(neighbor_array, distance_array)
 
         graph_pruned = self.prune_global(
