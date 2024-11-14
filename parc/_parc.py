@@ -723,8 +723,8 @@ class PARC:
                 node_communities_neighbors = node_communities[neighbors]
                 node_communities_switch = set(node_communities_neighbors) - set(small_communities.keys())
                 if len(node_communities_switch) > 0:
-                    best_group = max(node_communities_switch, key=list(node_communities_neighbors).count)
-                    node_communities[sample_id] = best_group
+                    community_id = max(node_communities_switch, key=list(node_communities_neighbors).count)
+                    node_communities[sample_id] = community_id
 
         time_start_sc = time.time()
         while small_community_exists and (time.time() - time_start_sc) < self.small_community_timeout:
@@ -743,8 +743,8 @@ class PARC:
                 for sample_id in small_community_indices:
                     neighbors = neighbor_array[sample_id]
                     node_communities_neighbors = node_communities[neighbors]
-                    best_group = max(set(node_communities_neighbors), key=list(node_communities_neighbors).count)
-                    node_communities[sample_id] = best_group
+                    community_id = max(set(node_communities_neighbors), key=list(node_communities_neighbors).count)
+                    node_communities[sample_id] = community_id
 
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
         return node_communities
