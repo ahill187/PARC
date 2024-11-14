@@ -950,7 +950,7 @@ class PARC:
         community_counts = pd.DataFrame({
             "community_id": list(set(node_communities)),
             "count": [
-                node_communities.count(community_id) for community_id in set(node_communities)
+                list(node_communities).count(community_id) for community_id in set(node_communities)
             ]
         })
         logger.message(f"Community labels and sizes:\n{community_counts}")
