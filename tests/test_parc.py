@@ -196,6 +196,43 @@ def test_parc_large_community_expansion(
 
 
 @pytest.mark.parametrize(
+    "dataset_name, node_communities, small_community_size, expected_node_communities",
+    [
+        ("iris_data", np.random.choice([0], 150), 10, np.random.choice([0], 150)),
+        ("iris_data", np.array([0] * 130 + [1] * 20), 50, np.array([0] * 150)),
+        ("iris_data", np.array([0] * 130 + [1] * 20), 10, np.array([0] * 130 + [1] * 20)),
+        ("iris_data", np.array([0] * 50 + [1] * 50 + [2] * 50), 60, None),
+    ]
+)
+@pytest.mark.parametrize(
+    "small_community_timeout",
+    [15]
+)
+@pytest.mark.parametrize(
+    "knn",
+    [5, 10]
+)
+def test_parc_small_community_merging(
+    request, dataset_name, node_communities, small_community_size, expected_node_communities,
+    small_community_timeout, knn
+):
+    x_data, y_data = request.getfixturevalue(dataset_name)
+    parc_model = PARC(x_data=x_data, y_data_true=y_data)
+    hnsw_index = parc_model.create_hnsw_index(x_data=x_data, knn=knn)
+    neighbor_array, _ = hnsw_index.knn_query(x_data, k=knn)
+    node_communities_merged = parc_model.small_community_merging(
+        node_communities=node_communities.copy(),
+        small_community_size=small_community_size,
+        small_community_timeout=small_community_timeout,
+        neighbor_array=neighbor_array
+    )
+    assert len(np.unique(node_communities_merged)) <= len(np.unique(node_communities))
+    assert set(np.unique(node_communities_merged)) <= set(np.unique(node_communities))
+    if expected_node_communities is not None:
+        np.testing.assert_array_equal(node_communities_merged, expected_node_communities)
+
+
+@pytest.mark.parametrize(
     (
         "dataset_name, knn, n_iter_leiden, distance_metric, hnsw_param_ef_construction,"
         "l2_std_factor, jac_threshold_type, jac_std_factor, jac_weighted_edges, do_prune_local,"
