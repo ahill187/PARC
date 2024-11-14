@@ -12,7 +12,7 @@ from parc.logger import get_logger
 from tests.variables import NEIGHBOR_ARRAY_L2, NEIGHBOR_ARRAY_COSINE
 from tests.utils import __tmp_dir__, create_tmp_dir, remove_tmp_dir
 
-logger = get_logger(__name__, 25)
+logger = get_logger(__name__, 20)
 
 
 def setup_function():
@@ -193,6 +193,33 @@ def test_parc_large_community_expansion(
             np.unique(node_communities_expanded),
             range(len(np.unique(node_communities_expanded)))
         )
+
+
+@pytest.mark.parametrize(
+    "dataset_name, node_communities, small_community_size, expected_small_communities",
+    [
+        ("iris_data", np.random.choice([0], 150), 10, {}),
+        ("iris_data", np.array([0] * 130 + [1] * 20), 50, {1: np.array(range(130, 150))}),
+        ("iris_data", np.array([0] * 130 + [1] * 20), 10, {}),
+        (
+            "iris_data", np.array([0] * 50 + [1] * 50 + [2] * 50), 60,
+            {0: np.array(range(0, 50)), 1: np.array(range(50, 100)), 2: np.array(range(100, 150))}
+        ),
+    ]
+)
+def test_parc_get_small_communities(
+    request, dataset_name, node_communities, small_community_size, expected_small_communities,
+):
+    x_data, y_data = request.getfixturevalue(dataset_name)
+    parc_model = PARC(x_data=x_data, y_data_true=y_data)
+    small_communities = parc_model.get_small_communities(
+        node_communities=node_communities.copy(),
+        small_community_size=small_community_size
+    )
+    assert len(small_communities) == len(expected_small_communities)
+    for community_id, small_community in small_communities.items():
+        assert len(small_community) <= small_community_size
+        assert np.all(small_community == expected_small_communities[community_id])
 
 
 @pytest.mark.parametrize(
