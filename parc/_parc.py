@@ -704,7 +704,20 @@ class PARC:
     def small_community_merging(
         self, small_community_size: int, node_communities: np.ndarray, neighbor_array: np.ndarray
     ) -> np.ndarray:
+        """Merge the small communities into larger communities.
 
+        Args:
+            small_community_size: The smallest population size to be considered a community.
+            node_communities: An array of the predicted community labels, with dimensions
+                ``(n_samples, 1)``.
+            neighbor_array: An array with dimensions ``(n_samples, k)`` listing the
+                k nearest neighbors for each data point.
+            
+        Returns:
+            An array of the predicted community labels, with dimensions ``(n_samples, 1)``.
+        """
+
+        # Move small communities to the nearest large community, if possible
         small_communities = self.get_small_communities(
             node_communities=node_communities,
             small_community_size=small_community_size
@@ -716,6 +729,8 @@ class PARC:
             allow_small_to_small=False
         )
 
+        # Move small communities to the nearest community, even if it is also small
+        # Keep iterating until no small communities are left or the timeout is reached
         time_start = time.time()
         while len(small_communities.items()) > 0 and (time.time() - time_start) < self.small_community_timeout:
             small_communities = self.get_small_communities(
