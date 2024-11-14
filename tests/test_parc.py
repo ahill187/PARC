@@ -223,6 +223,47 @@ def test_parc_get_small_communities(
 
 
 @pytest.mark.parametrize(
+    (
+        "dataset_name, node_communities, knn, small_communities,"
+        "allow_small_to_small, expected_node_communities"
+    ),
+    [
+        (
+            "iris_data",
+            np.array([0] * 130 + [1] * 20),
+            5,
+            {1: np.array(range(130, 150))},
+            False,
+            np.array([0] * 150)
+        ),
+        (
+            "iris_data",
+            np.array([0] * 50 + [1] * 50 + [2] * 50),
+            5,
+            {0: np.array(range(0, 50)), 1: np.array(range(50, 100)), 2: np.array(range(100, 150))},
+            False,
+            np.array([0] * 50 + [1] * 50 + [2] * 50)
+        ),
+    ]
+)
+def test_parc_reassign_small_communities(
+    request, dataset_name, node_communities, knn, small_communities,
+    allow_small_to_small, expected_node_communities
+):
+    x_data, y_data = request.getfixturevalue(dataset_name)
+    parc_model = PARC(x_data=x_data, y_data_true=y_data)
+    hnsw_index = parc_model.create_hnsw_index(x_data=x_data, knn=knn)
+    neighbor_array, _ = hnsw_index.knn_query(x_data, k=knn)
+    node_communities_reassigned = parc_model.reassign_small_communities(
+        node_communities=node_communities.copy(),
+        small_communities=small_communities,
+        neighbor_array=neighbor_array,
+        allow_small_to_small=allow_small_to_small
+    )
+    np.testing.assert_array_equal(node_communities_reassigned, expected_node_communities)
+
+
+@pytest.mark.parametrize(
     "dataset_name, node_communities, small_community_size, expected_node_communities",
     [
         ("iris_data", np.random.choice([0], 150), 10, np.random.choice([0], 150)),
