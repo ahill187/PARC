@@ -717,14 +717,12 @@ class PARC:
                 small_community_exists = True
                 small_communities[community_id] = community_indices
 
-        for small_community_indices in small_communities.values():
-            for sample_id in small_community_indices:
-                neighbors = neighbor_array[sample_id]
-                node_communities_neighbors = node_communities[neighbors]
-                node_communities_switch = set(node_communities_neighbors) - set(small_communities.keys())
-                if len(node_communities_switch) > 0:
-                    community_id = max(node_communities_switch, key=list(node_communities_neighbors).count)
-                    node_communities[sample_id] = community_id
+            node_communities = self.reassign_small_communities(
+                node_communities=node_communities.copy(),
+                neighbor_array=neighbor_array,
+                small_communities=small_communities,
+                allow_small_to_small=False
+            )
 
         time_start_sc = time.time()
         while small_community_exists and (time.time() - time_start_sc) < self.small_community_timeout:
@@ -739,14 +737,46 @@ class PARC:
                     )
                     small_community_exists = True
                     small_communities[community_id] = community_indices
-            for small_community_indices in small_communities.values():
-                for sample_id in small_community_indices:
-                    neighbors = neighbor_array[sample_id]
-                    node_communities_neighbors = node_communities[neighbors]
-                    community_id = max(set(node_communities_neighbors), key=list(node_communities_neighbors).count)
-                    node_communities[sample_id] = community_id
+            node_communities = self.reassign_small_communities(
+                node_communities=node_communities.copy(),
+                neighbor_array=neighbor_array,
+                small_communities=small_communities,
+                allow_small_to_small=True
+            )
 
         node_communities = np.unique(node_communities, return_inverse=True)[1]
+        return node_communities
+    
+    def reassign_small_communities(
+        self, node_communities: np.ndarray, neighbor_array: np.ndarray,
+        small_communities: dict[int, np.ndarray], allow_small_to_small: bool
+    ):
+        """Reassign the small communities to the nearest large community.
+
+        Args:
+            node_communities: An array of the predicted output y labels, with dimensions
+                ``(n_samples, 1)``.
+            neighbor_array: An array with dimensions ``(n_samples, k)`` listing the
+                k nearest neighbors for each data point.
+            small_communities: A dictionary containing the small communities.
+            allow_small_to_small: Whether to disallow small communities to be reassigned to
+                other small communities.
+        """
+
+        for small_community_indices in small_communities.values():
+            for sample_id in small_community_indices:
+                neighbors = neighbor_array[sample_id]
+                node_communities_neighbors = node_communities[neighbors]
+                if not allow_small_to_small:
+                    node_communities_switch = set(node_communities_neighbors) - set(small_communities.keys())
+                else:
+                    node_communities_switch = set(node_communities_neighbors)
+                if len(node_communities_switch) > 0:
+                    community_id = max(
+                        node_communities_switch,
+                        key=list(node_communities_neighbors).count
+                    )
+                    node_communities[sample_id] = community_id
         return node_communities
 
     def run_toobig_subPARC(
