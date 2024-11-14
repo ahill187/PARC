@@ -807,7 +807,6 @@ class PARC:
             )[1]
 
             too_big = False
-            node_communities = np.asarray(node_communities)
             for community_id in set(node_communities):
                 community_indices = np.where(node_communities == community_id)[0]
                 community_size = len(community_indices)
