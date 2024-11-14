@@ -764,7 +764,6 @@ class PARC:
         )
 
         node_communities = np.asarray(partition.membership)
-        node_communities = np.reshape(node_communities, (n_samples, 1))
 
         too_big = False
 
