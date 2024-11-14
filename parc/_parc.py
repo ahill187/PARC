@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import hnswlib
 import os
+from typing import Tuple
 import pathlib
 import json
 from scipy.sparse import csr_matrix
@@ -607,6 +608,98 @@ class PARC:
                 resolution_parameter=self.resolution_parameter
             )
         return partition
+    
+    def get_next_large_community(
+        self,
+        large_community_factor: float,
+        node_communities: np.ndarray,
+        expanded_community_sizes: list[int]
+    ) -> Tuple[int, int, np.ndarray] | Tuple[None, None, list[int]]:
+        """Get the next large community to expand.
+        
+        Args:
+            large_community_factor: A factor used to determine if a community is too large.
+                If the community size is greater than ``large_community_factor * n_samples``,
+                then the community is too large and the ``PARC`` algorithm will be run on the single
+                community to split it up. The default value of ``0.4`` ensures that all communities
+                will be less than the cutoff size.
+            node_communities: An array of the predicted output y labels, with dimensions
+                ``(n_samples, 1)``.
+            expanded_community_sizes: A list of the sizes of the expanded communities.
+            
+        Returns:
+            A tuple containing the large community ID, the large community size, and the indices
+            of the large community. If no large community is found, then return ``None`` for all
+            values.
+        """
+
+        large_community_id, large_community_size, large_community_indices = None, None, []
+        n_samples = len(node_communities)
+        for community_id in set(node_communities):
+            community_indices = np.where(node_communities == community_id)[0]
+            community_size = len(community_indices)
+            not_yet_expanded = community_size not in expanded_community_sizes
+            if community_size > large_community_factor * n_samples and not_yet_expanded:
+                logger.message(
+                    f"\nCommunity {community_id} is too large and has size:\n"
+                    f"{community_size} > large_community_factor * n_samples = "
+                    f"{large_community_factor} * {n_samples} = {large_community_factor * n_samples}\n"
+                    f"Starting large community expansion..."
+                )
+                large_community_indices = community_indices
+                large_community_id = community_id
+                large_community_size = community_size
+                break
+        
+        return large_community_id, large_community_size, large_community_indices
+    
+    def large_community_expansion(
+        self, x_data: np.ndarray, large_community_factor: float, node_communities: np.ndarray
+    ) -> np.ndarray:
+        """Expand the large communities.
+
+        Args:
+            large_community_factor: A factor used to determine if a community is too large.
+                If the community size is greater than ``large_community_factor * n_samples``,
+                then the community is too large and the ``PARC`` algorithm will be run on the single
+                community to split it up. The default value of ``0.4`` ensures that all communities
+                will be less than the cutoff size.
+            node_communities: An array of the predicted output y labels, with dimensions
+                ``(n_samples, 1)``.
+
+        Returns:
+            An array of the predicted output y labels, with dimensions ``(n_samples, 1)``.
+        """
+        # The 0th cluster is the largest one.
+        # So, if cluster 0 is not too big, then the others won't be too big either
+        expanded_community_sizes=[]
+        large_community_id, large_community_size, large_community_indices = \
+            self.get_next_large_community(
+                large_community_factor=large_community_factor,
+                node_communities=node_communities,
+                expanded_community_sizes=expanded_community_sizes
+            )
+
+        while large_community_id is not None:
+            expanded_community_sizes.append(large_community_size)
+            node_communities_big = self.run_toobig_subPARC(
+                x_data=x_data[large_community_indices, :]
+            )
+            node_communities_big = node_communities_big + 100000
+
+            for i, index in enumerate(large_community_indices):
+                node_communities[index] = node_communities_big[i]
+
+            node_communities = np.unique(node_communities, return_inverse=True)[1]
+
+            large_community_id, large_community_size, large_community_indices = \
+                self.get_next_large_community(
+                    large_community_factor=large_community_factor,
+                    node_communities=node_communities,
+                    expanded_community_sizes=expanded_community_sizes
+                )
+
+        return node_communities
 
     def run_toobig_subPARC(
         self,
@@ -762,72 +855,14 @@ class PARC:
             graph=graph_pruned,
             jac_weighted_edges=jac_weighted_edges
         )
-
         node_communities = np.asarray(partition.membership)
-        node_communities = np.reshape(node_communities, (n_samples, 1))
 
-        too_big = False
-
-        # The 0th cluster is the largest one.
-        # So, if cluster 0 is not too big, then the others won't be too big either
-        large_community_id = 0
-        community_indices = np.where(node_communities == large_community_id)[0]
-        community_size = len(community_indices)
-
-        if community_size > large_community_factor * n_samples:
-            logger.message(
-                f"\nCommunity 0 is too large and has size:\n"
-                f"{community_size} > large_community_factor * n_samples = "
-                f"{large_community_factor} * {n_samples} = {large_community_factor * n_samples}\n"
-                f"Starting large community expansion..."
-            )
-            too_big = True
-            large_community_indices = community_indices
-            list_pop_too_bigs = [community_size]
-        else:
-            logger.message(
-                f"\nCommunity 0 is not too large and has size:\n"
-                f"{community_size} <= large_community_factor * n_samples = "
-                f"{large_community_factor} * {n_samples} = {large_community_factor * n_samples}\n"
-                "Skipping large community expansion."
-            )
-
-        while too_big:
-            logger.message(f"Expanding large community {large_community_id}...")
-            node_communities_big = self.run_toobig_subPARC(
-                x_data=x_data[large_community_indices, :]
-            )
-            node_communities_big = node_communities_big + 100000
-
-            jj = 0
-            for j in large_community_indices:
-                node_communities[j] = node_communities_big[jj]
-                jj = jj + 1
-            node_communities = np.unique(
-                list(node_communities.flatten()), return_inverse=True
-            )[1]
-
-            too_big = False
-            node_communities = np.asarray(node_communities)
-            for community_id in set(node_communities):
-                community_indices = np.where(node_communities == community_id)[0]
-                community_size = len(community_indices)
-                not_yet_expanded = community_size not in list_pop_too_bigs
-                if community_size > large_community_factor * n_samples and not_yet_expanded:
-                    too_big = True
-                    logger.message(
-                        f"Community {community_id} is too big and has population {community_size}."
-                    )
-                    large_community_indices = community_indices
-                    large_community_id = community_id
-                    large_community_size = community_size
-            if too_big:
-                list_pop_too_bigs.append(large_community_size)
-                logger.message(
-                    f"Community {large_community_id} is too big and has population "
-                    f"{large_community_size}. It will be expanded."
-                )
-        node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
+        logger.message("Starting large community detection...")
+        node_communities = self.large_community_expansion(
+            x_data=x_data,
+            large_community_factor=large_community_factor,
+            node_communities=node_communities.copy()
+        )
 
         logger.message("Starting small community detection...")
         small_pop_list = []

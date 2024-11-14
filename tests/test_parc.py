@@ -166,6 +166,36 @@ def test_parc_prune_global(
 
 
 @pytest.mark.parametrize(
+    "large_community_factor",
+    [
+        (1.0),
+        (0.5),
+        (0.08)
+    ]
+)
+def test_parc_large_community_expansion(
+    iris_data, large_community_factor
+):
+    x_data = iris_data[0]
+    y_data = iris_data[1]
+    node_communities = np.random.randint(0, 10, x_data.shape[0])
+    parc_model = PARC(x_data=x_data, y_data_true=y_data)
+    node_communities_expanded = parc_model.large_community_expansion(
+        x_data=x_data,
+        node_communities=node_communities.copy(),
+        large_community_factor=large_community_factor,
+    )
+    if large_community_factor == 1.0:
+        assert np.all(node_communities_expanded == node_communities)
+    else:
+        assert len(np.unique(node_communities_expanded)) >= len(np.unique(node_communities))
+        np.testing.assert_array_equal(
+            np.unique(node_communities_expanded),
+            range(len(np.unique(node_communities_expanded)))
+        )
+
+
+@pytest.mark.parametrize(
     (
         "dataset_name, knn, n_iter_leiden, distance_metric, hnsw_param_ef_construction,"
         "l2_std_factor, jac_threshold_type, jac_std_factor, jac_weighted_edges, do_prune_local,"
