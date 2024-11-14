@@ -709,10 +709,10 @@ class PARC:
         small_community_exists = False
 
         for community_id in set(node_communities):
-            population = len(np.where(node_communities == community_id)[0])
-            if population < small_community_size:
+            community_size = len(np.where(node_communities == community_id)[0])
+            if community_size < small_community_size:
                 logger.info(
-                    f"Community {community_id} is a small community with population {population}"
+                    f"Community {community_id} is a small community with size {community_size}"
                 )
                 small_community_exists = True
                 small_pop_list.append(list(np.where(node_communities == community_id)[0]))
@@ -737,10 +737,10 @@ class PARC:
             small_pop_list = []
             small_community_exists = False
             for community_id in set(list(node_communities.flatten())):
-                population = len(np.where(node_communities == community_id)[0])
-                if population < small_community_size:
+                community_size = len(np.where(node_communities == community_id)[0])
+                if community_size < small_community_size:
                     logger.info(
-                        f"Community {community_id} is a small community with population {population}"
+                        f"Community {community_id} is a small community with size {community_size}"
                     )
                     small_community_exists = True
                     small_pop_list.append(np.where(node_communities == community_id)[0])
