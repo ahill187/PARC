@@ -717,12 +717,12 @@ class PARC:
                 small_community_exists = True
                 small_communities[community_id] = community_indices
 
-            node_communities = self.reassign_small_communities(
-                node_communities=node_communities.copy(),
-                neighbor_array=neighbor_array,
-                small_communities=small_communities,
-                allow_small_to_small=False
-            )
+        node_communities = self.reassign_small_communities(
+            node_communities=node_communities.copy(),
+            neighbor_array=neighbor_array,
+            small_communities=small_communities,
+            allow_small_to_small=False
+        )
 
         time_start_sc = time.time()
         while small_community_exists and (time.time() - time_start_sc) < self.small_community_timeout:
