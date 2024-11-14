@@ -704,19 +704,11 @@ class PARC:
     def small_community_merging(
         self, small_community_size: int, node_communities: np.ndarray, neighbor_array: np.ndarray
     ) -> np.ndarray:
-        small_communities = {}
-        small_community_exists = False
 
-        for community_id in set(node_communities):
-            community_indices = np.where(node_communities == community_id)[0]
-            community_size = len(community_indices)
-            if community_size < small_community_size:
-                logger.info(
-                    f"Community {community_id} is a small community with size {community_size}"
-                )
-                small_community_exists = True
-                small_communities[community_id] = community_indices
-
+        small_communities = self.get_small_communities(
+            node_communities=node_communities,
+            small_community_size=small_community_size
+        )
         node_communities = self.reassign_small_communities(
             node_communities=node_communities.copy(),
             neighbor_array=neighbor_array,
@@ -725,18 +717,11 @@ class PARC:
         )
 
         time_start_sc = time.time()
-        while small_community_exists and (time.time() - time_start_sc) < self.small_community_timeout:
-            small_communities = {}
-            small_community_exists = False
-            for community_id in set(list(node_communities.flatten())):
-                community_indices = np.where(node_communities == community_id)[0]
-                community_size = len(community_indices)
-                if community_size < small_community_size:
-                    logger.info(
-                        f"Community {community_id} is a small community with size {community_size}"
-                    )
-                    small_community_exists = True
-                    small_communities[community_id] = community_indices
+        while len(small_communities.items()) > 0 and (time.time() - time_start_sc) < self.small_community_timeout:
+            small_communities = self.get_small_communities(
+                node_communities=node_communities,
+                small_community_size=small_community_size
+            )
             node_communities = self.reassign_small_communities(
                 node_communities=node_communities.copy(),
                 neighbor_array=neighbor_array,
@@ -746,6 +731,31 @@ class PARC:
 
         node_communities = np.unique(node_communities, return_inverse=True)[1]
         return node_communities
+    
+    def get_small_communities(
+        self, node_communities: np.ndarray, small_community_size: int
+    ) -> dict[int, np.ndarray]:
+        """Get the small communities.
+
+        Args:
+            node_communities: An array of the predicted output y labels, with dimensions
+                ``(n_samples, 1)``.
+            small_community_size: The smallest population size to be considered a community.
+
+        Returns:
+            A dictionary containing the small communities, with each key being the community ID
+            and the value being the sample IDs belonging to that community.
+        """
+        small_communities = {}
+        for community_id in set(list(node_communities.flatten())):
+            community_indices = np.where(node_communities == community_id)[0]
+            community_size = len(community_indices)
+            if community_size < small_community_size:
+                logger.info(
+                    f"Community {community_id} is a small community with size {community_size}"
+                )
+                small_communities[community_id] = community_indices
+        return small_communities
     
     def reassign_small_communities(
         self, node_communities: np.ndarray, neighbor_array: np.ndarray,
