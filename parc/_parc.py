@@ -652,6 +652,54 @@ class PARC:
                 break
         
         return large_community_id, large_community_size, large_community_indices
+    
+    def large_community_expansion(
+        self, x_data: np.ndarray, large_community_factor: float, node_communities: np.ndarray
+    ) -> np.ndarray:
+        """Expand the large communities.
+
+        Args:
+            large_community_factor: A factor used to determine if a community is too large.
+                If the community size is greater than ``large_community_factor * n_samples``,
+                then the community is too large and the ``PARC`` algorithm will be run on the single
+                community to split it up. The default value of ``0.4`` ensures that all communities
+                will be less than the cutoff size.
+            node_communities: An array of the predicted output y labels, with dimensions
+                ``(n_samples, 1)``.
+
+        Returns:
+            An array of the predicted output y labels, with dimensions ``(n_samples, 1)``.
+        """
+        # The 0th cluster is the largest one.
+        # So, if cluster 0 is not too big, then the others won't be too big either
+        expanded_community_sizes=[]
+        large_community_id, large_community_size, large_community_indices = \
+            self.get_next_large_community(
+                large_community_factor=large_community_factor,
+                node_communities=node_communities,
+                expanded_community_sizes=expanded_community_sizes
+            )
+
+        while large_community_id is not None:
+            expanded_community_sizes.append(large_community_size)
+            node_communities_big = self.run_toobig_subPARC(
+                x_data=x_data[large_community_indices, :]
+            )
+            node_communities_big = node_communities_big + 100000
+
+            for i, index in enumerate(large_community_indices):
+                node_communities[index] = node_communities_big[i]
+
+            node_communities = np.unique(node_communities, return_inverse=True)[1]
+
+            large_community_id, large_community_size, large_community_indices = \
+                self.get_next_large_community(
+                    large_community_factor=large_community_factor,
+                    node_communities=node_communities,
+                    expanded_community_sizes=expanded_community_sizes
+                )
+
+        return node_communities
 
     def run_toobig_subPARC(
         self,
@@ -809,34 +857,12 @@ class PARC:
         )
         node_communities = np.asarray(partition.membership)
 
-        # The 0th cluster is the largest one.
-        # So, if cluster 0 is not too big, then the others won't be too big either
-        expanded_community_sizes=[]
-        large_community_id, large_community_size, large_community_indices = \
-            self.get_next_large_community(
-                large_community_factor=large_community_factor,
-                node_communities=node_communities,
-                expanded_community_sizes=expanded_community_sizes
-            )
-
-        while large_community_id is not None:
-            expanded_community_sizes.append(large_community_size)
-            node_communities_big = self.run_toobig_subPARC(
-                x_data=x_data[large_community_indices, :]
-            )
-            node_communities_big = node_communities_big + 100000
-
-            for i, index in enumerate(large_community_indices):
-                node_communities[index] = node_communities_big[i]
-
-            node_communities = np.unique(node_communities, return_inverse=True)[1]
-
-            large_community_id, large_community_size, large_community_indices = \
-                self.get_next_large_community(
-                    large_community_factor=large_community_factor,
-                    node_communities=node_communities,
-                    expanded_community_sizes=expanded_community_sizes
-                )
+        logger.message("Starting large community detection...")
+        node_communities = self.large_community_expansion(
+            x_data=x_data,
+            large_community_factor=large_community_factor,
+            node_communities=node_communities.copy()
+        )
 
         logger.message("Starting small community detection...")
         small_pop_list = []
