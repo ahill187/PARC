@@ -716,8 +716,8 @@ class PARC:
             allow_small_to_small=False
         )
 
-        time_start_sc = time.time()
-        while len(small_communities.items()) > 0 and (time.time() - time_start_sc) < self.small_community_timeout:
+        time_start = time.time()
+        while len(small_communities.items()) > 0 and (time.time() - time_start) < self.small_community_timeout:
             small_communities = self.get_small_communities(
                 node_communities=node_communities,
                 small_community_size=small_community_size
