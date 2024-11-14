@@ -704,8 +704,7 @@ class PARC:
     def small_community_merging(
         self, small_community_size: int, node_communities: np.ndarray, neighbor_array: np.ndarray
     ) -> np.ndarray:
-        small_pop_list = []
-        small_cluster_list = []
+        small_communities = {}
         small_community_exists = False
 
         for community_id in set(node_communities):
@@ -716,15 +715,14 @@ class PARC:
                     f"Community {community_id} is a small community with size {community_size}"
                 )
                 small_community_exists = True
-                small_pop_list.append(community_indices)
-                small_cluster_list.append(community_id)
+                small_communities[community_id] = community_indices
 
-        for small_community_indices in small_pop_list:
+        for small_community_indices in small_communities.values():
             for sample_id in small_community_indices:
                 old_neighbors = neighbor_array[sample_id]
                 group_of_old_neighbors = node_communities[old_neighbors]
                 group_of_old_neighbors = list(group_of_old_neighbors.flatten())
-                available_neighbours = set(group_of_old_neighbors) - set(small_cluster_list)
+                available_neighbours = set(group_of_old_neighbors) - set(small_communities.keys())
                 if len(available_neighbours) > 0:
                     available_neighbours_list = [
                         value for value in group_of_old_neighbors if
@@ -735,7 +733,7 @@ class PARC:
 
         time_start_sc = time.time()
         while small_community_exists and (time.time() - time_start_sc) < self.small_community_timeout:
-            small_pop_list = []
+            small_communities = {}
             small_community_exists = False
             for community_id in set(list(node_communities.flatten())):
                 community_indices = np.where(node_communities == community_id)[0]
@@ -745,8 +743,8 @@ class PARC:
                         f"Community {community_id} is a small community with size {community_size}"
                     )
                     small_community_exists = True
-                    small_pop_list.append(community_indices)
-            for small_community_indices in small_pop_list:
+                    small_communities[community_id] = community_indices
+            for small_community_indices in small_communities.values():
                 for sample_id in small_community_indices:
                     old_neighbors = neighbor_array[sample_id]
                     group_of_old_neighbors = node_communities[old_neighbors]
