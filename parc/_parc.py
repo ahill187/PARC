@@ -798,13 +798,10 @@ class PARC:
             )
             node_communities_big = node_communities_big + 100000
 
-            jj = 0
-            for j in large_community_indices:
-                node_communities[j] = node_communities_big[jj]
-                jj = jj + 1
-            node_communities = np.unique(
-                list(node_communities.flatten()), return_inverse=True
-            )[1]
+            for i, index in enumerate(large_community_indices):
+                node_communities[index] = node_communities_big[i]
+ 
+            node_communities = np.unique(node_communities, return_inverse=True)[1]
 
             too_big = False
             for community_id in set(node_communities):
