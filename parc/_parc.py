@@ -720,8 +720,8 @@ class PARC:
                 small_cluster_list.append(community_id)
 
         for small_community_indices in small_pop_list:
-            for single_cell in small_community_indices:
-                old_neighbors = neighbor_array[single_cell]
+            for sample_id in small_community_indices:
+                old_neighbors = neighbor_array[sample_id]
                 group_of_old_neighbors = node_communities[old_neighbors]
                 group_of_old_neighbors = list(group_of_old_neighbors.flatten())
                 available_neighbours = set(group_of_old_neighbors) - set(small_cluster_list)
@@ -731,7 +731,7 @@ class PARC:
                         value in list(available_neighbours)
                     ]
                     best_group = max(available_neighbours_list, key=available_neighbours_list.count)
-                    node_communities[single_cell] = best_group
+                    node_communities[sample_id] = best_group
 
         time_start_sc = time.time()
         while small_community_exists and (time.time() - time_start_sc) < self.small_community_timeout:
@@ -747,12 +747,12 @@ class PARC:
                     small_community_exists = True
                     small_pop_list.append(community_indices)
             for small_community_indices in small_pop_list:
-                for single_cell in small_community_indices:
-                    old_neighbors = neighbor_array[single_cell]
+                for sample_id in small_community_indices:
+                    old_neighbors = neighbor_array[sample_id]
                     group_of_old_neighbors = node_communities[old_neighbors]
                     group_of_old_neighbors = list(group_of_old_neighbors.flatten())
                     best_group = max(set(group_of_old_neighbors), key=group_of_old_neighbors.count)
-                    node_communities[single_cell] = best_group
+                    node_communities[sample_id] = best_group
 
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
         return node_communities
