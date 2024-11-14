@@ -746,7 +746,7 @@ class PARC:
                     community_id = max(set(node_communities_neighbors), key=list(node_communities_neighbors).count)
                     node_communities[sample_id] = community_id
 
-        node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
+        node_communities = np.unique(node_communities, return_inverse=True)[1]
         return node_communities
 
     def run_toobig_subPARC(
