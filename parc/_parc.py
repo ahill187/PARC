@@ -838,8 +838,6 @@ class PARC:
                     expanded_community_sizes=expanded_community_sizes
                 )
 
-        node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
-
         logger.message("Starting small community detection...")
         small_pop_list = []
         small_cluster_list = []
