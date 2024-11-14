@@ -798,10 +798,11 @@ class PARC:
             for sample_id in small_community_indices:
                 neighbors = neighbor_array[sample_id]
                 node_communities_neighbors = node_communities[neighbors]
-                if not allow_small_to_small:
-                    node_communities_switch = set(node_communities_neighbors) - set(small_communities.keys())
-                else:
+                if allow_small_to_small:
                     node_communities_switch = set(node_communities_neighbors)
+                else:
+                    node_communities_switch = \
+                        set(node_communities_neighbors) - set(small_communities.keys())
                 if len(node_communities_switch) > 0:
                     community_id = max(
                         node_communities_switch,
