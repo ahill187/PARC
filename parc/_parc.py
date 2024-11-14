@@ -720,12 +720,11 @@ class PARC:
         for small_community_indices in small_communities.values():
             for sample_id in small_community_indices:
                 neighbors = neighbor_array[sample_id]
-                group_of_old_neighbors = node_communities[neighbors]
-                group_of_old_neighbors = list(group_of_old_neighbors.flatten())
-                available_neighbours = set(group_of_old_neighbors) - set(small_communities.keys())
+                node_communities_neighbors = node_communities[neighbors]
+                available_neighbours = set(node_communities_neighbors) - set(small_communities.keys())
                 if len(available_neighbours) > 0:
                     available_neighbours_list = [
-                        value for value in group_of_old_neighbors if
+                        value for value in node_communities_neighbors if
                         value in list(available_neighbours)
                     ]
                     best_group = max(available_neighbours_list, key=available_neighbours_list.count)
@@ -747,9 +746,8 @@ class PARC:
             for small_community_indices in small_communities.values():
                 for sample_id in small_community_indices:
                     neighbors = neighbor_array[sample_id]
-                    group_of_old_neighbors = node_communities[neighbors]
-                    group_of_old_neighbors = list(group_of_old_neighbors.flatten())
-                    best_group = max(set(group_of_old_neighbors), key=group_of_old_neighbors.count)
+                    node_communities_neighbors = node_communities[neighbors]
+                    best_group = max(set(node_communities_neighbors), key=list(node_communities_neighbors).count)
                     node_communities[sample_id] = best_group
 
         node_communities = np.unique(list(node_communities.flatten()), return_inverse=True)[1]
