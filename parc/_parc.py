@@ -709,13 +709,14 @@ class PARC:
         small_community_exists = False
 
         for community_id in set(node_communities):
-            community_size = len(np.where(node_communities == community_id)[0])
+            community_indices = np.where(node_communities == community_id)[0]
+            community_size = len(community_indices)
             if community_size < small_community_size:
                 logger.info(
                     f"Community {community_id} is a small community with size {community_size}"
                 )
                 small_community_exists = True
-                small_pop_list.append(list(np.where(node_communities == community_id)[0]))
+                small_pop_list.append(community_indices)
                 small_cluster_list.append(community_id)
 
         for small_cluster in small_pop_list:
@@ -737,13 +738,14 @@ class PARC:
             small_pop_list = []
             small_community_exists = False
             for community_id in set(list(node_communities.flatten())):
-                community_size = len(np.where(node_communities == community_id)[0])
+                community_indices = np.where(node_communities == community_id)[0]
+                community_size = len(community_indices)
                 if community_size < small_community_size:
                     logger.info(
                         f"Community {community_id} is a small community with size {community_size}"
                     )
                     small_community_exists = True
-                    small_pop_list.append(np.where(node_communities == community_id)[0])
+                    small_pop_list.append(community_indices)
             for small_cluster in small_pop_list:
                 for single_cell in small_cluster:
                     old_neighbors = neighbor_array[single_cell]
