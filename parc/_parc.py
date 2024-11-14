@@ -721,13 +721,9 @@ class PARC:
             for sample_id in small_community_indices:
                 neighbors = neighbor_array[sample_id]
                 node_communities_neighbors = node_communities[neighbors]
-                available_neighbours = set(node_communities_neighbors) - set(small_communities.keys())
-                if len(available_neighbours) > 0:
-                    available_neighbours_list = [
-                        value for value in node_communities_neighbors if
-                        value in list(available_neighbours)
-                    ]
-                    best_group = max(available_neighbours_list, key=available_neighbours_list.count)
+                node_communities_switch = set(node_communities_neighbors) - set(small_communities.keys())
+                if len(node_communities_switch) > 0:
+                    best_group = max(node_communities_switch, key=list(node_communities_neighbors).count)
                     node_communities[sample_id] = best_group
 
         time_start_sc = time.time()
