@@ -719,8 +719,8 @@ class PARC:
                 small_pop_list.append(community_indices)
                 small_cluster_list.append(community_id)
 
-        for small_cluster in small_pop_list:
-            for single_cell in small_cluster:
+        for small_community_indices in small_pop_list:
+            for single_cell in small_community_indices:
                 old_neighbors = neighbor_array[single_cell]
                 group_of_old_neighbors = node_communities[old_neighbors]
                 group_of_old_neighbors = list(group_of_old_neighbors.flatten())
@@ -746,8 +746,8 @@ class PARC:
                     )
                     small_community_exists = True
                     small_pop_list.append(community_indices)
-            for small_cluster in small_pop_list:
-                for single_cell in small_cluster:
+            for small_community_indices in small_pop_list:
+                for single_cell in small_community_indices:
                     old_neighbors = neighbor_array[single_cell]
                     group_of_old_neighbors = node_communities[old_neighbors]
                     group_of_old_neighbors = list(group_of_old_neighbors.flatten())
