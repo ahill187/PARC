@@ -708,40 +708,42 @@ class PARC:
         small_cluster_list = []
         small_community_exists = False
 
-        for cluster in set(node_communities):
-            population = len(np.where(node_communities == cluster)[0])
+        for community_id in set(node_communities):
+            population = len(np.where(node_communities == community_id)[0])
             if population < small_community_size:
                 logger.info(
-                    f"Community {cluster} is a small community with population {population}"
+                    f"Community {community_id} is a small community with population {population}"
                 )
                 small_community_exists = True
-                small_pop_list.append(list(np.where(node_communities == cluster)[0]))
-                small_cluster_list.append(cluster)
+                small_pop_list.append(list(np.where(node_communities == community_id)[0]))
+                small_cluster_list.append(community_id)
 
         for small_cluster in small_pop_list:
-
             for single_cell in small_cluster:
                 old_neighbors = neighbor_array[single_cell]
                 group_of_old_neighbors = node_communities[old_neighbors]
                 group_of_old_neighbors = list(group_of_old_neighbors.flatten())
                 available_neighbours = set(group_of_old_neighbors) - set(small_cluster_list)
                 if len(available_neighbours) > 0:
-                    available_neighbours_list = [value for value in group_of_old_neighbors if
-                                                 value in list(available_neighbours)]
+                    available_neighbours_list = [
+                        value for value in group_of_old_neighbors if
+                        value in list(available_neighbours)
+                    ]
                     best_group = max(available_neighbours_list, key=available_neighbours_list.count)
                     node_communities[single_cell] = best_group
+
         time_start_sc = time.time()
         while small_community_exists and (time.time() - time_start_sc) < self.small_community_timeout:
             small_pop_list = []
             small_community_exists = False
-            for cluster in set(list(node_communities.flatten())):
-                population = len(np.where(node_communities == cluster)[0])
+            for community_id in set(list(node_communities.flatten())):
+                population = len(np.where(node_communities == community_id)[0])
                 if population < small_community_size:
                     logger.info(
-                        f"Community {cluster} is a small community with population {population}"
+                        f"Community {community_id} is a small community with population {population}"
                     )
                     small_community_exists = True
-                    small_pop_list.append(np.where(node_communities == cluster)[0])
+                    small_pop_list.append(np.where(node_communities == community_id)[0])
             for small_cluster in small_pop_list:
                 for single_cell in small_cluster:
                     old_neighbors = neighbor_array[single_cell]
