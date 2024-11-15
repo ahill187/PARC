@@ -19,7 +19,8 @@ def run_umap_hnsw(
     random_state_seed=1,
     densmap=False,
     densmap_kwds={},
-    output_dens=False
+    output_dens=False,
+    verbose: bool = False
 ):
     """Perform a fuzzy simplicial set embedding, using a specified initialisation method and
     then minimizing the fuzzy set cross entropy between the 1-skeletons of the high and
@@ -78,14 +79,14 @@ def run_umap_hnsw(
         initial_alpha=alpha,
         a=a,
         b=b,
-        n_epochs=0,
+        n_epochs=n_epochs,
         metric_kwds={},
         gamma=gamma,
         negative_sample_rate=negative_sample_rate,
         init=init_pos,
         random_state=np.random.RandomState(random_state_seed),
         metric="euclidean",
-        verbose=1,
+        verbose=verbose,
         densmap=densmap,
         densmap_kwds=densmap_kwds,
         output_dens=output_dens
