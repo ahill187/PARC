@@ -65,9 +65,9 @@ def run_umap_hnsw(
             and the embedding.
 
     Returns:
-        embedding: array of shape (n_samples, n_components)
-            The optimized of ``graph`` into an ``n_components`` dimensional
-            euclidean space.
+        An array of shape ``(n_samples, n_components)``. This array gives the
+        coordinates of the data in the embedding space. The embedding space is
+        a Euclidean space with dimensionality equal to ``n_components``.
     """
 
     a, b = find_ab_params(spread, min_dist)
