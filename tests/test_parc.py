@@ -12,7 +12,7 @@ from parc.logger import get_logger
 from tests.variables import NEIGHBOR_ARRAY_L2, NEIGHBOR_ARRAY_COSINE
 from tests.utils import __tmp_dir__, create_tmp_dir, remove_tmp_dir
 
-logger = get_logger(__name__, 25)
+logger = get_logger(__name__, 20)
 
 
 def setup_function():
@@ -193,6 +193,111 @@ def test_parc_large_community_expansion(
             np.unique(node_communities_expanded),
             range(len(np.unique(node_communities_expanded)))
         )
+
+
+@pytest.mark.parametrize(
+    "dataset_name, node_communities, small_community_size, expected_small_communities",
+    [
+        ("iris_data", np.random.choice([0], 150), 10, {}),
+        ("iris_data", np.array([0] * 130 + [1] * 20), 50, {1: np.array(range(130, 150))}),
+        ("iris_data", np.array([0] * 130 + [1] * 20), 10, {}),
+        (
+            "iris_data", np.array([0] * 50 + [1] * 50 + [2] * 50), 60,
+            {0: np.array(range(0, 50)), 1: np.array(range(50, 100)), 2: np.array(range(100, 150))}
+        ),
+    ]
+)
+def test_parc_get_small_communities(
+    request, dataset_name, node_communities, small_community_size, expected_small_communities,
+):
+    x_data, y_data = request.getfixturevalue(dataset_name)
+    parc_model = PARC(x_data=x_data, y_data_true=y_data)
+    small_communities = parc_model.get_small_communities(
+        node_communities=node_communities.copy(),
+        small_community_size=small_community_size
+    )
+    assert len(small_communities) == len(expected_small_communities)
+    for community_id, small_community in small_communities.items():
+        assert len(small_community) <= small_community_size
+        assert np.all(small_community == expected_small_communities[community_id])
+
+
+@pytest.mark.parametrize(
+    (
+        "dataset_name, node_communities, knn, small_communities,"
+        "allow_small_to_small, expected_node_communities"
+    ),
+    [
+        (
+            "iris_data",
+            np.array([0] * 130 + [1] * 20),
+            5,
+            {1: np.array(range(130, 150))},
+            False,
+            np.array([0] * 150)
+        ),
+        (
+            "iris_data",
+            np.array([0] * 50 + [1] * 50 + [2] * 50),
+            5,
+            {0: np.array(range(0, 50)), 1: np.array(range(50, 100)), 2: np.array(range(100, 150))},
+            False,
+            np.array([0] * 50 + [1] * 50 + [2] * 50)
+        ),
+    ]
+)
+def test_parc_reassign_small_communities(
+    request, dataset_name, node_communities, knn, small_communities,
+    allow_small_to_small, expected_node_communities
+):
+    x_data, y_data = request.getfixturevalue(dataset_name)
+    parc_model = PARC(x_data=x_data, y_data_true=y_data)
+    hnsw_index = parc_model.create_hnsw_index(x_data=x_data, knn=knn)
+    neighbor_array, _ = hnsw_index.knn_query(x_data, k=knn)
+    node_communities_reassigned = parc_model.reassign_small_communities(
+        node_communities=node_communities.copy(),
+        small_communities=small_communities,
+        neighbor_array=neighbor_array,
+        allow_small_to_small=allow_small_to_small
+    )
+    np.testing.assert_array_equal(node_communities_reassigned, expected_node_communities)
+
+
+@pytest.mark.parametrize(
+    "dataset_name, node_communities, small_community_size, expected_node_communities",
+    [
+        ("iris_data", np.random.choice([0], 150), 10, np.random.choice([0], 150)),
+        ("iris_data", np.array([0] * 130 + [1] * 20), 50, np.array([0] * 150)),
+        ("iris_data", np.array([0] * 130 + [1] * 20), 10, np.array([0] * 130 + [1] * 20)),
+        ("iris_data", np.array([0] * 50 + [1] * 50 + [2] * 50), 60, None),
+    ]
+)
+@pytest.mark.parametrize(
+    "small_community_timeout",
+    [15]
+)
+@pytest.mark.parametrize(
+    "knn",
+    [5, 10]
+)
+def test_parc_small_community_merging(
+    request, dataset_name, node_communities, small_community_size, expected_node_communities,
+    small_community_timeout, knn
+):
+    x_data, y_data = request.getfixturevalue(dataset_name)
+    parc_model = PARC(x_data=x_data, y_data_true=y_data)
+    hnsw_index = parc_model.create_hnsw_index(x_data=x_data, knn=knn)
+    neighbor_array, _ = hnsw_index.knn_query(x_data, k=knn)
+    node_communities_merged = parc_model.small_community_merging(
+        node_communities=node_communities.copy(),
+        small_community_size=small_community_size,
+        small_community_timeout=small_community_timeout,
+        neighbor_array=neighbor_array
+    )
+    assert len(np.unique(node_communities_merged)) <= len(np.unique(node_communities))
+    assert set(np.unique(node_communities_merged)) <= set(np.unique(node_communities))
+    if expected_node_communities is not None:
+        np.testing.assert_array_equal(node_communities_merged, expected_node_communities)
 
 
 @pytest.mark.parametrize(
