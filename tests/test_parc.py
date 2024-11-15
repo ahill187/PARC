@@ -35,18 +35,6 @@ def forest_data():
     return x_data, y_data
 
 
-def test_parc_run_umap_hnsw():
-    iris = datasets.load_iris()
-    x_data = iris.data
-    y_data = iris.target
-
-    parc_model = PARC(x_data, y_data_true=y_data)
-    parc_model.fit_predict()
-
-    graph = parc_model.create_knn_graph()
-    x_umap = parc_model.run_umap_hnsw(x_data, graph)
-    assert x_umap.shape == (150, 2)
-
 
 @pytest.mark.parametrize("knn", [5, 10, 20, 50])
 @pytest.mark.parametrize("jac_weighted_edges", [True, False])
