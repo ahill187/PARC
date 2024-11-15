@@ -9,7 +9,6 @@ from scipy.sparse import csr_matrix
 import igraph as ig
 import leidenalg
 import time
-from umap.umap_ import find_ab_params, simplicial_set_embedding
 from parc.utils import get_mode
 from parc.logger import get_logger
 
