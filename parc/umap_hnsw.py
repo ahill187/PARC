@@ -73,7 +73,7 @@ def run_umap_hnsw(
     a, b = find_ab_params(spread, min_dist)
     logger.message(f"a: {a}, b: {b}, spread: {spread}, dist: {min_dist}")
 
-    X_umap = simplicial_set_embedding(
+    umap_embedding = simplicial_set_embedding(
         data=x_data,
         graph=graph,
         n_components=n_components,
@@ -92,4 +92,4 @@ def run_umap_hnsw(
         densmap_kwds=densmap_kwds,
         output_dens=output_dens
     )
-    return X_umap[0]
+    return umap_embedding[0]
